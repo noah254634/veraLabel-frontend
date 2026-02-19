@@ -38,8 +38,3 @@ export function AppLayout({
     </div>
   )
 }
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-)
