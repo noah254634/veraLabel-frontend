@@ -4,10 +4,12 @@ import { Link } from "react-router-dom";
 import { PasswordInput } from "./passwordInput";
 import { useAuthStore } from "./useAuthstore";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({email: "", password: ""});
   const { loading, error, login } = useAuthStore();
+  const navigate = useNavigate();
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -20,6 +22,7 @@ const LoginPage = () => {
   try {
     await login(formData);
     console.log("Login successful!");
+    navigate("/admin/"); // Redirect to the dashboard after successful login
   } catch (err) {
     console.error("Login failed:", err);
   }
@@ -99,7 +102,7 @@ const LoginPage = () => {
         <p className="text-center text-sm text-gray-600">
           Don't have an account?{" "}
           <Link
-            to="/"
+            to="/signup"
             className="text-indigo-600 font-bold hover:text-indigo-500"
           >
             Sign up

@@ -22,12 +22,7 @@ const AuthLayout = () => {
         <div className="bg-white/95 backdrop-blur-xl p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20">
           <Outlet />
         </div>
-        
-        {/* Persistent Footer */}
-        <div className="p-x mt-8 flex justify-center gap-6 text-xs font-medium text-white/50 uppercase tracking-widest">
-          <span className="hover:text-white cursor-pointer transition-colors ">© VeraLabel</span>
-          <span className="hover:text-white cursor-pointer transition-colors">Privacy & Terms</span>
-        </div>
+      
       </div>
     </div>
   );

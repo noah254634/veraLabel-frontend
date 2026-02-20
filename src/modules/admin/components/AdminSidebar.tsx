@@ -10,8 +10,10 @@ import {
   FaQuestionCircle,
   FaSignOutAlt,
 } from "react-icons/fa";
+import LogoutButton from "../../auth/logout";
 export const AdminSidebar = () => {
   return (
+
     <nav>
       <NavItem
         to="/admin/dashboard"
@@ -28,7 +30,7 @@ export const AdminSidebar = () => {
       <NavItem to="/admin/users" label="Users" icon={<FaUsers />} />
       <NavItem to="/admin/settings" label="Settings" icon={<FaCog />} />
       <NavItem to="/admin/help" label="Help" icon={<FaQuestionCircle />} />
-      <NavItem to="/admin/logout" label="Logout" icon={<FaSignOutAlt />} />
+      <LogoutButton />
     </nav>
   );
 };

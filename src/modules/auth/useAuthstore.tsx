@@ -44,6 +44,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
   signup: async (credentials) => {
     try {
+      console.log(credentials);
       set({ loading: true, error: null });  
       const response = await signupApi(credentials);
       const user = await response.json();
@@ -54,5 +55,23 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
     }
   },
-  logout: () => set({ user: null, isAuthenticated: false }),
+  logout: async() =>{
+    try{
+      set({loading:true,error:null});
+      const response = await fetch("http://localhost:5000/api/v1/auth/logout",{
+        method:"POST",
+        credentials:"include",
+        });
+        if(!response.ok){
+          const errorData = await response.json().catch(() => null);
+          const errorMessage = errorData?.message || errorData?.error || response.statusText;
+          toast.error(`Logout failed: ${errorMessage}`);
+          throw new Error(errorMessage);
+        }
+      set({ user: null, isAuthenticated: false, loading: false });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
+    }
+  },
 }));
+

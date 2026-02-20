@@ -3,14 +3,20 @@ import { Mail, ArrowRight, User, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PasswordInput } from './passwordInput';
 import { useAuthStore } from './useAuthstore';
-
+import RoleToggle from './RoleToggle';
 const SignupPage = () => {
   const { loading, error, signup } = useAuthStore();
-  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "buyer" });
+  const [role, setRole] = useState<"buyer" | "seller">("buyer");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRoleChange = (role: "buyer" | "seller") => {
+    setRole(role);
+    setFormData((prev) => ({ ...prev, role }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,6 +75,10 @@ const SignupPage = () => {
             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
           />
           <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters long.</p>
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-sm font-semibold text-gray-700">Role</label>
+          <RoleToggle role={role} onChange={handleRoleChange} />
         </div>
 
         {error && (

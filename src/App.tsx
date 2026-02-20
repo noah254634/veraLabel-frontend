@@ -4,8 +4,10 @@ import LoginPage from "./modules/auth/Login";
 import AuthLayout from "./modules/auth/authLayout";
 import SignupPage from "./modules/auth/Signup";
 import { Toaster } from "react-hot-toast";
-import LandingPage from "./modules/auth/landingpage";
+import LandingPage from "./modules/landingPage/pages/LandingPage";
+import ProtectedRoute from "./app/router/ProtectedRoute";
 //import AdminDashboard from "./modules/admin/pages/Dashboard"; // Example page
+const BuyerDashboard = () => <div>Buyer Dashboard</div>; // Placeholder
 
 export const App = () => {
   return (
@@ -38,20 +40,18 @@ export const App = () => {
           },
         }}
       />
+      {/* public routes */}
       <Routes>
-        {/* The Layout acts as a parent to specific pages */}
-        <Route path="/admin" element={<AdminLayout />}>
-          {/* This child component will appear where the <Outlet /> is placed */}
-          <Route index element={<AdminLayout />} />
-          <Route path="users" element={<div>User Management</div>} />
-        </Route>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/" element={<AuthLayout />}>
-          <Route index element={<LandingPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="signup" element={<SignupPage />} />
         </Route>
-        {/*<Route path="/login" element={<LoginPage />} />*/}
-        {/* <Route path="/signup" element={<SignupPage />} />*/}
+        {/* protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="admin/*" element={<AdminLayout />} />
+          <Route path="dashboard/buyer" element={<BuyerDashboard />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

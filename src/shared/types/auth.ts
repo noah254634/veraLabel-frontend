@@ -7,6 +7,7 @@ export type RegisterData = {
     username: string
     email: string
     password: string
+    role: string
 }
 export type AuthResponse = {
     token: string
