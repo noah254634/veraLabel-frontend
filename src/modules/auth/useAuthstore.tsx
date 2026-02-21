@@ -41,6 +41,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
       throw err;
     }
+    finally {
+      set({ loading: false });
+    }
   },
   signup: async (credentials) => {
     try {

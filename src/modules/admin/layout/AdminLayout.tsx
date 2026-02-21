@@ -4,7 +4,7 @@ import { AdminSidebar } from "../components/AdminSidebar"
 
 export function AdminLayout() {
   return (
-    <AppLayout showSidebar={true} sidebar={<AdminSidebar />}>
+    <AppLayout sidebar={<AdminSidebar />}>
       <Outlet />
     </AppLayout>
   )

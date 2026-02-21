@@ -6,7 +6,7 @@ import SignupPage from "./modules/auth/Signup";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./modules/landingPage/pages/LandingPage";
 import ProtectedRoute from "./app/router/ProtectedRoute";
-//import AdminDashboard from "./modules/admin/pages/Dashboard"; // Example page
+import AdminDashboard from "./modules/admin/pages/Dashboard";
 const BuyerDashboard = () => <div>Buyer Dashboard</div>; // Placeholder
 
 export const App = () => {
@@ -49,8 +49,13 @@ export const App = () => {
         </Route>
         {/* protected routes */}
         <Route element={<ProtectedRoute />}>
-          <Route path="admin/*" element={<AdminLayout />} />
-          <Route path="dashboard/buyer" element={<BuyerDashboard />} />
+          <Route path="admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} /> {/* admin/ */}
+            <Route path="dashboard" element={<AdminDashboard />} />{" "}
+            {/* admin/dashboard */}
+            <Route path="dashboard/buyer" element={<BuyerDashboard />} />{" "}
+            {/* admin/dashboard/buyer */}
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

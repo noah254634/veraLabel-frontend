@@ -9,5 +9,6 @@ export type Dataset = {
     datasetId:string;
     isPublished:boolean;
     isPrivate:boolean;
+    category:string;
     // Add more fields as needed
 };

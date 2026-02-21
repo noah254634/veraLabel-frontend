@@ -1,4 +1,5 @@
 import React from "react";
+import AdminDashboard from "../pages/Dashboard";
 import { NavItem } from "../../../shared/components/navigation/NavItem";
 import {
   FaTachometerAlt,
