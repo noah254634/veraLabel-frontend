@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { User } from "../../shared/types/user";
 import { loginApi,signupApi, type LoginCredentials,type SignupCredentials} from "./authApi";
 import {toast} from "react-hot-toast";
+import { api } from "../../shared/types/api";
 type AuthStore = {
   user: User | null;
   isAuthenticated: boolean;
@@ -13,6 +14,7 @@ type AuthStore = {
   logout: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  forgotPassword:()=>Promise<string>
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -20,7 +22,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isAuthenticated: false,
   loading: false,
   error: null,
-
+  forgotPassword:async():Promise<string>=>{
+    const response=await api.get("/auth/forgotPassword")
+    return response.data
+  },
   setUser: (user) => set({ user, isAuthenticated: true }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),

@@ -7,7 +7,9 @@ import { Toaster } from "react-hot-toast";
 import LandingPage from "./modules/landingPage/pages/LandingPage";
 import ProtectedRoute from "./app/router/ProtectedRoute";
 import AdminDashboard from "./modules/admin/pages/Dashboard";
+import DatasetAdminPage from "./modules/admin/pages/Datasets";
 const BuyerDashboard = () => <div>Buyer Dashboard</div>; // Placeholder
+import { AdminRoutes } from "./modules/admin/routes";
 
 export const App = () => {
   return (
@@ -48,15 +50,10 @@ export const App = () => {
           <Route path="signup" element={<SignupPage />} />
         </Route>
         {/* protected routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} /> {/* admin/ */}
-            <Route path="dashboard" element={<AdminDashboard />} />{" "}
-            {/* admin/dashboard */}
-            <Route path="dashboard/buyer" element={<BuyerDashboard />} />{" "}
-            {/* admin/dashboard/buyer */}
-          </Route>
+        <Route element={<ProtectedRoute />}>  
+        {AdminRoutes}
         </Route>
+       
       </Routes>
     </BrowserRouter>
   );

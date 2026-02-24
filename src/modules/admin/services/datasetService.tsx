@@ -6,7 +6,7 @@ export const datasetService = {
            return response.data;   
   },
   fetchDatasets: async (): Promise<Dataset[]> => {
-    const response = await api.get("/datasets");
+    const response = await api.get("/datasets/allDatasets");
     if (response.status !==200) {
       throw new Error("Failed to fetch datasets");
     }
@@ -16,49 +16,49 @@ export const datasetService = {
   getDataset: async (): Promise<Dataset[] | null> => {
     return null;
   },
-  deleteDataset: async (id: string,reason:string): Promise<void> => {
-    const response = await api.delete(`/datasets/delete/${id}`,{data:{reason:reason}});
+  deleteDataset: async (id: string,reason:string): Promise<any> => {
+    const response = await api.delete(`admin/datasets/delete/${id}`,{data:{reason:reason}});
     return response.data;
   },
   addDataset: async (): Promise<void> => {},
   publishDataset: async (): Promise<void> => {
-    const response = await api.post("/publish");
+    const response = await api.post("admin/datasets/publish");
     return response.data;
   },
   unpublishDataset: async (id:string,reason:string): Promise<void> => {
-    const response = await api.post(`datasets/unpublish/${id}`,{reason:reason});
+    const response = await api.post(`admin/datasets/unpublish/${id}`,{reason:reason});
     return response.data;
   },
   getDatasetById: async (id:string): Promise<Dataset | null> => {
-    const response=await api.get(`/datasets/getById/${id}`);
+    const response=await api.get(`admindatasets/getById/${id}`);
     return response.data;
   },
-  publishDatasetById: async (id: string): Promise<void> => {
-    const response = await api.post(`/publish/${id}`);
+  publishDatasetById: async (id: string): Promise<any> => {
+    const response = await api.post(`admin/datasets/publish/${id}`);
     return response.data;
   },
-  unpublishDatasetById: async (id: string, reason: string): Promise<void> => {
-    const response=await api.post(`/unpublish/${id}`);
+  unpublishDatasetById: async (id: string, reason: string): Promise<any> => {
+    const response=await api.post(`admin/datasets/unpublish/${id}`, { reason });
     return response.data 
   },
-  rateDataset: async (rate: number,id:string): Promise<void> => {
-    const response = await api.post(`/rateDataset/${id}`, { rate });
+  rateDataset: async (rate: number,id:string): Promise<any> => {
+    const response = await api.post(`admin/datasets/rateDataset/${id}`, { rate });
     return response.data;
   },
-  approveDatasetById: async (id: string): Promise<void> => {
-    const response = await api.post(`/approve/${id}`);
+  approveDatasetById: async (id: string): Promise<any> => {
+    const response = await api.post(`admin/datasets/${id}/approve`);
     return response.data;
   },
-  rejectDataset: async (id:string,reason:string): Promise<void> => {
-    const response=await api.post(`/rejectDataset/${id}`,{reason:reason})
+  rejectDataset: async (id:string,reason:string): Promise<any> => {
+    const response=await api.post(`admin/datasets/${id}/reject`,{reason:reason})
     return response.data;
   },
   getDatasetByCategory: async (category:string): Promise<Dataset[] | null> => {
-    const response=await api.get(`/datasets/category/${category}`);
+    const response=await api.get(`admin/datasets/category/${category}`);
     return response.data;
   },
   getDatasetByUser: async (email:string): Promise<Dataset[] | null> => {
-    const response=await api.get(`/datasets/user/${email}`);
+    const response=await api.get(`admin/user/${email}`);
     return response.data;
   },
 };

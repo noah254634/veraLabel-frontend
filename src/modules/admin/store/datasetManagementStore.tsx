@@ -2,13 +2,13 @@ import toast from "react-hot-toast";
 import type { Dataset } from "../../../shared/types/dataset";
 import { datasetService } from "../services/datasetService";
 import { create } from "zustand";
-import { data } from "react-router-dom";
+import axios from "axios";
 type DatasetStore = {
   error: string | null;
   setError: (error: string | null) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
-  dataset: Dataset[];
+  datasets: Dataset[];
   setDatasets: (datasets: Dataset[]) => Promise<void>;
   getDataset: () => Promise<Dataset[] | null>;
   deleteDataset: (id: string, reason: string) => Promise<void>;
@@ -24,29 +24,45 @@ type DatasetStore = {
   getDatasetByUser: (datasetOwner: string) => Promise<Dataset[] | null>;
   getDatasetById: (id: string) => Promise<Dataset | null>;
 };
-export const dataStore = create<DatasetStore>((set) => ({
+export const dataStore = create<DatasetStore>((set, get) => ({
   error: null,
   setError: (error: string | null) => set({ error }),
   loading: false,
   setLoading: (loading: boolean) => set({ loading }),
-  dataset: [],
-  setDatasets: async (dataset: Dataset[]) => set({ dataset }),
+  datasets: [],
+  setDatasets: async (datasets: Dataset[]) => set({ datasets }),
   getDataset: async () => {
     try {
+      set({ loading: true });
       const datasets = await datasetService.fetchDatasets();
-      set({ dataset: datasets });
+      set({ datasets: datasets });
+      console.log(datasets)
       return datasets;
     } catch (error) {
-      toast.error("Something went wrong");
+      const errorMessage =
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : error instanceof Error
+            ? error.message
+            : "Something went wrong";
+      toast.error(`Something went wrong:${errorMessage}`);
+      set({ error: errorMessage });
       return null;
+    } finally {
+      set({ loading: false });
     }
   },
   deleteDataset: async (id: string, reason: string) => {
+    const previousDatasets = get().datasets;
     try {
       set({ loading: true });
       await datasetService.deleteDataset(id, reason);
+      set({
+        datasets: get().datasets.filter((dataset) => dataset._id !== id),
+      });
       toast.success("Dataset deleted successfully");
     } catch (err) {
+      set({ datasets: previousDatasets });
       toast.error("Something went wrong");
     } finally {
       set({ loading: false });
@@ -56,53 +72,165 @@ export const dataStore = create<DatasetStore>((set) => ({
   publishDataset: async () => {},
   unpublishDataset: async () => {},
   publishDatasetById: async (id: string) => {
+    const previousDataset = get().datasets.find((dataset) => dataset._id === id);
     try {
       set({ loading: true });
-      await datasetService.publishDatasetById(id);
+      const response = await datasetService.publishDatasetById(id);
+      const updatedDataset = response?.dataset || response;
+      if (updatedDataset?._id) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, ...updatedDataset } : dataset
+          ),
+        });
+      } else {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, isPublished: true } : dataset
+          ),
+        });
+      }
       toast.success("Dataset published successfully");
     } catch (err) {
+      if (previousDataset) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? previousDataset : dataset
+          ),
+        });
+      }
       toast.error("Something went wrong");
     } finally {
       set({ loading: false });
     }
   },
   unpublishDatasetById: async (id: string, reason: string) => {
+    const previousDataset = get().datasets.find((dataset) => dataset._id === id);
     try {
       set({ loading: true });
-      await datasetService.unpublishDatasetById(id, reason);
+      const response = await datasetService.unpublishDatasetById(id, reason);
+      const updatedDataset = response?.dataset || response;
+      if (updatedDataset?._id) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, ...updatedDataset } : dataset
+          ),
+        });
+      } else {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, isPublished: false } : dataset
+          ),
+        });
+      }
       toast.success("Dataset unpublished successfully");
-  }catch(err){
-    toast.error("Something went wrong");
-  }finally{
-    set({loading:false});
-  }
+    } catch (err) {
+      if (previousDataset) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? previousDataset : dataset
+          ),
+        });
+      }
+      toast.error("Something went wrong");
+    } finally {
+      set({ loading: false });
+    }
   },
   rateDataset: async (id: string, rate: number) => {
+    const previousDataset = get().datasets.find((dataset) => dataset._id === id);
     try {
       set({ loading: true });
-      await datasetService.rateDataset(rate, id);
+      const response = await datasetService.rateDataset(rate, id);
+      const updatedDataset = response?.dataset || response;
+      if (updatedDataset?._id) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, ...updatedDataset } : dataset
+          ),
+        });
+      } else {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, rating: rate } : dataset
+          ),
+        });
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message:"Something went wrong";
+      if (previousDataset) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? previousDataset : dataset
+          ),
+        });
+      }
+      const errorMessage =
+        err instanceof Error ? err.message : "Something went wrong";
       toast.error(errorMessage);
     } finally {
       set({ loading: false });
     }
   },
   approveDataset: async (id: string) => {
+    const previousDataset = get().datasets.find((dataset) => dataset._id === id);
     try {
       set({ loading: true });
-      await datasetService.approveDatasetById(id);
-
-  }catch(err){}finally{
-    set({loading:false});
-  }
+      const response = await datasetService.approveDatasetById(id);
+      const updatedDataset = response?.dataset || response;
+      if (updatedDataset?._id) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, ...updatedDataset } : dataset
+          ),
+        });
+      } else {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, status: "approved" } : dataset
+          ),
+        });
+      }
+    } catch (err) {
+      if (previousDataset) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? previousDataset : dataset
+          ),
+        });
+      }
+      toast.error("Something went wrong");
+    } finally {
+      set({ loading: false });
+    }
   },
   rejectDataset: async (id: string, reason: string) => {
+    const previousDataset = get().datasets.find((dataset) => dataset._id === id);
     try {
       set({ loading: true });
-      await datasetService.rejectDataset(id, reason);
+      const response = await datasetService.rejectDataset(id, reason);
+      const updatedDataset = response?.dataset || response;
+      if (updatedDataset?._id) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, ...updatedDataset } : dataset
+          ),
+        });
+      } else {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? { ...dataset, status: "rejected" } : dataset
+          ),
+        });
+      }
       toast.success("Dataset rejected successfully");
     } catch (err) {
+      if (previousDataset) {
+        set({
+          datasets: get().datasets.map((dataset) =>
+            dataset._id === id ? previousDataset : dataset
+          ),
+        });
+      }
       toast.error("Something went wrong");
     } finally {
       set({ loading: false });
@@ -115,7 +243,7 @@ export const dataStore = create<DatasetStore>((set) => ({
       const filteredDatasets = datasets.filter(
         (dataset) => dataset.category === category,
       );
-      set({ dataset: filteredDatasets });
+      set({ datasets: filteredDatasets });
       return filteredDatasets;
     } catch (error) {
       toast.error("Something went wrong");
@@ -131,7 +259,7 @@ export const dataStore = create<DatasetStore>((set) => ({
       const filteredDatasets = datasets.filter(
         (dataset) => dataset.datasetOwner === datasetOwner,
       );
-      set({ dataset: filteredDatasets });
+      set({ datasets: filteredDatasets });
       return filteredDatasets;
     } catch (error) {
       const errorMessage =
@@ -147,8 +275,8 @@ export const dataStore = create<DatasetStore>((set) => ({
     try {
       set({ loading: true });
       const datasets = await datasetService.fetchDatasetById(id);
-      set({ dataset: datasets ? [datasets] : [] });
-      if(datasets === null){
+      set({ datasets: datasets ? [datasets] : [] });
+      if (datasets === null) {
         toast.error("Dataset not found");
         return null;
       }

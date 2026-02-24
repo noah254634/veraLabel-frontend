@@ -67,13 +67,14 @@ const SignupPage = () => {
         {/* Password Field */}
         <div className="space-y-1.5">
           <label className="block text-sm font-semibold text-gray-700">Password</label>
-          <PasswordInput 
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="••••••••" 
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-          />
+           <PasswordInput
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+                    />
           <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters long.</p>
         </div>
         <div className="space-y-1.5">

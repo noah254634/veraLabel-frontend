@@ -67,7 +67,7 @@ const LoginPage = () => {
             </label>
 
             <Link
-              to="/forgot-password"
+              to="/login"
               className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
             >
               Forgot?

@@ -1,5 +1,5 @@
-export type Dataset = {
-    id: number;
+export interface Dataset{
+    _id: number;
     name: string;
     description: string;
     createdAt: string;
@@ -9,6 +9,8 @@ export type Dataset = {
     datasetId:string;
     isPublished:boolean;
     isPrivate:boolean;
+    rating?: number;
+    status?: string;
     category:string;
     // Add more fields as needed
 };

@@ -1,19 +1,18 @@
-import React, { useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import React from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../modules/auth/useAuthstore";
 
 const ProtectedRoute = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const location = useLocation();
+  const { isAuthenticated, user } = useAuthStore();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-  // While redirecting, you can render null or a loading spinner
-  if (!isAuthenticated) return null;
+  if (location.pathname.startsWith("/admin") && user?.role !== "admin") {
+    return <Navigate to="/" replace />;
+  }
 
   // Render the children (the protected component)
   return <Outlet />;

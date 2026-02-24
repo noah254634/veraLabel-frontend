@@ -27,7 +27,7 @@ const AdminDashboard = () => {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-indigo-500">Welcome {user?.name || 'Admin'}!</h1>
+          <h1 className="text-3xl font-bold text-indigo-500">Welcome commander {user?.name || 'Admin'}!</h1>
           <p className="text-slate-500 font-medium">Here is what's happening in your system today.</p>
         </div>
         <div className="flex gap-3">
