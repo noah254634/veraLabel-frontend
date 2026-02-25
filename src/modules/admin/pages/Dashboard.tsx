@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { analyticsStore } from '../store/analyticsStore';
 import { 
   LineChart, Line, AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar 
@@ -19,9 +20,13 @@ const qualityData = [
   { name: 'Sat', accuracy: 95, disputes: 4 },
   { name: 'Sun', accuracy: 98, disputes: 1 },
 ];
-
 const AdminDashboard = () => {
     const { user } = useAuthStore();
+    const { getAnalytics, overview } = analyticsStore();
+
+    useEffect(() => {
+      getAnalytics();
+    }, [getAnalytics]);
   return (
     <div className="min-h-screen bg-gray-950 p-6 space-y-8 font-sans">
       {/* Header Area */}
@@ -43,9 +48,14 @@ const AdminDashboard = () => {
       {/* Primary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard icon={<ShieldCheck className="text-emerald-500" />} label="Avg. Accuracy" value="96.2%" trend="+2.4%" />
-        <StatCard icon={<Database className="text-blue-500" />} label="Total Labels" value="1.2M" trend="+18k" />
-        <StatCard icon={<Users className="text-indigo-500" />} label="Active Annotators" value="4,829" trend="+120" />
-        <StatCard icon={<AlertCircle className="text-rose-500" />} label="Pending Disputes" value="24" trend="-5" isNegative />
+        <StatCard icon={<Database className="text-blue-500" />} label="Total Datasets" value={(overview?.datasets.total ?? 0).toString()} trend={`+${(overview?.datasets.pending ?? 0)}` }/>
+        <StatCard
+          icon={<Users className="text-indigo-500" />}
+          label="Total Users"
+          value={(overview?.users.total ?? 0).toString()}
+          trend={`+${overview?.users.newThisMonth ?? 0}`}
+        />
+        <StatCard icon={<AlertCircle className="text-rose-500" />} label="Pending Disputes" value="24" trend={`-${(overview?.datasets.pending ?? 0)}`} isNegative />
       </div>
 
       {/* Main Content Area */}

@@ -5,6 +5,7 @@ import AuthLayout from "./modules/auth/authLayout";
 import SignupPage from "./modules/auth/Signup";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./modules/landingPage/pages/LandingPage";
+import HelpPage from "./modules/landingPage/components/help";
 import ProtectedRoute from "./app/router/ProtectedRoute";
 import AdminDashboard from "./modules/admin/pages/Dashboard";
 import DatasetAdminPage from "./modules/admin/pages/Datasets";
@@ -45,6 +46,7 @@ export const App = () => {
       {/* public routes */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="/" element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />

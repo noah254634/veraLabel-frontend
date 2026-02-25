@@ -7,18 +7,18 @@ import {
 
 const HelpPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
-
+{/*max-w-6xl mx-0 space-y-12 p-20 bg-gray-500*/}
   return (
-    <div className="max-w-6xl mx-auto space-y-12 pb-20">
+    <div className="mmax-w-6xl mx-auto space-y-12 p-12 bg-gray-950 shadow-lg ">
       {/* --- HERO SEARCH SECTION --- */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-12 text-center text-white shadow-2xl shadow-indigo-200">
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-12 text-center text-white ">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
             <div className="absolute -top-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl"></div>
             <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-400 rounded-full blur-3xl"></div>
         </div>
 
         <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 bg-indigo-500/30 px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border border-indigo-400/30">
+          <div className="inline-flex items-center gap-2 bg-indigo-500/30 px-4 py-1.5 rounded-full text-xs font-bold border  backdrop-blur-md border-indigo-400/30">
             <Sparkles size={14} className="text-amber-300" />
             VeraLabel Intelligent Support
           </div>
@@ -65,7 +65,7 @@ const HelpPage = () => {
         {/* LEFT: TRENDING TOPICS & FAQ */}
         <div className="lg:col-span-2 space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black text-slate-900">Popular Resources</h2>
+            <h2 className="text-2xl font-bold text-white">Popular Resources</h2>
             <button className="text-indigo-600 font-bold text-sm hover:underline">See all articles</button>
           </div>
 

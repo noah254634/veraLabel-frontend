@@ -1,13 +1,13 @@
 export  type User = {
     rating: number;
-    isVerified: any;
+    isVerified: boolean;
     trustScore: number;
     isSuspended:{
         status:boolean;
         reason:string;
     };
     status: string | undefined;
-    createdAt: any;
+    createdAt: string; // Or Date, if you parse it
     _id: string
     role: string
     name: string

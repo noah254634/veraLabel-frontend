@@ -73,43 +73,43 @@ export const UserService = {
 
     },
     getUserById:async(id:string):Promise<User>=>{
-        const response=await api.get(`admin/${id}/users/`)
+        const response=await api.get(`admin/${encodeURIComponent(id)}/users/`)
         return response.data
 
 
     },
     getUserByEmail:async(email:string):Promise<User[]>=>{
-        const response=await api.get(`admin/users/${email}/email`)
+        const response=await api.get(`admin/users/${encodeURIComponent(email)}/email`)
         return response.data
 
 
 
     },
     getUserByUsername:async(username:string):Promise<User[]>=>{
-        const response=await api.get(`admin/users/${username}/username`)
+        const response=await api.get(`admin/users/${encodeURIComponent(username)}/username`)
         return response.data
 
 
 
     },
     getUserByRole:async(role:string):Promise<User[]>=>{
-        const response=await api.get(`admin/users/${role}/role`)
+        const response=await api.get(`admin/users/${encodeURIComponent(role)}/role`)
         return response.data
 
 
     },
     getUserByStatus:async(status:string):Promise<User[]>=>{
-        const response=await api.get(`admin/users/${status}/status`)
+        const response=await api.get(`admin/users/${encodeURIComponent(status)}/status`)
         return response.data
 
     },
     getUserByCountry:async(country:string):Promise<User[]>=>{
-        const response=await api.get(`admin/users/${country}/country`)
+        const response=await api.get(`admin/users/${encodeURIComponent(country)}/country`)
         return response.data
 
     },
     getUserByCity:async(city:string)=>{
-        const response=await api.get(`admin/users/${city}/city`)
+        const response=await api.get(`admin/users/${encodeURIComponent(city)}/city`)
         return response.data
 
 

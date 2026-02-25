@@ -25,8 +25,11 @@ export const loginApi = async (credentials: LoginCredentials) => {
       const errorData = await response.json().catch(() => null);
       const errorMessage =
         errorData?.message || errorData?.error || response.statusText;
-      toast.error(`Login failed: ${errorMessage}`, { duration: 3000 });
-      throw new Error(errorMessage);
+      // Log the specific error for internal debugging, but don't expose it to the user.
+      console.error("Login API error:", errorMessage);
+      const genericErrorMessage = "Invalid credentials provided.";
+      toast.error(`Login failed: ${genericErrorMessage}`, { duration: 3000 });
+      throw new Error(genericErrorMessage);
     }
     
     return response;
@@ -48,8 +51,11 @@ export const signupApi = async (credentials: SignupCredentials) => {
       const errorData = await response.json().catch(() => null);
       const errorMessage =
         errorData?.message || errorData?.error || response.statusText;
-      toast.error(`Signup failed: ${errorMessage}`, { duration: 3000 });
-      throw new Error(errorMessage);
+      // Log the specific error for internal debugging.
+      console.error("Signup API error:", errorMessage);
+      const genericErrorMessage = "Could not create account. Please check your details and try again.";
+      toast.error(`Signup failed: ${genericErrorMessage}`, { duration: 3000 });
+      throw new Error(genericErrorMessage);
     }
     return response;
   } catch (error) {
