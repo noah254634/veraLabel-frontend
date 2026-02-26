@@ -22,7 +22,10 @@ const LoginPage = () => {
   try {
     await login(formData);
     console.log("Login successful!");
-    navigate("/admin/"); // Redirect to the dashboard after successful login
+    const user = useAuthStore.getState().user;
+    if ((user?.role as string) === "admin") navigate("/admin");
+    else if ((user?.role as string) === "Labeler") navigate("/buyer");
+    else navigate("/labeler");
   } catch (err) {
     console.error("Login failed:", err);
   }

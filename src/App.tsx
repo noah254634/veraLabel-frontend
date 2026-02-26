@@ -11,8 +11,9 @@ import AdminDashboard from "./modules/admin/pages/Dashboard";
 import DatasetAdminPage from "./modules/admin/pages/Datasets";
 const BuyerDashboard = () => <div>Buyer Dashboard</div>; // Placeholder
 import { AdminRoutes } from "./modules/admin/routes";
-
+import BuyerRoutes from "./modules/buyer/routes";
 export const App = () => {
+ 
   return (
     <BrowserRouter>
       <Toaster
@@ -20,7 +21,7 @@ export const App = () => {
         toastOptions={{
           duration: 1000,
           style: {
-            background: "rgba(242, 249, 241, 0.9)", // Match your dark background      color: '#0a2540',
+            background: "rgba(242, 249, 241, 0.9)", // 
             boxShadow:
               "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
             borderRadius: "12px",
@@ -54,6 +55,7 @@ export const App = () => {
         {/* protected routes */}
         <Route element={<ProtectedRoute />}>  
         {AdminRoutes}
+        <Route path="buyer/*" element={<BuyerRoutes />} />
         </Route>
        
       </Routes>

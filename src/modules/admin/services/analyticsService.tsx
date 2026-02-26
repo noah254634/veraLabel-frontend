@@ -14,6 +14,8 @@ export type AnalyticsOverview = {
   }
   revenue: {
     thisMonth: number
+    netWorth: number
+    
   }
 }
 

@@ -26,12 +26,12 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20">
+    <div className="lg:pb-20 space-y-8 ">
       {/* Header with Save State */}
-      <div className="flex justify-between items-center sticky top-0 bg-slate-50/80 backdrop-blur-md py-4 z-20">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900">System Configuration</h1>
-          <p className="text-slate-500 text-sm font-medium">Configure global marketplace physics and governance.</p>
+      <div className="flex p-3xl  justify-between items-center sticky top-0 bg-gray-900 backdrop-blur-md rounded-2xl py-4 z-20">
+        <div className=' py-2 px-3'>
+          <h1 className="text-3xl font-bold text-white-900 tracking-tight pb-1 ">System Configuration</h1>
+          <p className="text-white-100  900 text-sm font-sm ">Configure global marketplace physics and governance.</p>
         </div>
         
         {isDirty && (

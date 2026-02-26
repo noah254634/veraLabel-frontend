@@ -19,9 +19,26 @@ type AuthStore = {
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
+
   isAuthenticated: false,
   loading: false,
   error: null,
+  checkAuth: async () => {
+    try {
+      set({ loading: true });
+      const response = await fetch("http://localhost:5000/api/v1/auth/check-auth", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Not authenticated");
+      }
+      const data = await response.json();
+      set({ user: data.user, isAuthenticated: true, loading: false });
+    } catch (error) {
+      set({ user: null, isAuthenticated: false, loading: false });
+    }
+  },
+
   forgotPassword:async():Promise<string>=>{
     const response=await api.get("/auth/forgotPassword")
     return response.data
@@ -82,4 +99,3 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 }));
-

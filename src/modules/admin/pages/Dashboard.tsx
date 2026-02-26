@@ -6,7 +6,9 @@ import {
 } from 'recharts';
 import { 
   ShieldCheck, AlertCircle, Users, Database, 
-  TrendingUp, ArrowUpRight, CheckCircle2, Clock 
+  TrendingUp, ArrowUpRight, CheckCircle2, Clock, DollarSign, Activity,Receipt,
+  Star, ThumbsUp, ThumbsDown, ShieldAlert, Unlock, UserCheck, UserX,
+  
 } from 'lucide-react';
 import { useAuthStore } from '../../auth/useAuthstore';
 
@@ -20,6 +22,25 @@ const qualityData = [
   { name: 'Sat', accuracy: 95, disputes: 4 },
   { name: 'Sun', accuracy: 98, disputes: 1 },
 ];
+
+// Mock data for Revenue
+const revenueData = [
+  { name: 'Mon', revenue: 4500 },
+  { name: 'Tue', revenue: 5200 },
+  { name: 'Wed', revenue: 4800 },
+  { name: 'Thu', revenue: 6100 },
+  { name: 'Fri', revenue: 5500 },
+  { name: 'Sat', revenue: 6700 },
+  { name: 'Sun', revenue: 7200 },
+];
+
+const recentActivity = [
+  { user: "Alex D.", action: "submitted dataset", target: "Urban LiDAR v2", time: "2 min ago" },
+  { user: "Sarah M.", action: "raised dispute", target: "Medical MRI", time: "15 min ago" },
+  { user: "System", action: "auto-banned", target: "Bot_User_99", time: "1 hr ago" },
+  { user: "Admin", action: "approved", target: "Retail Sentiment", time: "2 hrs ago" },
+];
+
 const AdminDashboard = () => {
     const { user } = useAuthStore();
     const { getAnalytics, overview } = analyticsStore();
@@ -55,7 +76,8 @@ const AdminDashboard = () => {
           value={(overview?.users.total ?? 0).toString()}
           trend={`+${overview?.users.newThisMonth ?? 0}`}
         />
-        <StatCard icon={<AlertCircle className="text-rose-500" />} label="Pending Disputes" value="24" trend={`-${(overview?.datasets.pending ?? 0)}`} isNegative />
+        <StatCard icon={<AlertCircle className="text-rose-500" />} label="Pending Disputes" value="24" trend={`-${overview?.datasets.pending ?? 0}`} isNegative />
+        <StatCard icon={<TrendingUp className="text-indigo-500" />} label='Todays Join' value={(overview?.users.newToday ?? 0).toString()} trend={`+${overview?.users.newToday ?? 0}`} />
       </div>
 
       {/* Main Content Area */}
@@ -107,6 +129,51 @@ const AdminDashboard = () => {
           </button>
         </div>
 
+      </div>
+
+      {/* Secondary Content Area: Revenue & Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Revenue Chart */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+               <DollarSign className="text-emerald-500" size={20}/> Platform Revenue (USD)
+            </h3>
+          </div>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Live Activity Feed */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2">
+                <Activity className="text-blue-500" size={20}/> Live Feed
+            </h3>
+            <div className="space-y-6">
+                {recentActivity.map((item, i) => (
+                    <div key={i} className="flex gap-4 items-start">
+                        <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold shrink-0">
+                            {item.user[0]}
+                        </div>
+                        <div>
+                            <p className="text-sm text-slate-800">
+                                <span className="font-bold">{item.user}</span> {item.action} <span className="font-medium text-indigo-600">{item.target}</span>
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">{item.time}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
       </div>
     </div>
   );

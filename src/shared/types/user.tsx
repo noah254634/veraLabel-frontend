@@ -1,4 +1,5 @@
-export  type User = {
+type Role = 'Admin' | 'Labeler' | 'Reviewer';
+export interface User {
     rating: number;
     isVerified: boolean;
     trustScore: number;
@@ -9,7 +10,7 @@ export  type User = {
     status: string | undefined;
     createdAt: string; // Or Date, if you parse it
     _id: string
-    role: string
+    role: Role
     name: string
     email: string
     balance: number

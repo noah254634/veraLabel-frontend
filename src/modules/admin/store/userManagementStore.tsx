@@ -69,7 +69,7 @@ const useStore = create<AdminStore>((set, get) => ({
       } else {
         set({
           users: get().users.map((user) =>
-            user._id === id ? { ...user, role: "admin" } : user,
+            user._id === id ? { ...user, role: "Admin" } : user,
           ),
         });
       }

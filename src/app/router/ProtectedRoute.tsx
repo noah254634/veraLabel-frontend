@@ -10,9 +10,15 @@ const ProtectedRoute = () => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (location.pathname.startsWith("/admin") && user?.role !== "admin") {
+  if (location.pathname.startsWith("/admin") && (user?.role as string) !== "admin") {
     return <Navigate to="/" replace />;
   }
+  if (location.pathname.startsWith("/buyer") && (user?.role as string) !== "Labeler") {
+    return <Navigate to="/" replace />;
+  }
+if (location.pathname.startsWith("/labeller") && (user?.role as string) !== "Labeler") {
+  return <Navigate to="/" replace />;
+}
 
   // Render the children (the protected component)
   return <Outlet />;

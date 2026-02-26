@@ -360,7 +360,7 @@ const AdminUserModule = () => {
               onChange={(e) => setSearchType(e.target.value)}
               className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-400 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer "
             >
-              <option value="" disabled selected>
+              <option value="" disabled selected hidden>
                 Sort by
               </option>
               <option value="username">Username</option>
@@ -372,6 +372,7 @@ const AdminUserModule = () => {
               <option value="suspended">Suspended</option>
               <option value="blocked">Blocked</option>
               <option value="rating">Rating</option>
+              <option value="ID">Id</option>
             </select>
             <div className="relative">
               <button
@@ -465,7 +466,7 @@ const ActionBtn = ({
   variant,
 }: {
   label: string;
-  icon: React.ReactNode;
+  icon: React.ReactElement<LucideProps>;
   onClick: () => void;
   variant: string;
 }) => {
@@ -487,7 +488,7 @@ const ActionBtn = ({
       onClick={onClick}
       className={`flex items-center justify-center gap-2 py-3.5 px-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${themes[variant]}`}
     >
-      {React.cloneElement(icon as React.ReactElement, { size: 16 })} {label}
+      {React.cloneElement(icon, { size: 16 })} {label}
     </button>
   );
 };
