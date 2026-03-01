@@ -1,9 +1,12 @@
 /**
  * 2️⃣ DatasetCard.tsx
- * A marketplace listing card for browsing datasets.
+ * High-end Dark Theme Card with Portal-fixed Modal.
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
+import { ShieldCheck, Star, ArrowRight, BarChart3, FileJson } from 'lucide-react';
+import QuickCheckoutModal from './QuickCheckOutModal';
 
 interface DatasetCardProps {
   id: string;
@@ -15,7 +18,6 @@ interface DatasetCardProps {
   totalReviews: number;
   tags: string[];
   onView: (id: string) => void;
-  onAddToCart: (id: string) => void;
 }
 
 const DatasetCard: React.FC<DatasetCardProps> = ({
@@ -27,73 +29,102 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   rating,
   totalReviews,
   tags,
-  onView,
-  onAddToCart,
 }) => {
+  const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
+
   const formattedPrice = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
+    maximumFractionDigits: 0,
   }).format(price);
 
   return (
-    <div className="group flex flex-col h-full bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="p-5 flex-1">
-        <div className="flex flex-wrap gap-2 mb-3">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-md"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+    <>
+      <div className="group relative flex flex-col h-full bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-[2rem] overflow-hidden transition-all duration-500 hover:border-indigo-500/50 hover:shadow-[0_20px_50px_rgba(79,70,229,0.15)] hover:-translate-y-1">
+        
+        {/* Top Gloss Accent Line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-500/50 to-transparent" />
 
-        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-          {title}
-        </h3>
-
-        <p className="text-gray-600 text-sm line-clamp-3 mb-4 leading-relaxed">
-          {description}
-        </p>
-
-        <div className="flex items-center mb-4">
-          <div className="flex items-center text-yellow-500 mr-2">
-            {[...Array(5)].map((_, i) => (
-              <svg
-                key={i}
-                className={`w-4 h-4 ${i < Math.floor(rating) ? 'fill-current' : 'text-gray-300'}`}
-                viewBox="0 0 20 20"
-              >
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            ))}
+        <div className="p-7 flex-1">
+          {/* Header Metadata */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex gap-2">
+              {tags.slice(0, 1).map((tag) => (
+                <span key={tag} className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[10px] font-bold text-emerald-400 uppercase tracking-tight">
+              <ShieldCheck size={12} />
+              Verified
+            </div>
           </div>
-          <span className="text-xs text-gray-500">({totalReviews})</span>
+
+          <h3 className="text-2xl font-black text-white mb-3 group-hover:text-indigo-400 transition-colors leading-tight">
+            {title}
+          </h3>
+
+          <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed mb-6 font-medium">
+            {description}
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase">
+              <BarChart3 size={14} className="text-indigo-500" />
+              <span>1.2M Rows</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase">
+              <FileJson size={14} className="text-indigo-500" />
+              <span>JSON/CSV</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 py-4 border-t border-slate-800/50">
+            <div className="flex items-center text-amber-400">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i} 
+                  size={12} 
+                  fill={i < Math.floor(rating) ? "currentColor" : "none"} 
+                  className={i < Math.floor(rating) ? "text-amber-400" : "text-slate-700"}
+                />
+              ))}
+            </div>
+            <span className="text-xs font-bold text-slate-500 tracking-tighter">
+              {rating} <span className="text-slate-700 mx-1">/</span> {totalReviews} Reviews
+            </span>
+          </div>
+        </div>
+
+        <div className="p-7 pt-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Investment</span>
+              <span className="text-3xl font-black text-white tracking-tighter">{formattedPrice}</span>
+            </div>
+            
+            <button
+              onClick={() => setIsCheckoutOpen(true)}
+              className="relative flex items-center justify-center gap-2 bg-white text-black px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 hover:bg-indigo-600 hover:text-white group/btn overflow-hidden active:scale-95"
+            >
+              Buy Access
+              <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="p-5 pt-0 mt-auto">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-2xl font-bold text-gray-900">{formattedPrice}</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => onView(id)}
-            className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Details
-          </button>
-          <button
-            onClick={() => onAddToCart(id)}
-            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Buy Now
-          </button>
-        </div>
-      </div>
-    </div>
+      {/* 🚀 THE FIX: Render the modal into a Portal so it isn't clipped by the card */}
+      {isCheckoutOpen && createPortal(
+        <QuickCheckoutModal 
+          isOpen={isCheckoutOpen} 
+          onClose={() => setIsCheckoutOpen(false)} 
+          dataset={{ id, title, price }} 
+        />,
+        document.body
+      )}
+    </>
   );
 };
 

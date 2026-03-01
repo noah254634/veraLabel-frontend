@@ -4,8 +4,12 @@
  */
 
 import React from 'react';
+import { useAuthStore } from '../../auth/useAuthstore';
+
 
 const Settings: React.FC = () => {
+  const { user } = useAuthStore();
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     alert('Settings saved successfully!');
@@ -13,7 +17,7 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-10">Account Settings</h1>
+      <h1 className="text-3xl font-bold text-indigo-900 mb-10">Account Settings</h1>
 
       <form onSubmit={handleSave} className="space-y-10">
         {/* Profile Section */}
@@ -22,11 +26,11 @@ const Settings: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-700">Full Name</label>
-              <input type="text" defaultValue="Jane Doe" className="w-full border-gray-300 rounded-lg p-2.5 border" />
+              <input disabled type="text" defaultValue={user?.name} className="w-full border-gray-300 text-gray-900 rounded-lg p-2.5 border" />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-700">Email Address</label>
-              <input type="email" defaultValue="jane.doe@tech-ai.com" className="w-full border-gray-300 rounded-lg p-2.5 border" />
+              <input type="email"disabled defaultValue={user?.email} className="w-full border-gray-300 text-gray-900 rounded-lg p-2.5 border" />
             </div>
           </div>
         </section>

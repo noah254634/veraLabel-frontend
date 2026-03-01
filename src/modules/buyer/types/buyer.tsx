@@ -3,4 +3,5 @@ export interface Buyer extends User {
   walletBalance: number;
   reputationScore: number;
   purchasedItems: string[];
-}
+};
+export type PaymentUrl = string;

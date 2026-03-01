@@ -3,26 +3,47 @@ import { Outlet, Link } from 'react-router-dom';
 
 const AuthLayout = () => {
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#0a2540]">
-      {/* The Universal Animated Background */}
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black selection:bg-indigo-500/30">
+      {/* High-End Ambient Background */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-gradient-to-br from-[#6366f1] via-[#a855f7] to-[#ec4899] opacity-30 blur-[100px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[100%] h-[100%] bg-gradient-to-tr from-[#3b82f6] via-[#2dd4bf] to-[#6366f1] opacity-20 blur-[120px]" />
+        {/* Top Glow */}
+        <div className="absolute -top-[10%] left-1/2 -translate-x-1/2 w-full h-[500px] bg-indigo-600/10 blur-[120px] rounded-full" />
+        {/* Subtle Mesh Grid Effect */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       </div>
 
       {/* Persistent VeraLabel Branding */}
-      <div className="absolute top-8 right-8 z-20">
-        <Link to="/" className="text-white font-bold text-xl tracking-tight opacity-90 hover:opacity-100 transition-opacity">
-          Vera<span className="text-indigo-400">Label</span>
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 md:left-auto md:right-12 md:translate-x-0 z-20">
+        <Link 
+          to="/" 
+          className="text-white font-bold text-2xl tracking-tighter transition-transform active:scale-95 block"
+        >
+          VeraLabel<span className="text-indigo-500">.</span>
         </Link>
       </div>
 
-      {/* This is where LoginPage, SignupPage, etc., will be injected */}
-      <div className="relative z-10 w-full max-w-md mx-4  backdrop-blur-lg p-8 rounded-2xl shadow-lg border-none border-white/20">
-        <div className="bg-white/95 backdrop-blur-xl p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20">
-          <Outlet />
+      {/* Content Container */}
+      <div className="relative z-10 w-full max-w-[440px] px-6">
+        <div className="relative group">
+          {/* Decorative Border Glow */}
+          <div className="absolute -inset-px bg-gradient-to-b from-white/20 to-transparent rounded-[2rem] -z-10 group-hover:from-indigo-500/40 transition-colors duration-500" />
+          
+          <div className="bg-zinc-900/90 backdrop-blur-2xl p-8 md:p-12 rounded-[2rem] shadow-2xl border border-white/5">
+            {/* Top accent line */}
+            <div className="w-12 h-1 bg-indigo-500 rounded-full mb-8" />
+            
+            <div className="text-white">
+              <Outlet />
+            </div>
+          </div>
         </div>
-      
+
+        {/* Support Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-zinc-500 text-xs font-medium uppercase tracking-[0.2em]">
+            Secure Infrastructure for Global AI
+          </p>
+        </div>
       </div>
     </div>
   );

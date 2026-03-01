@@ -19,6 +19,8 @@ interface OrderSummaryCardProps {
   subtotal: number;
   tax: number;
   total: number;
+  onCheckout?: () => void;
+  actionLabel?: string;
 }
 
 const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({
@@ -27,6 +29,8 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({
   subtotal,
   tax,
   total,
+  onCheckout,
+  actionLabel = "Complete Purchase",
 }) => {
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -68,9 +72,10 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({
         </div>
 
         <button 
+          onClick={onCheckout}
           className="w-full mt-6 bg-blue-600 text-white py-3 px-4 rounded-lg font-bold hover:bg-blue-700 transition-colors focus:ring-4 focus:ring-blue-100 active:scale-[0.98]"
         >
-          Complete Purchase
+          {actionLabel}
         </button>
         
         <p className="text-center text-xs text-gray-400 mt-4">
