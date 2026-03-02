@@ -58,6 +58,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       console.log(data.message);
       console.log(response);
       toast.success("Login successful");
+      
     } catch (err) {
       toast.error("Login failed");
       set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });

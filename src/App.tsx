@@ -7,11 +7,9 @@ import { Toaster } from "react-hot-toast";
 import LandingPage from "./modules/landingPage/pages/LandingPage";
 import HelpPage from "./modules/landingPage/components/help";
 import ProtectedRoute from "./app/router/ProtectedRoute";
-import AdminDashboard from "./modules/admin/pages/Dashboard";
-import DatasetAdminPage from "./modules/admin/pages/Datasets";
-const BuyerDashboard = () => <div>Buyer Dashboard</div>; // Placeholder
 import { AdminRoutes } from "./modules/admin/routes";
 import BuyerRoutes from "./modules/buyer/routes";
+import LabellerRoutes from "./modules/labeller/routes";
 export const App = () => {
  
   return (
@@ -56,6 +54,7 @@ export const App = () => {
         <Route element={<ProtectedRoute />}>  
         {AdminRoutes}
         <Route path="buyer/*" element={<BuyerRoutes />} />
+        <Route path="labeler/*" element={<LabellerRoutes />} />
         </Route>
        
       </Routes>

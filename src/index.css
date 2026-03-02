@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+
+
+/* Custom Scrollbar for the Workbench */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #3B82F655; border-radius: 10px; }
+
+/* Force Label Studio to use your colors */
+.lsf-main-view, .lsf-side-column {
+  background-color: #0B0E14 !important;
+  border-color: rgba(255,255,255,0.05) !important;
+}
+.lsf-label {
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+}

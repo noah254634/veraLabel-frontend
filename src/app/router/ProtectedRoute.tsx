@@ -13,10 +13,10 @@ const ProtectedRoute = () => {
   if (location.pathname.startsWith("/admin") && (user?.role as string) !== "admin") {
     return <Navigate to="/" replace />;
   }
-  if (location.pathname.startsWith("/buyer") && (user?.role as string) !== "Labeler") {
+  if (location.pathname.startsWith("/buyer") && (user?.role as string) !== "buyer") {
     return <Navigate to="/" replace />;
   }
-if (location.pathname.startsWith("/labeller") && (user?.role as string) !== "Labeler") {
+if (location.pathname.startsWith("/labeler") && (user?.role as string) !== "labeler") {
   return <Navigate to="/" replace />;
 }
 

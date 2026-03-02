@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heartexlabs/label-studio": "^1.8.0",
     "@shadcn/ui": "^0.0.4",
     "@tailwindcss/vite": "^4.2.0",
     "axios": "^1.13.5",

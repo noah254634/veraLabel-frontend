@@ -19,8 +19,9 @@ const LoginPage = () => {
     try {
       await login(formData);
       const user = useAuthStore.getState().user;
-      if ((user?.role as string) === "admin") navigate("/admin");
-      else if ((user?.role as string) === "Labeler") navigate("/buyer");
+      const role = user?.role as string;
+      if (role === "admin") navigate("/admin");
+      else if (role === "buyer") navigate("/buyer");
       else navigate("/labeler");
     } catch (err) {
       console.error("Login failed:", err);
