@@ -52,11 +52,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
     if (!localStorage.getItem("isAuthenticated")) {
       return;
     }
-    set({ loading: true });
+    set({ loading: true, isAuthenticated: false });
     try {
-      const [res] = await Promise.all([
-        api.get("/auth/me"), new Promise((resolve) => setTimeout(resolve, 1000))
-      ]);
+      const res = await api.get("/auth/me");
       console.log(res);
       if (res.status === 200) {
         // Fix: Extract user from the response object (which contains message and user)
@@ -64,8 +62,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       }
     } catch (error) {
      toast.error("Authentication failed");
-     console.log(error)
-     
+     console.log(error);
+     localStorage.removeItem("isAuthenticated");
+     set({ user: null, isAuthenticated: false });
     } finally {
       set({ loading: false });
     }
@@ -73,7 +72,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   login: async (credentials) => {
     try {
-      set({ loading: true, error: null });
+      set({ loading: false, error: null });
       const response = await loginApi(credentials);
       const data = await response.json();
       const user = data.user;
@@ -108,7 +107,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
   logout: async() =>{
     try{
-      set({loading:true,error:null});
+      set({error:null});
       const response = await fetch("http://localhost:5000/api/v1/auth/logout",{
         method:"POST",
         credentials:"include",

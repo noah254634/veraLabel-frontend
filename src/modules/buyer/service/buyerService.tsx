@@ -9,5 +9,9 @@ export const buyerService={
         return response.data
     
 
+    },
+    datasetRequest:async(data:FormData):Promise<void>=>{
+        const response=await api.post("/marketplace/send-dataset-request",data)
+        return response.data
     }
 }
