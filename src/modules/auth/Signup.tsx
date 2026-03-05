@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, ArrowRight, User, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PasswordInput } from './passwordInput';
 import { useAuthStore } from './useAuthstore';
 import RoleToggle from './RoleToggle';
 
 const SignupPage = () => {
-  const { loading, error, signup } = useAuthStore();
+  const { loading, error, signup, isAuthenticated, user } = useAuthStore();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "buyer" });
   const [role, setRole] = useState<"buyer" | "seller">("buyer");
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role  as string=== "buyer") navigate("/buyer", { replace: true });
+      else if (user.role as string === "seller") navigate("/labeler", { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,7 +30,11 @@ const SignupPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signup(formData);
+    try {
+      await signup(formData);
+    } catch (err) {
+      console.error("Signup failed:", err);
+    }
   };
 
   return (

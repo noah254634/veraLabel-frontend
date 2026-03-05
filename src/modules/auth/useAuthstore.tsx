@@ -8,13 +8,15 @@ type AuthStore = {
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-  signup: (credentials: SignupCredentials) => Promise<void>;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  signup: (credentials: SignupCredentials) => Promise<User | void>;
+  login: (credentials: LoginCredentials) => Promise<User>;
   setUser: (user: User) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   forgotPassword:()=>Promise<string>
+  checkAuth: () => Promise<void>;
+  syncAuth: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -46,6 +48,28 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setUser: (user) => set({ user, isAuthenticated: true }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
+  syncAuth: async () => {
+    if (!localStorage.getItem("isAuthenticated")) {
+      return;
+    }
+    set({ loading: true });
+    try {
+      const [res] = await Promise.all([
+        api.get("/auth/me"), new Promise((resolve) => setTimeout(resolve, 1000))
+      ]);
+      console.log(res);
+      if (res.status === 200) {
+        // Fix: Extract user from the response object (which contains message and user)
+        set({ user: res.data.user, isAuthenticated: true });
+      }
+    } catch (error) {
+     toast.error("Authentication failed");
+     console.log(error)
+     
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   login: async (credentials) => {
     try {
@@ -54,18 +78,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const data = await response.json();
       const user = data.user;
       set({ user, isAuthenticated: true, loading: false });
+      localStorage.setItem("isAuthenticated", "true");
       console.log(user);
       console.log(data.message);
       console.log(response);
       toast.success("Login successful");
-      
+      return user;
     } catch (err) {
       toast.error("Login failed");
       set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
       throw err;
-    }
-    finally {
-      set({ loading: false });
     }
   },
   signup: async (credentials) => {
@@ -73,9 +95,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       console.log(credentials);
       set({ loading: true, error: null });  
       const response = await signupApi(credentials);
-      const user = await response.json();
+      const data = await response.json();
+      const user = data.user;
       set({ user, isAuthenticated: true, loading: false });
+      localStorage.setItem("isAuthenticated", "true");
       toast.success("Signup successful");
+      return user;
   }catch (err) {
       toast.error(`Signup failed: ${err}`,{duration:3000});
       set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
@@ -95,6 +120,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
           throw new Error(errorMessage);
         }
       set({ user: null, isAuthenticated: false, loading: false });
+      localStorage.removeItem("isAuthenticated");
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
     }

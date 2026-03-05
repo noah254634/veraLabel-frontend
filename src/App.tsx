@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { AdminLayout } from "./modules/admin/layout/AdminLayout";
 import LoginPage from "./modules/auth/Login";
 import AuthLayout from "./modules/auth/authLayout";
@@ -10,8 +11,26 @@ import ProtectedRoute from "./app/router/ProtectedRoute";
 import { AdminRoutes } from "./modules/admin/routes";
 import BuyerRoutes from "./modules/buyer/routes";
 import LabellerRoutes from "./modules/labeller/routes";
+import { PrivacyPolicy } from "./modules/landingPage/pages/privacyPolicy";
+import { useEffect } from "react";
+import { useAuthStore } from "./modules/auth/useAuthstore";
+import "./app.css"
 export const App = () => {
- 
+  const {  loading,syncAuth } = useAuthStore();
+  useEffect(() => {
+    syncAuth();
+  }, []);
+
+  if (loading) {
+    return(
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 text-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
+          <p className="text-zinc-400 text-sm font-medium animate-pulse">Restoring Session...</p>
+        </div>
+      </div>
+    )
+  }
   return (
     <BrowserRouter>
       <Toaster
@@ -19,7 +38,7 @@ export const App = () => {
         toastOptions={{
           duration: 1000,
           style: {
-            background: "rgba(242, 249, 241, 0.9)", // 
+            background: "rgba(242, 249, 241, 0.9)", //
             boxShadow:
               "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
             borderRadius: "12px",
@@ -46,17 +65,17 @@ export const App = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/" element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
         </Route>
         {/* protected routes */}
-        <Route element={<ProtectedRoute />}>  
-        {AdminRoutes}
-        <Route path="buyer/*" element={<BuyerRoutes />} />
-        <Route path="labeler/*" element={<LabellerRoutes />} />
+        <Route element={<ProtectedRoute />}>
+          {AdminRoutes}
+          <Route path="buyer/*" element={<BuyerRoutes />} />
+          <Route path="labeler/*" element={<LabellerRoutes />} />
         </Route>
-       
       </Routes>
     </BrowserRouter>
   );

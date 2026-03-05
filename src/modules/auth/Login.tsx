@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, ArrowRight, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { PasswordInput } from "./passwordInput";
@@ -6,8 +6,16 @@ import { useAuthStore } from "./useAuthstore";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const { loading, error, login } = useAuthStore();
+  const { loading, error, login, isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role as string === "admin") navigate("/admin", { replace: true });
+      else if (user.role as string === "buyer") navigate("/buyer", { replace: true });
+      else navigate("/labeler", { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -18,11 +26,6 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       await login(formData);
-      const user = useAuthStore.getState().user;
-      const role = user?.role as string;
-      if (role === "admin") navigate("/admin");
-      else if (role === "buyer") navigate("/buyer");
-      else navigate("/labeler");
     } catch (err) {
       console.error("Login failed:", err);
     }
