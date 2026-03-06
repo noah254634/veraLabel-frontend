@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   User, 
   Shield, 
   Monitor, 
   CreditCard, 
-  Bell, 
   Check, 
   ChevronRight,
   Smartphone

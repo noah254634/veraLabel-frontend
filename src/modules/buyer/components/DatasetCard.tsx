@@ -17,6 +17,7 @@ interface DatasetCardProps {
   rating: number;
   totalReviews: number;
   tags: string[];
+  format?: string;
   onView: (id: string) => void;
 }
 
@@ -29,6 +30,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   rating,
   totalReviews,
   tags,
+  format,
 }) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
 
@@ -76,7 +78,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
             </div>
             <div className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase">
               <FileJson size={14} className="text-indigo-500" />
-              <span>JSON/CSV</span>
+              <span>{format || 'JSON/CSV'}</span>
             </div>
           </div>
 
@@ -115,7 +117,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
         </div>
       </div>
 
-      {/* 🚀 THE FIX: Render the modal into a Portal so it isn't clipped by the card */}
+      {/*  Render the modal into a Portal so it isn't clipped by the card */}
       {isCheckoutOpen && createPortal(
         <QuickCheckoutModal 
           isOpen={isCheckoutOpen} 

@@ -8,77 +8,20 @@ import { Search, Sparkles, Zap } from 'lucide-react';
 import CategoryBar from '../components/CategoryBar';
 import DatasetCard from '../components/DatasetCard';
 import QuickCheckOutModal from '../components/QuickCheckOutModal';
+import useBuyerStore from "../store/buyerStore"
+import { data } from 'react-router-dom';
+import type { Dataset } from "../../../shared/types/dataset";
 
-interface Dataset {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  currency: string;
-  rating: number;
-  totalReviews: number;
-  tags: string[];
-}
 
 const CATEGORIES = ['All Assets', 'Computer Vision', 'NLP', 'Healthcare', 'Automotive', 'Satellite'];
-
-// High-End Realistic Mock Data
-const MOCK_DATASETS: Dataset[] = [
-  {
-    id: 'ds-01',
-    title: 'Nairobi Urban Flow v4',
-    description: 'Ultra-high resolution drone-captured traffic flow datasets from Nairobi CBD. 4K Video + JSON Metadata.',
-    price: 2400,
-    currency: 'USD',
-    rating: 4.9,
-    totalReviews: 82,
-    tags: ['Automotive', 'Video'],
-  },
-  {
-    id: 'ds-02',
-    title: 'Medical Imaging: Lung CT',
-    description: 'Curated 50k CT scan slices for early-stage tumor detection, labeled by top-tier radiologists.',
-    price: 3200,
-    currency: 'USD',
-    rating: 5.0,
-    totalReviews: 45,
-    tags: ['Healthcare', 'Imaging'],
-  },
-  {
-    id: 'ds-03',
-    title: 'Swahili Voice Synthesis HQ',
-    description: '1000+ hours of high-fidelity Swahili dialect recordings for natural speech synthesis and STT training.',
-    price: 1800,
-    currency: 'USD',
-    rating: 4.7,
-    totalReviews: 120,
-    tags: ['NLP', 'Audio'],
-  },
-  {
-    id: 'ds-04',
-    title: 'Sub-Saharan Retail Trends',
-    description: 'Processed transaction data across 12 African markets highlighting shifting consumer behaviors in 2026.',
-    price: 950,
-    currency: 'USD',
-    rating: 4.6,
-    totalReviews: 210,
-    tags: ['Tabular', 'Finance'],
-  },
-  {
-    id: 'ds-05',
-    title: 'Precision Agriculture Satellite',
-    description: 'Multi-spectral satellite imagery of Rift Valley farm clusters for crop yield predictive modeling.',
-    price: 5000,
-    currency: 'USD',
-    rating: 4.8,
-    totalReviews: 34,
-    tags: ['Satellite', 'AgriTech'],
-  }
-];
-
 const Browse: React.FC = () => {
+  const {datasets,getDatasets}=useBuyerStore()
   const [selectedCategory, setSelectedCategory] = useState('All Assets');
   const [activeDataset, setActiveDataset] = useState<Dataset | null>(null);
+  React.useEffect(()=>{
+    getDatasets()
+  },[])
+  console.log(datasets)
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200">
@@ -126,10 +69,18 @@ const Browse: React.FC = () => {
 
         {/* Results Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {MOCK_DATASETS.map((dataset) => (
+          {datasets.map((dataset) => (
             <DatasetCard 
-              key={dataset.id}
-              {...dataset}
+              key={dataset._id}
+              id={dataset._id}
+              title={dataset.name}
+              description={dataset.description}
+              price={Number(dataset.price) || 0}
+              currency="USD"
+              rating={3}
+              totalReviews={dataset.reviews?.length || 0}
+              tags={dataset.category ? [dataset.category] : ["Automotive"]}
+              format={dataset.datasetFormat}
               onView={() => setActiveDataset(dataset)}
             />
           ))}
@@ -147,8 +98,15 @@ const Browse: React.FC = () => {
       {/* Checkout Transition Modal */}
       <QuickCheckOutModal 
         isOpen={!!activeDataset} 
-        dataset={activeDataset}
-        onClose={() => setActiveDataset(null)} 
+        dataset={activeDataset ? {
+          id: activeDataset._id,
+          title: activeDataset.name,
+          price: Number(activeDataset.price) || 0,
+          format:activeDataset.datasetFormat,
+          totalReviews:activeDataset.reviews?.length || 7,
+          rating: 3
+        } : null}
+        onClose={() => setActiveDataset(null)}
       />
     </div>
   );

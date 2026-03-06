@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { AdminLayout } from "./modules/admin/layout/AdminLayout";
 import LoginPage from "./modules/auth/Login";
 import AuthLayout from "./modules/auth/authLayout";
 import SignupPage from "./modules/auth/Signup";
@@ -74,7 +73,7 @@ export const App = () => {
         <Route element={<ProtectedRoute />}>
           {AdminRoutes}
           <Route path="buyer/*" element={<BuyerRoutes />} />
-          <Route path="labeler/*" element={<LabellerRoutes />} />
+          <Route path="labeller/*" element={<LabellerRoutes />} />
         </Route>
       </Routes>
     </BrowserRouter>

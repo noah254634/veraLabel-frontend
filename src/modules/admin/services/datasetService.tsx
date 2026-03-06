@@ -17,7 +17,7 @@ export const datasetService = {
     return null;
   },
   deleteDataset: async (id: string,reason:string): Promise<any> => {
-    const response = await api.delete(`admin/datasets/delete/${id}`,{data:{reason:reason}});
+    const response = await api.delete(`/datasets/deleteDataset/${id}`,{data:{reason:reason}});
     return response.data;
   },
   addDataset: async (): Promise<void> => {},

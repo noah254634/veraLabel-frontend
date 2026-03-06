@@ -1,4 +1,3 @@
-import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../modules/auth/useAuthstore";
 
@@ -16,7 +15,7 @@ const ProtectedRoute = () => {
   if (location.pathname.startsWith("/buyer") && (user?.role as string) !== "buyer") {
     return <Navigate to="/" replace />;
   }
-if (location.pathname.startsWith("/labeler") && (user?.role as string) !== "labeler") {
+if (location.pathname.startsWith("/labeller") && (user?.role as string) !== "labeler") {
   return <Navigate to="/" replace />;
 }
 

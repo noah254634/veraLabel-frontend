@@ -5,7 +5,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import useBuyerStore from '../store/buyerStore';
-import type { datasetRequest } from '../types/datasetRequest';
 import { 
   X, Send, Database, Cpu, Calendar, ChevronRight, 
   Loader2, ShieldCheck, Link as LinkIcon, Upload, 
@@ -63,7 +62,7 @@ const CustomDataRequestModal: React.FC<CustomDataRequestModalProps> = ({ isOpen,
       data.append('uploadedFile', formData.uploadedFile);
     }
 
-    await submitDatasetRequest(data as unknown as datasetRequest);
+    await submitDatasetRequest(data);
     
     setLoading(false);
     toast.custom((t) => (

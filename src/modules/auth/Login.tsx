@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Mail, ArrowRight, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { PasswordInput } from "./passwordInput";
@@ -11,9 +11,22 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.role as string === "admin") navigate("/admin", { replace: true });
-      else if (user.role as string === "buyer") navigate("/buyer", { replace: true });
-      else navigate("/labeler", { replace: true });
+      const role = String(user.role).toLowerCase();
+      if (role === "admin") {
+        navigate("/admin", { replace: true });
+        return;
+      }
+      if (role === "buyer") {
+        navigate("/buyer", { replace: true });
+        return;
+      }
+      if (role === "labeler" || role === "labeller") {
+        const key = `labellerOnboardingCompleted:${user._id ?? user.email}`;
+        const completed = localStorage.getItem(key) === "true";
+        navigate(completed ? "/labeller" : "/labeller/onboarding", { replace: true });
+        return;
+      }
+      navigate("/", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 

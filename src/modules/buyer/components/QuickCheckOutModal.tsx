@@ -15,6 +15,9 @@ interface QuickCheckoutModalProps {
     id: string;
     title: string;
     price: number;
+    format?: string;
+    totalReviews?: number;
+    rating?: number;
   } | null;
 }
 

@@ -4,10 +4,10 @@
  */
 
 import { useAuthStore } from "../../auth/useAuthstore";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DatasetCard from "../components/DatasetCard";
 import CustomDataRequestModal from "../components/CustomDataRequestModal";
-
+import useBuyerStore from "../store/buyerStore"
 import {
   TrendingUp,
   CheckCircle2,
@@ -75,8 +75,12 @@ const StatCard: React.FC<StatCardProps> = ({
 };
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user} = useAuthStore();
+  const { getDatasets } = useBuyerStore();
   const [customDataRequestModal, setCustomDataRequestModal] = useState(false);
+  useEffect(() => {
+    getDatasets();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-950 text-slate-200 pb-20">

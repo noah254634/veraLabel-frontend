@@ -4,20 +4,19 @@ import type { Buyer } from "../types/buyer";
 import type { Order } from "../types/order";
 import type { Dataset } from "../../../shared/types/dataset";
 import { buyerService } from "../service/buyerService";
-import type{ datasetRequest } from "../types/datasetRequest";
 type BuyerStore = {
   datasets:Dataset[]
-  getDatasets:()=>Promise<Dataset[]>
+  getDatasets:()=>Promise<Dataset[]|void>
   getDatasetByCategory:()=>Promise<Dataset[]>
   error:string|null
   setError:(error:string|null)=>void
   loading:boolean
   setLoading:(loading:boolean)=>void
-  searchBySize:(size:string)=>Promise<Dataset|void>
-  searchByRatinng:(rate:number)=>Promise<Dataset|void>
-  searchByPrice:(price:number)=>Promise<Dataset|void>
+  searchBySize:(size:string)=>Promise<Dataset[]|void>
+  searchByRatinng:(rate:number)=>Promise<Dataset[]|void>
+  searchByPrice:(price:number)=>Promise<Dataset[]|void>
   checkOut:(datasetId:string,datasetPrice:number)=>Promise<string>
-  datasetRequest:(request:datasetRequest)=>Promise<void>
+  datasetRequest:(request:FormData)=>Promise<void>
 
   
 };
@@ -28,7 +27,18 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
   loading:false,
   setLoading:(loading)=>set({loading}),
   searchBySize:async()=>{},
-  getDatasets:async():Promise<Dataset[]>=>{ return [] },
+  getDatasets:async()=>{
+    set({loading:true})
+    try{
+      const response=await buyerService.getDatasets()
+      set({loading:false, datasets:response})
+      console.log(response.length)
+      console.log(response)
+      return response 
+    }catch(err){
+      set({loading:false})
+    }
+  },
   getDatasetByCategory:async()=>{ return [] },
   searchByRatinng:async()=>{},
   searchByPrice:async()=>{},
@@ -36,9 +46,9 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
     const url=await buyerService.checkOut(datasetId,datasetPrice)
     return url
   },
-  datasetRequest:async()=>{
+  datasetRequest:async(credential)=>{
     try{
-      const response=await buyerService.datasetRequest()
+      const response=await buyerService.datasetRequest(credential)
       set({loading:false})
       console.log(response)
       return response

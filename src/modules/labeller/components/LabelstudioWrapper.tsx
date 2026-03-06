@@ -8,35 +8,61 @@ interface WrapperProps {
 
 export const LabelStudioWrapper: React.FC<WrapperProps> = ({ task, config, onSubmit }) => {
   const labelStudioContainer = useRef<HTMLDivElement>(null);
+  const lsInstanceRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // 1. Inject CSS for Label Studio
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/@heartexlabs/label-studio@1.11.0/build/static/css/main.css';
-    document.head.appendChild(link);
+    // 1) Inject CSS/JS once (avoid duplicates across navigations)
+    const cssId = 'label-studio-css';
+    const jsId = 'label-studio-js';
 
-    // 2. Inject the JS script
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@heartexlabs/label-studio@1.11.0/build/static/js/main.js';
-    script.async = true;
-    script.onload = () => setIsLoaded(true);
-    document.body.appendChild(script);
+    let link = document.getElementById(cssId) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.id = cssId;
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/@heartexlabs/label-studio@1.11.0/build/static/css/main.css';
+      document.head.appendChild(link);
+    }
+
+    let script = document.getElementById(jsId) as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.id = jsId;
+      script.src = 'https://unpkg.com/@heartexlabs/label-studio@1.11.0/build/static/js/main.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    const onLoad = () => setIsLoaded(true);
+    if ((window as any).LabelStudio) {
+      setIsLoaded(true);
+    } else {
+      script.addEventListener('load', onLoad);
+    }
 
     return () => {
-      // Cleanup on unmount
-      document.head.removeChild(link);
-      document.body.removeChild(script);
+      script?.removeEventListener('load', onLoad);
     };
   }, []);
 
   useEffect(() => {
     // 3. Initialize LS once script is loaded and container is ready
+    if (!isLoaded || !labelStudioContainer.current || !(window as any).LabelStudio) return;
+
+    // Destroy any previous instance before creating a new one (task/config changes)
+    try {
+      lsInstanceRef.current?.destroy?.();
+    } catch {
+      // ignore teardown errors from third-party library
+    } finally {
+      lsInstanceRef.current = null;
+    }
+
     if (isLoaded && labelStudioContainer.current && (window as any).LabelStudio) {
       const LabelStudio = (window as any).LabelStudio;
 
-      new LabelStudio(labelStudioContainer.current, {
+      lsInstanceRef.current = new LabelStudio(labelStudioContainer.current, {
         config: config,
         task: task,
         interfaces: [
@@ -48,16 +74,25 @@ export const LabelStudioWrapper: React.FC<WrapperProps> = ({ task, config, onSub
           "annotations:menu",
           "predictions:menu",
         ],
-        onLabelStudioLoad: (LS: any) => {
-          const c = LS.annotationStore.addAnnotation({ userGenerate: true });
-          LS.annotationStore.selectAnnotation(c.id);
+        onLabelStudioLoad: (_LS: any) => {
+          const c = _LS.annotationStore.addAnnotation({ userGenerate: true });
+          _LS.annotationStore.selectAnnotation(c.id);
         },
-        onSubmitAnnotation: (LS: any, annotation: any) => {
+        onSubmitAnnotation: (_LS: any, annotation: any) => {
           onSubmit(annotation.serializeAnnotation());
         },
       });
     }
-  }, [isLoaded, task.id, config]); // Re-run if task or config changes
+    return () => {
+      try {
+        lsInstanceRef.current?.destroy?.();
+      } catch {
+        // ignore teardown errors from third-party library
+      } finally {
+        lsInstanceRef.current = null;
+      }
+    };
+  }, [isLoaded, task?.id, config, onSubmit]); // Re-run if task/config changes
 
   return (
     <div className="w-full h-full relative">

@@ -1,5 +1,4 @@
-import React from "react";
-import { Home, Search, LayoutPanelLeft, Wallet, Settings, LogOut, Award } from 'lucide-react';
+import { Home, Search, LayoutPanelLeft, Wallet, Settings, LogOut, Award,Telescope } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from "../../auth/useAuthstore";
 import toast from "react-hot-toast";
@@ -19,7 +18,7 @@ export function Sidebar() {
   };
 
   return (
-        <aside className="h-full w-64 bg-[#0B0E14] border-r border-white/5 flex flex-col shrink-0">
+        <aside className="h-full min-h-0 w-64 bg-[#0B0E14] border-r border-white/5 flex flex-col shrink-0">
       {/* BRANDING */}
       <div className="p-6 mb-4">
         <div className="flex items-center gap-3">
@@ -31,17 +30,17 @@ export function Sidebar() {
       </div>
 
       {/* NAVIGATION */}
-      <nav className="flex-1 px-4 space-y-1.5">
-        <NavItem to="/labeler" label="Dashboard" icon={<Home size={20} strokeWidth={1.5} />} end />
-        <NavItem to="/labeler/work" label="Find Work" icon={<Search size={20} strokeWidth={1.5} />} />
-        <NavItem to="/labeler/workbench" label="Pro Space" icon={<LayoutPanelLeft size={20} strokeWidth={1.5} />} />
-        <NavItem to="/labeler/wallet" label="Wallet" icon={<Wallet size={20} strokeWidth={1.5} />} />
-        
+      <nav className="flex-1 min-h-0 px-4 space-y-1.5 overflow-y-auto custom-scrollbar pb-4">
+        <NavItem to="/labeller" label="Dashboard" icon={<Home size={20} strokeWidth={1.5} />} end />
+        <NavItem to="/labeller/work" label="Find Work" icon={<Search size={20} strokeWidth={1.5} />} />
+        <NavItem to="/labeller/workbench" label="Pro Space" icon={<LayoutPanelLeft size={20} strokeWidth={1.5} />} />
+        <NavItem to="/labeller/wallet" label="Wallet" icon={<Wallet size={20} strokeWidth={1.5} />} />
+        <NavItem to="/labeller/onboarding" label="Onboarding" icon={<Telescope size={20} strokeWidth={1.5} />} />
         <div className="pt-8 pb-4 px-3">
            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[2px]">Configuration</p>
         </div>
         
-        <NavItem to="/labeler/settings" label="Settings" icon={<Settings size={20} strokeWidth={1.5} />} />
+        <NavItem to="/labeller/settings" label="Settings" icon={<Settings size={20} strokeWidth={1.5} />} />
       </nav>
 
       {/* BOTTOM WIDGET: PROGRESS & LOGOUT */}

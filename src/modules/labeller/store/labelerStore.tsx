@@ -1,17 +1,19 @@
-import type{ User } from "../../../shared/types/user";
-import {create} from "zustand"
+import { create } from "zustand";
 import type { Dataset } from "../../../shared/types/dataset";
-type LabelerStore={
-    user:User[]|null,
-    setUser:(user:User[])=>void,
-    datasets:Dataset[]|null,
-    setDatasets:(datasets:Dataset[])=>void,
+import type { User } from "../../../shared/types/user";
 
-  
+type LabelerStore = {
+  user: User | null;
+  setUser: (user: User | null) => void;
+  datasets: Dataset[];
+  setDatasets: (datasets: Dataset[]) => void;
+  reset: () => void;
 };
-const labelStore=create<LabelerStore>((set)=>({
-    user:[],
-    setUser:(user:User[])=>set({user}),
-     datasets:[],
-     setDatasets:(datasets:Dataset[])=>set({datasets})   
+
+export const useLabelerStore = create<LabelerStore>((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+  datasets: [],
+  setDatasets: (datasets) => set({ datasets }),
+  reset: () => set({ user: null, datasets: [] }),
 }));
