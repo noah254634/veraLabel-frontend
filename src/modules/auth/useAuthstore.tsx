@@ -7,6 +7,7 @@ type AuthStore = {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
+  isRestoringSession: boolean;
   error: string | null;
   signup: (credentials: SignupCredentials) => Promise<User | void>;
   login: (credentials: LoginCredentials) => Promise<User>;
@@ -21,13 +22,13 @@ type AuthStore = {
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
-
   isAuthenticated: false,
   loading: false,
+  isRestoringSession: false,
   error: null,
   checkAuth: async () => {
     try {
-      set({ loading: true });
+      set({ loading: true, isRestoringSession: false });
       const response = await fetch("http://localhost:5000/api/v1/auth/check-auth", {
         credentials: "include",
       });
@@ -49,10 +50,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   syncAuth: async () => {
-    if (!localStorage.getItem("isAuthenticated")) {
+    const hasStoredSession = localStorage.getItem("isAuthenticated") === "true";
+    if (!hasStoredSession) {
       return;
     }
-    set({ loading: true, isAuthenticated: false });
+    set({ loading: true, isAuthenticated: false, isRestoringSession: true });
     try {
       const res = await api.get("/auth/me");
       console.log(res);
@@ -61,18 +63,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
         set({ user: res.data.user, isAuthenticated: true });
       }
     } catch (error) {
-     toast.error("Authentication failed");
-     console.log(error);
-     localStorage.removeItem("isAuthenticated");
-     set({ user: null, isAuthenticated: false });
+      toast.error("Authentication failed");
+      console.log(error);
+      localStorage.removeItem("isAuthenticated");
+      set({ user: null, isAuthenticated: false });
     } finally {
-      set({ loading: false });
+      set({ loading: false, isRestoringSession: false });
     }
   },
 
   login: async (credentials) => {
     try {
-      set({ loading: false, error: null });
+      set({ loading: true, error: null, isRestoringSession: false });
       const response = await loginApi(credentials);
       const data = await response.json();
       const user = data.user;
@@ -92,7 +94,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   signup: async (credentials) => {
     try {
       console.log(credentials);
-      set({ loading: true, error: null });  
+      set({ loading: true, error: null, isRestoringSession: false });  
       const response = await signupApi(credentials);
       const data = await response.json();
       const user = data.user;
@@ -107,7 +109,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
   logout: async() =>{
     try{
-      set({error:null});
+      set({error:null, isRestoringSession: false});
       const response = await fetch("http://localhost:5000/api/v1/auth/logout",{
         method:"POST",
         credentials:"include",

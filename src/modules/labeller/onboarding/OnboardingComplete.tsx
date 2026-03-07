@@ -7,13 +7,13 @@ export const OnboardingComplete = () => {
   const { user } = useAuthStore();
 
   return (
-    <div className="text-center p-6 md:p-12 space-y-6 relative overflow-hidden h-full flex flex-col justify-center">
+    <div className="text-center p-6 md:p-12 space-y-6 relative overflow-y-auto h-full flex flex-col scrollbar-thin scrollbar-thumb-blue-500/30 hover:scrollbar-thumb-blue-500/50 scrollbar-track-white/5">
       {/* 1. Global Background Branding */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10rem] font-black text-white/[0.02] pointer-events-none select-none uppercase tracking-tighter">
         V-LAB
       </div>
 
-      <div className="relative z-10 space-y-8">
+      <div className="relative z-10 space-y-8 m-auto">
         {/* 2. Professional Certification Icon */}
         <div className="relative w-24 h-24 mx-auto">
           <div className="absolute inset-0 bg-blue-600/10 blur-3xl rounded-full" />

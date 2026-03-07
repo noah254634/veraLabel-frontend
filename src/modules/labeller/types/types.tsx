@@ -1,20 +1,41 @@
-// 1. The Data to be labeled (e.g., an image URL)
-export interface ITask {
-  id: string;
-  data: {
-    image?: string;
-    text?: string;
+
+type Gender = "male" | "female" | "other";
+export type Tier="Trainee"|"Bronze"|"Silver"|"Gold";
+export interface LabellerProfile{
+  gender:Gender;
+  age:number;
+  expertise:string;
+  languages:string;
+  location:{
+    country:string;
+    city:string;
+    region:string;
   };
-}
+  labellerTotalEarningd?:string;
+  completedTasks?:string;
+  isOnboarded?:boolean;
+  tier:Tier;
+  annotationExperience?:AnnotationExperience;
 
-// 2. The Project Rules 
-export interface IProjectConfig {
-  xmlConfig: string; // The Label Studio XML (e.g., <View><Image.../></View>)
-  title: string;
 }
+export interface AnnotationExperience {
+  hasExperience: boolean
 
-// 3. The Result (What the user submits)
-export interface ILabelResult {
-  taskId: string;
-  annotations: any[]; // The output from Label Studio
+  experienceTypes?: (
+    | "image_annotation"
+    | "video_annotation"
+    | "text_classification"
+    | "audio_transcription"
+    | "nlp_labeling"
+  )[]
+
+  toolsUsed?: string[]
+
+  experienceDuration?: 
+    | "less_than_3_months"
+    | "3_to_12_months"
+    | "1_to_3_years"
+    | "3_plus_years"
+
+  description?: string
 }

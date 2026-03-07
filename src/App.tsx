@@ -15,12 +15,14 @@ import { useEffect } from "react";
 import { useAuthStore } from "./modules/auth/useAuthstore";
 import "./app.css"
 export const App = () => {
-  const {  loading,syncAuth } = useAuthStore();
+  const {  isRestoringSession,syncAuth } = useAuthStore();
   useEffect(() => {
-    syncAuth();
-  }, []);
+    if (localStorage.getItem("isAuthenticated") === "true") {
+      syncAuth();
+    }
+  }, [syncAuth]);
 
-  if (loading) {
+  if (isRestoringSession) {
     return(
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 text-white">
         <div className="flex flex-col items-center gap-3">
