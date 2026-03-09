@@ -28,19 +28,25 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
   if (!isOpen || !dataset) return null;
 
   const handleStripeRedirect = async () => {
+    console.log("QuickCheckoutModal: Initiating checkout", { dataset });
+    if (!dataset.id) {
+      console.error("QuickCheckoutModal: Missing dataset ID");
+      toast.error("Invalid dataset information. Please try again.");
+      return;
+    }
+
     setStatus('processing');
     try {
       toast.success("Securing connection...");
-      const url: string = await checkOut(dataset.id, dataset.price);
+      const url: string = await checkOut(dataset.id, false);
       if (url) {
         window.location.href = url;
       } else {
-        throw new Error("No redirect URL provided");
+        toast.error("No redirect URL provided");
       }
     } catch (error) {
       console.error("Checkout Error:", error);
       setStatus('idle');
-      toast.error("Payment system unavailable. Please try again.");
     }
   };
 

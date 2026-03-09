@@ -7,12 +7,13 @@ export const buyerService={
         return response.data
     },
 
-    checkOut:async(datasetId:string,datasetPrice:number):Promise<PaymentUrl>=>{
-        const response=await api.post("/marketplace/order",{
+    checkOut:async(datasetId:string,isExclusive:boolean):Promise<PaymentUrl>=>{
+        const response=await api.post("/payments/create",{
             datasetId,
-            datasetPrice
+            isExclusive
         })
-        return response.data
+        console.log(response)
+        return response.data.url
     
 
     },
