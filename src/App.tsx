@@ -10,12 +10,25 @@ import ProtectedRoute from "./app/router/ProtectedRoute";
 import { AdminRoutes } from "./modules/admin/routes";
 import BuyerRoutes from "./modules/buyer/routes";
 import LabellerRoutes from "./modules/labeller/routes";
-import { PrivacyPolicy } from "./modules/landingPage/pages/privacyPolicy";
 import { useEffect } from "react";
 import { useAuthStore } from "./modules/auth/useAuthstore";
-import "./app.css"
+import "./app.css";
+import PaymentVerify from "./modules/buyer/PaymentVerify";
+// @ts-ignore
+import { Careers } from "./modules/landingPage/FooterComponents/Carreers";
+// @ts-ignore
+import { Mission } from "./modules/landingPage/FooterComponents/Mission.jsx";
+// @ts-ignore
+import { About } from "./modules/landingPage/FooterComponents/About";
+import { PrivacyPolicy } from "./modules/landingPage/pages/privacyPolicy";
+// @ts-ignore
+import { DataPolicy } from "./modules/landingPage/FooterComponents/DataPolicy";
+import { Contact } from "./modules/landingPage/FooterComponents/Contact";
+import { Terms } from "./modules/landingPage/FooterComponents/terms.js";
+import ForgotPassword from "./modules/auth/ForgotPassword.js";
+
 export const App = () => {
-  const {  isRestoringSession,syncAuth } = useAuthStore();
+  const { isRestoringSession, syncAuth } = useAuthStore();
   useEffect(() => {
     if (localStorage.getItem("isAuthenticated") === "true") {
       syncAuth();
@@ -23,14 +36,16 @@ export const App = () => {
   }, [syncAuth]);
 
   if (isRestoringSession) {
-    return(
+    return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 text-white">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
-          <p className="text-zinc-400 text-sm font-medium animate-pulse">Restoring Session...</p>
+          <p className="text-zinc-400 text-sm font-medium animate-pulse">
+            Restoring Session...
+          </p>
         </div>
       </div>
-    )
+    );
   }
   return (
     <BrowserRouter>
@@ -67,9 +82,18 @@ export const App = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/payments/success" element={<PaymentVerify />} />
+        <Route path="/mission" element={<Mission />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/data-policy" element={<DataPolicy />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/terms" element={<Terms />} />
+        {/* auth routes */}
         <Route path="/" element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
         {/* protected routes */}
         <Route element={<ProtectedRoute />}>

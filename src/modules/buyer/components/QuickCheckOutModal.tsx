@@ -27,7 +27,7 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
 
   if (!isOpen || !dataset) return null;
 
-  const handleStripeRedirect = async () => {
+  const handlePaymentRedirect = async () => {
     console.log("QuickCheckoutModal: Initiating checkout", { dataset });
     if (!dataset.id) {
       console.error("QuickCheckoutModal: Missing dataset ID");
@@ -37,7 +37,7 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
 
     setStatus('processing');
     try {
-      toast.success("Securing connection...");
+      toast.success("Initializing Paystack secure checkout...");
       const url: string = await checkOut(dataset.id, false);
       if (url) {
         window.location.href = url;
@@ -88,7 +88,7 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
 
               <h2 className="text-xl font-black text-slate-900">Securing Session</h2>
               <p className="text-slate-500 mt-2 text-sm leading-relaxed px-4">
-                Redirecting to Stripe's secure portal...
+                Redirecting to Paystack's secure portal...
               </p>
             </div>
           ) : (
@@ -121,7 +121,7 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
                 {/* Primary Action */}
                 <div className="space-y-4">
                   <button
-                    onClick={handleStripeRedirect}
+                    onClick={handlePaymentRedirect}
                     className="group w-full py-4 bg-slate-950 text-white rounded-xl font-bold text-sm hover:bg-indigo-600 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-slate-200 active:scale-[0.98]"
                   >
                     <span>Complete Purchase</span>
@@ -134,7 +134,7 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
 
                   <div className="flex items-center justify-center gap-4 opacity-30 pt-1">
                     <CreditCard size={14} />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-900">Stripe Secure</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-900">Paystack Secure</span>
                     <Lock size={12} />
                   </div>
                 </div>

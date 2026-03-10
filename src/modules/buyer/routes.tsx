@@ -7,6 +7,7 @@ import Browse from './pages/Browse'
 import Settings from './pages/Settings'
 import Logout from '../auth/logout'
 
+
 function BuyerRoutes() {
   return (
     <Routes>

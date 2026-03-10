@@ -13,11 +13,11 @@ type BuyerStore = {
   loading:boolean
   setLoading:(loading:boolean)=>void
   searchBySize:(size:string)=>Promise<Dataset[]|void>
-  searchByRatinng:(rate:number)=>Promise<Dataset[]|void>
+  searchByRating:(rate:number)=>Promise<Dataset[]|void>
   searchByPrice:(price:number)=>Promise<Dataset[]|void>
   checkOut:(datasetId:string,isExclusive:boolean)=>Promise<string>
   datasetRequest:(request:FormData)=>Promise<void>
-
+  finalizePayment:(reference:string)=>Promise<any>
   
 };
 const useBuyerStore = create<BuyerStore>((set,get)=>({
@@ -39,8 +39,20 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
       set({loading:false})
     }
   },
+  finalizePayment:async(reference)=>{
+    set({loading:true})
+    try {
+      const response=await buyerService.finalizePayment(reference)
+      set({loading:false})
+      console.log(response)
+      return response
+    } catch (error) {
+      set({loading:false})
+      throw error
+    }
+  },
   getDatasetByCategory:async()=>{ return [] },
-  searchByRatinng:async()=>{},
+  searchByRating:async()=>{},
   searchByPrice:async()=>{},
   checkOut:async(datasetId:string,isExclusive:boolean)=>{
     set({loading:true})

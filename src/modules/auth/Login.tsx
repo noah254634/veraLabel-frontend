@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Mail, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { PasswordInput } from "./passwordInput";
 import { useAuthStore } from "./useAuthstore";
@@ -45,99 +45,107 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      {/* Header */}
-      <div className="mb-10 text-center md:text-left">
-        <h2 className="text-3xl font-bold text-white tracking-tight">
-          Welcome back
+    <div className="w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
+      {/* Header: Centered on mobile, precise alignment */}
+      <div className="mb-12">
+        <div className="flex items-center gap-2 mb-4 text-indigo-500 justify-center md:justify-start">
+          <ShieldCheck size={18} strokeWidth={2.5} />
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
+            Auth_Gateway_01
+          </span>
+        </div>
+        <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tighter text-center md:text-left">
+          Welcome back<span className="text-indigo-600">.</span>
         </h2>
-        <p className="text-zinc-400 mt-3 font-light">
-          Enter your credentials to access your secure workstation.
+        <p className="text-zinc-500 mt-4 font-light text-sm text-center md:text-left leading-relaxed">
+          Access your <span className="text-zinc-300">verified workstation</span> and 
+          managed data pipelines.
         </p>
       </div>
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        {/* Email Field */}
-        <div className="space-y-2">
-          <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 ml-1">
-            Email Address
+      <form className="space-y-8" onSubmit={handleSubmit}>
+        {/* Email Field: Sharper, no ring-border, focus-bottom */}
+        <div className="space-y-3 group">
+          <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-zinc-600 group-focus-within:text-indigo-500 transition-colors ml-1">
+            // Identity_Email
           </label>
-          <div className="relative group">
+          <div className="relative">
             <Mail
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors"
-              size={18}
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-zinc-700 group-focus-within:text-white transition-colors"
+              size={16}
             />
             <input
               type="email"
-              placeholder="name@company.com"
+              placeholder="lead@infrastructure.ai"
               name="email"
+              required
               value={formData.email}
               onChange={handleChange}
-              className="w-full pl-12 pr-4 py-3.5 bg-zinc-950 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-white transition-all placeholder:text-zinc-700"
+              className="w-full pl-8 pr-4 py-3 bg-transparent border-b border-zinc-800 outline-none focus:border-indigo-500 text-zinc-200 transition-all placeholder:text-zinc-800 text-sm font-light"
             />
           </div>
         </div>
 
         {/* Password Field */}
-        <div className="space-y-2">
+        <div className="space-y-3 group">
           <div className="flex justify-between items-center ml-1">
-            <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500">
-              Password
+            <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-zinc-600 group-focus-within:text-indigo-500 transition-colors">
+              // Access_Key
             </label>
             <Link
-              to="/login"
-              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-tighter"
+              to="/forgot-password"
+              className="text-[10px] font-bold text-zinc-600 hover:text-indigo-400 transition-colors uppercase tracking-widest"
             >
               Forgot?
             </Link>
           </div>
-          <div className="relative group">
+          <div className="relative">
             <PasswordInput
               name="password"
+              required
               value={formData.password}
               onChange={handleChange}
-              type="password"
               placeholder="••••••••"
-              className="w-full pl-12 pr-12 py-3.5 bg-zinc-950 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-white transition-all placeholder:text-zinc-700"
+              className="w-full pl-8 pr-10 py-3 bg-transparent border-b border-zinc-800 outline-none focus:border-indigo-500 text-zinc-200 transition-all placeholder:text-zinc-800 text-sm font-light"
             />
           </div>
         </div>
 
-        {/* Error Alert */}
+        {/* Error Alert: High-density styling */}
         {error && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 animate-in fade-in slide-in-from-top-1">
-            <p className="text-red-400 text-sm font-medium flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-red-400" />
-              {error}
+          <div className="p-4 border-l-2 border-red-900 bg-red-950/10 animate-in fade-in zoom-in-95 duration-300">
+            <p className="text-red-500 text-[11px] font-mono uppercase tracking-wider flex items-center gap-3">
+              <span className="h-1 w-1 bg-red-500 rounded-full" />
+              Auth_Error: {error}
             </p>
           </div>
         )}
 
-        {/* Submit Button */}
+        {/* Submit Button: Sharp Corners, Solid Impact */}
         <button
           disabled={loading}
-          className="w-full group relative flex items-center justify-center gap-2 bg-white hover:bg-indigo-50 text-black py-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
+          className="w-full group relative flex items-center justify-center gap-3 bg-zinc-100 hover:bg-white text-black py-4 font-bold text-[11px] uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
-            <Loader2 className="animate-spin" size={20} />
+            <Loader2 className="animate-spin" size={16} />
           ) : (
             <>
-              Sign in to Account
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              Initialize Session
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </>
           )}
         </button>
       </form>
 
-      {/* Footer */}
-      <div className="mt-10 pt-8 border-t border-white/5">
-        <p className="text-center text-sm text-zinc-500 font-light">
-          New to the platform?{" "}
+      {/* Footer: Subtle and wide-spaced */}
+      <div className="mt-12 pt-8 border-t border-zinc-900/50">
+        <p className="text-center text-[11px] text-zinc-600 font-light tracking-wide">
+          UNAUTHORIZED ACCESS IS LOGGED.{" "}
           <Link
             to="/signup"
-            className="text-white font-bold hover:text-indigo-400 transition-colors ml-1"
+            className="text-zinc-300 font-bold hover:text-indigo-400 transition-colors ml-2 uppercase tracking-tighter"
           >
-            Create an account
+            Request Access
           </Link>
         </p>
       </div>
