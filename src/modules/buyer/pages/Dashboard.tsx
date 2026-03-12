@@ -1,8 +1,3 @@
-/**
- * 2️⃣ Dashboard.tsx
- * High-end Buyer Overview with vibrant StatCards and refined layouts.
- */
-
 import { useAuthStore } from "../../auth/useAuthstore";
 import React, { useEffect, useState } from "react";
 import DatasetCard from "../components/DatasetCard";
@@ -13,241 +8,161 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
-  ArrowUpRight,
+  Terminal,
   LayoutGrid,
   Bell,
   CreditCard,
   ChevronRight,
+  Activity
 } from "lucide-react";
 
-interface StatCardProps {
-  label: string;
-  value: string;
-  trend: string;
-  icon: React.ReactNode;
-  color: "blue" | "indigo" | "emerald";
-}
-
-const StatCard: React.FC<StatCardProps> = ({
-  label,
-  value,
-  trend,
-  icon,
-  color,
-}) => {
-  const colors = {
-    blue: "from-blue-500 to-blue-600 shadow-blue-100",
-    indigo: "from-indigo-500 to-indigo-600 shadow-indigo-100",
-    emerald: "from-emerald-500 to-emerald-600 shadow-emerald-100",
+const StatCard = ({ label, value, trend, icon, color }: any) => {
+  const accentColors = {
+    blue: "text-blue-500 border-blue-500/20 bg-blue-500/5",
+    indigo: "text-indigo-500 border-indigo-500/20 bg-indigo-500/5",
+    emerald: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5",
   };
 
   return (
-    <div className="relative group bg-gray-900 p-6 rounded-3xl border border-gray-500 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-      {/* Decorative Background Accent */}
-      <div
-        className={`absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br ${colors[color]} opacity-[0.03] rounded-full group-hover:scale-110 transition-transform`}
-      />
-
-      <div className="flex justify-between items-start mb-4">
-        <div
-          className={`p-3 rounded-2xl bg-gradient-to-br ${colors[color]} text-white shadow-lg`}
-        >
-          {icon}
+    <div className="bg-[#050505] border border-zinc-900 p-6 rounded-sm group hover:border-zinc-700 transition-all relative overflow-hidden">
+      <div className="flex justify-between items-start mb-6">
+        <div className={`p-2 rounded-sm border ${accentColors[color as keyof typeof accentColors]}`}>
+          {React.cloneElement(icon as React.ReactElement, { size: 18 })}
         </div>
-        <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg text-xs font-bold">
-          <TrendingUp size={12} />
-          {trend}
+        <div className="flex items-center gap-1 text-emerald-500 font-mono text-[10px] font-bold tracking-tighter">
+          <TrendingUp size={10} /> {trend}
         </div>
       </div>
-
       <div>
-        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
-          {label}
+        <p className="text-[10px] font-mono font-bold text-zinc-600 uppercase tracking-[0.2em] mb-1">
+          // {label}
         </p>
-        <h3 className="text-3xl font-black text-gray-900 mt-1">{value}</h3>
+        <h3 className="text-3xl font-bold text-white tracking-tighter tabular-nums">
+          {value}
+        </h3>
       </div>
-
-      <div className="mt-4 flex items-center text-xs font-medium text-gray-400 group-hover:text-gray-900 transition-colors cursor-pointer">
-        View Analytics <ArrowUpRight size={14} className="ml-1" />
-      </div>
+      {/* Decorative scanline effect on hover */}
+      <div className="absolute bottom-0 left-0 w-full h-[2px] bg-indigo-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
     </div>
   );
 };
 
 const Dashboard: React.FC = () => {
-  const { user} = useAuthStore();
+  const { user } = useAuthStore();
   const { getDatasets } = useBuyerStore();
   const [customDataRequestModal, setCustomDataRequestModal] = useState(false);
+
   useEffect(() => {
     getDatasets();
-  }, []);
+  }, [getDatasets]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-slate-200 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <h1 className="text-4xl font-black text-white-900 tracking-tight">
-              Welcome back,{" "}
-              <span className="text-indigo-600">
-                {user?.name || "Explorer"}
-              </span>
-            </h1>
-            <p className="text-slate-500 mt-2 font-medium">
-              Manage your enterprise data assets and acquisition metrics.
-            </p>
+    <div className="w-full animate-in fade-in duration-700">
+      {/* 1. Header: Matches Order and Browse alignment */}
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
+        <div className="max-w-xl">
+          <div className="flex items-center gap-2 text-indigo-500 mb-4">
+            <Terminal size={14} />
+            <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold">
+              Operator_Session_Initialized
+            </span>
           </div>
-          <div className="flex gap-3">
-            <button className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-3 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
-              <CreditCard size={18} />
-              Billing
-            </button>
-            <button className="flex items-center gap-2 bg-indigo-600 px-5 py-3 rounded-2xl font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-              <LayoutGrid size={18} />
-              Browse Market
-            </button>
-          </div>
-        </header>
-
-        {/* High-End StatCards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <StatCard
-            label="Investment"
-            value="$4,250.00"
-            trend="+12.5%"
-            color="indigo"
-            icon={<DollarSign size={20} />}
-          />
-          <StatCard
-            label="Data Assets"
-            value="12"
-            trend="+2 New"
-            color="blue"
-            icon={<CheckCircle2 size={20} />}
-          />
-          <StatCard
-            label="Pending Updates"
-            value="03"
-            trend="High Priority"
-            color="emerald"
-            icon={<Clock size={20} />}
-          />
+          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter leading-none">
+            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-600 italic font-light">{user?.name || "Lead_Engineer"}</span>
+          </h1>
+          <p className="text-zinc-500 mt-4 text-sm font-light leading-relaxed">
+            Infrastructure overview for continental asset acquisition and real-time telemetry updates.
+          </p>
         </div>
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 bg-zinc-950 border border-zinc-900 px-5 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-white transition-all rounded-sm">
+            <CreditCard size={14} /> Billing
+          </button>
+          <button className="flex items-center gap-2 bg-white px-6 py-3 text-[10px] font-bold text-black uppercase tracking-widest hover:bg-indigo-50 transition-all rounded-sm">
+            <LayoutGrid size={14} /> Market_Registry
+          </button>
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Main Inventory Section */}
-          <section className="lg:col-span-2">
-            <div className="flex justify-between items-end mb-8">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900">
-                  Recent Acquisitions
-                </h2>
-                <p className="text-slate-400 text-sm font-medium mt-1">
-                  Your most recently unlocked datasets.
+      {/* 2. High-Density Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-16 shadow-2xl">
+        <StatCard label="Net_Investment" value="$4,250.00" trend="+12.5%" color="indigo" icon={<DollarSign />} />
+        <StatCard label="Active_Assets" value="12" trend="+2_NEW" color="blue" icon={<CheckCircle2 />} />
+        <StatCard label="Pending_Sync" value="03" trend="PRIORITY" color="emerald" icon={<Clock />} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* 3. Main Inventory Section */}
+        <section className="lg:col-span-2 space-y-8">
+          <div className="flex justify-between items-end border-b border-zinc-900 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight italic">
+                Recent Acquisitions
+              </h2>
+              <p className="text-zinc-600 text-[10px] font-mono uppercase tracking-widest mt-1">
+                // Latest_Verified_Decryptions
+              </p>
+            </div>
+            <button className="flex items-center text-[10px] font-bold text-zinc-500 hover:text-white uppercase tracking-widest transition-all group">
+              Full_Inventory <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
+            {/* These would map from your store; keeping your placeholders for layout */}
+            <div className="bg-[#050505] p-2"><DatasetCard id="ds-01" title="Autonomous LiDAR" description="Precision cloud data for urban mapping." price={1200} currency="USD" rating={4.8} totalReviews={124} tags={["Automotive"]} onView={() => {}} /></div>
+            <div className="bg-[#050505] p-2"><DatasetCard id="ds-02" title="Medical NLP" description="Anonymized clinical notes for diagnostics." price={850} currency="USD" rating={4.9} totalReviews={56} tags={["Healthcare"]} onView={() => {}} /></div>
+          </div>
+        </section>
+
+        {/* 4. System Feed Sidebar */}
+        <aside className="space-y-8">
+          <div className="flex items-center gap-3 border-b border-zinc-900 pb-4">
+            <Activity size={16} className="text-indigo-500" />
+            <h2 className="text-xl font-bold text-white tracking-tight italic">Feed</h2>
+          </div>
+
+          <div className="space-y-px bg-zinc-900 border border-zinc-900">
+            {[
+              { title: "Dataset_Update", desc: "Medical Imaging v2.1 synchronized.", time: "2H_AGO" },
+              { title: "Node_Release", desc: "Satellite (Kenya) now operational.", time: "5H_AGO" },
+              { title: "Security_Event", desc: "New API key generated: Project_Alpha", time: "1D_AGO" },
+            ].map((item, i) => (
+              <div key={i} className="bg-[#050505] p-5 hover:bg-zinc-950 transition-all cursor-pointer group">
+                <div className="flex justify-between items-start mb-2">
+                  <p className="text-[10px] font-mono font-bold text-zinc-400 group-hover:text-indigo-400 tracking-widest uppercase">
+                    {item.title}
+                  </p>
+                  <span className="text-[9px] font-mono text-zinc-700 tracking-tighter">
+                    {item.time}
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-500 font-light leading-relaxed">
+                  {item.desc}
                 </p>
               </div>
-              <button className="flex items-center text-sm font-bold text-indigo-600 hover:text-indigo-700 transition-colors group">
-                Full Inventory{" "}
-                <ChevronRight
-                  size={16}
-                  className="group-hover:translate-x-1 transition-transform"
-                />
+            ))}
+          </div>
+
+          {/* Custom Request CTA */}
+          <div className="p-8 bg-zinc-950 border border-indigo-500/20 relative overflow-hidden group">
+            <div className="relative z-10">
+              <h4 className="font-bold text-white text-sm uppercase tracking-widest italic">Request Custom Curation</h4>
+              <p className="text-[11px] text-zinc-500 mt-4 mb-6 leading-relaxed font-light">
+                Our engineering nodes can synthesize specific datasets tailored to your unique AI architectural requirements.
+              </p>
+              <button
+                onClick={() => setCustomDataRequestModal(true)}
+                className="w-full py-3 bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all"
+              >
+                Contact Specialist
               </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <DatasetCard
-                id="ds-01"
-                title="Autonomous Vehicle LiDAR"
-                description="Precision point cloud data for urban environmental mapping and obstacle detection."
-                price={1200}
-                currency="USD"
-                rating={4.8}
-                totalReviews={124}
-                tags={["Automotive"]}
-                onView={() => {}}
-              />
-              <DatasetCard
-                id="ds-02"
-                title="Medical NLP: Patient Records"
-                description="Anonymized clinical notes for training diagnostic healthcare models."
-                price={850}
-                currency="USD"
-                rating={4.9}
-                totalReviews={56}
-                tags={["Healthcare"]}
-                onView={() => {}}
-              />
-            </div>
-          </section>
-
-          {/* Activity/Notifications Sidebar */}
-          <aside>
-            <div className="flex items-center gap-2 mb-8">
-              <div className="p-2 bg-white rounded-lg border border-slate-200">
-                <Bell size={18} className="text-slate-600" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-900">Feed</h2>
-            </div>
-
-            <div className="space-y-4">
-              {[
-                {
-                  title: "Dataset Update",
-                  desc: "Medical Imaging v2.1 released.",
-                  time: "2h ago",
-                },
-                {
-                  title: "New Release",
-                  desc: "Satellite Imagery (Kenya) is now live.",
-                  time: "5h ago",
-                },
-                {
-                  title: "Security",
-                  desc: "New API key generated for project Alpha.",
-                  time: "1d ago",
-                },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="group bg-white p-5 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all cursor-pointer"
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-sm font-black text-slate-900">
-                      {item.title}
-                    </p>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">
-                      {item.time}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    {item.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 p-6 bg-slate-900 rounded-3xl text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <h4 className="font-bold">Need custom data?</h4>
-                <p className="text-xs text-slate-400 mt-2 mb-4">
-                  Our engineers can curate specific datasets for your unique AI
-                  requirements.
-                </p>
-                <button
-                  onClick={() => setCustomDataRequestModal(true)}
-                  className="w-full py-3 cursor-pointer bg-white text-slate-900 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-50 transition-colors"
-                >
-                  Contact Specialist
-                </button>
-              </div>
-
-              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl" />
-            </div>
-          </aside>
-        </div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full group-hover:bg-indigo-500/10 transition-all" />
+          </div>
+        </aside>
       </div>
+
       <CustomDataRequestModal
         isOpen={customDataRequestModal}
         onClose={() => setCustomDataRequestModal(false)}

@@ -49,34 +49,43 @@ export const App = () => {
   }
   return (
     <BrowserRouter>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 1000,
-          style: {
-            background: "rgba(242, 249, 241, 0.9)", //
-            boxShadow:
-              "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            padding: "16px",
-            fontSize: "14px",
-            fontWeight: "500",
-          },
-          success: {
-            iconTheme: {
-              primary: "#10b981", // Emerald green
-              secondary: "#fff",
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: "#ef4444", // Red
-              secondary: "#fff",
-            },
-          },
-        }}
-      />
+    <Toaster
+  position="top-right"
+  toastOptions={{
+    duration: 3000, // 1s is a bit too fast to read technical alerts
+    style: {
+      background: "#0A0A0A", // Matches your Modal and Sidebar
+      backdropFilter: "blur(12px)",
+      border: "1px solid #18181b", // Zinc-900 hairline
+      borderRadius: "2px", // Sharp geometry
+      padding: "12px 20px",
+      fontSize: "11px",
+      fontFamily: "monospace",
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      color: "#D4D4D8", // Zinc-300
+      boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+    },
+    success: {
+      iconTheme: {
+        primary: "#6366f1", // Indigo accent to match your nodes
+        secondary: "#0A0A0A",
+      },
+      style: {
+        borderLeft: "2px solid #6366f1",
+      },
+    },
+    error: {
+      iconTheme: {
+        primary: "#ef4444", // Red for system alerts
+        secondary: "#0A0A0A",
+      },
+      style: {
+        borderLeft: "2px solid #ef4444",
+      },
+    },
+  }}
+/>
       {/* public routes */}
       <Routes>
         <Route path="/" element={<LandingPage />} />

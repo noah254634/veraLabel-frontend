@@ -6,13 +6,10 @@ import {
 } from 'recharts';
 import { 
   ShieldCheck, AlertCircle, Users, Database, 
-  TrendingUp, ArrowUpRight, CheckCircle2, Clock, DollarSign, Activity,Receipt,
-  Star, ThumbsUp, ThumbsDown, ShieldAlert, Unlock, UserCheck, UserX,
-  
+  TrendingUp, ArrowUpRight, CheckCircle2, Clock, DollarSign, Activity, Terminal
 } from 'lucide-react';
 import { useAuthStore } from '../../auth/useAuthstore';
 
-// Mock data for Quality Trends (Intersection over Union scores)
 const qualityData = [
   { name: 'Mon', accuracy: 88, disputes: 12 },
   { name: 'Tue', accuracy: 92, disputes: 8 },
@@ -23,7 +20,6 @@ const qualityData = [
   { name: 'Sun', accuracy: 98, disputes: 1 },
 ];
 
-// Mock data for Revenue
 const revenueData = [
   { name: 'Mon', revenue: 4500 },
   { name: 'Tue', revenue: 5200 },
@@ -48,48 +44,54 @@ const AdminDashboard = () => {
     useEffect(() => {
       getAnalytics();
     }, [getAnalytics]);
+
   return (
-    <div className="min-h-screen bg-gray-950 p-6 space-y-8 font-sans">
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-indigo-500">Welcome commander {user?.name || 'Admin'}!</h1>
-          <p className="text-slate-500 font-medium">Here is what's happening in your system today.</p>
+    <div className="w-full animate-in fade-in duration-700">
+      
+      {/* Header: Commands & Auth Level */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-indigo-500 mb-3">
+            <Terminal size={14} />
+            <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold">Root_Access_Level_00</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter leading-none italic">
+            Welcome, Commander <span className="text-indigo-400 font-light not-italic">{user?.name || 'Admin'}</span>
+          </h1>
+          <p className="text-zinc-500 text-sm mt-4 font-light">System telemetry synchronized across global worker nodes.</p>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 text-black cursor-pointer bg-white border border-slate-200 rounded-lg text-sm font-semibold shadow-sm hover:bg-slate-50 transition-all">
-            Export Report
+          <button className="bg-zinc-950 border border-zinc-900 px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-white transition-all rounded-sm">
+            Export_Registry_Log
           </button>
-          <button className="px-4 py-2 bg-indigo-600 cursor-pointer text-white rounded-lg text-sm font-semibold shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all">
-            System Settings
+          <button className="bg-white px-6 py-3 text-[10px] font-bold text-black uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all rounded-sm shadow-2xl shadow-indigo-500/20">
+            System_Config
           </button>
         </div>
+      </header>
+
+      {/* 1. Primary KPIs: Gap-Px Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-px bg-zinc-900 border border-zinc-900 mb-12 shadow-2xl">
+        <StatCard icon={<ShieldCheck size={16} />} label="Avg_Accuracy" value="96.2%" trend="+2.4%" color="emerald" />
+        <StatCard icon={<Database size={16} />} label="Asset_Inventory" value={(overview?.datasets.total ?? 0).toString()} trend={`+${(overview?.datasets.pending ?? 0)}`} color="indigo" />
+        <StatCard icon={<Users size={16} />} label="Operator_Count" value={(overview?.users.total ?? 0).toString()} trend={`+${overview?.users.newThisMonth ?? 0}`} color="indigo" />
+        <StatCard icon={<AlertCircle size={16} />} label="Active_Disputes" value="24" trend="-12%" color="rose" isNegative />
+        <StatCard icon={<TrendingUp size={16} />} label="Inflow_Today" value={(overview?.users.newToday ?? 0).toString()} trend="STABLE" color="indigo" />
       </div>
 
-      {/* Primary KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={<ShieldCheck className="text-emerald-500" />} label="Avg. Accuracy" value="96.2%" trend="+2.4%" />
-        <StatCard icon={<Database className="text-blue-500" />} label="Total Datasets" value={(overview?.datasets.total ?? 0).toString()} trend={`+${(overview?.datasets.pending ?? 0)}` }/>
-        <StatCard
-          icon={<Users className="text-indigo-500" />}
-          label="Total Users"
-          value={(overview?.users.total ?? 0).toString()}
-          trend={`+${overview?.users.newThisMonth ?? 0}`}
-        />
-        <StatCard icon={<AlertCircle className="text-rose-500" />} label="Pending Disputes" value="24" trend={`-${overview?.datasets.pending ?? 0}`} isNegative />
-        <StatCard icon={<TrendingUp className="text-indigo-500" />} label='Todays Join' value={(overview?.users.newToday ?? 0).toString()} trend={`+${overview?.users.newToday ?? 0}`} />
-      </div>
-
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 2. Main Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-10">
         
-        {/* Quality Trend Chart (Large) */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-800 text-lg">Global Quality Score (IoU)</h3>
-            <select className="bg-slate-50 border-none text-xs font-bold rounded-md px-2 py-1 outline-none">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
+        {/* Quality Trend: Dark Chart */}
+        <div className="lg:col-span-2 bg-[#050505] border border-zinc-900 p-8 relative overflow-hidden">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-white font-bold text-lg tracking-tight italic">Quality Score Telemetry (IoU)</h3>
+              <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mt-1">// Neural_Validation_Index</p>
+            </div>
+            <select className="bg-black border border-zinc-800 text-[10px] font-mono text-indigo-500 px-3 py-1 outline-none">
+              <option>LAST_7_DAYS</option>
+              <option>LAST_30_DAYS</option>
             </select>
           </div>
           <div className="h-[350px] w-full">
@@ -97,78 +99,79 @@ const AdminDashboard = () => {
               <AreaChart data={qualityData}>
                 <defs>
                   <linearGradient id="colorAcc" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#18181b" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#52525b', fontSize: 10, fontFamily: 'monospace'}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#52525b', fontSize: 10, fontFamily: 'monospace'}} />
                 <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                  contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #27272a', borderRadius: '2px', fontSize: '10px', fontFamily: 'monospace' }}
+                  itemStyle={{ color: '#818cf8' }}
                 />
-                <Area type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorAcc)" />
+                <Area type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorAcc)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Real-time Quality Alerts / Issues */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2">
-            Critical Review Queue
-          </h3>
-          <div className="space-y-4">
-            <AlertItem project="Medical Imagery X" status="Low Consensus" color="bg-rose-100 text-rose-600" />
-            <AlertItem project="Self-Driving LiDAR" status="Out of Sync" color="bg-amber-100 text-amber-600" />
-            <AlertItem project="Text Sentiment v2" status="High Rejection" color="bg-rose-100 text-rose-600" />
-            <AlertItem project="Product Catalog" status="Review Ready" color="bg-blue-100 text-blue-600" />
+        {/* Review Queue: Critical Nodes */}
+        <div className="bg-[#050505] border border-zinc-900 p-8">
+          <div className="flex items-center gap-3 mb-8">
+            <Activity className="text-rose-500" size={18} />
+            <h3 className="text-white font-bold text-lg tracking-tight italic">Review Queue</h3>
           </div>
-          <button className="w-full mt-8 py-3 bg-slate-50 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-all text-sm">
-            View All Projects
+          <div className="space-y-4">
+            <AlertItem project="Medical Imagery X" status="LOW_CONSENSUS" variant="danger" />
+            <AlertItem project="Self-Driving LiDAR" status="SYNC_LATENCY" variant="warning" />
+            <AlertItem project="Text Sentiment v2" status="REJECTION_SPIKE" variant="danger" />
+            <AlertItem project="Product Catalog" status="READY_FOR_ROOT" variant="primary" />
+          </div>
+          <button className="w-full mt-10 py-3 border border-zinc-800 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.2em] hover:text-white hover:bg-zinc-900 transition-all">
+            Full_Registry_Audit
           </button>
         </div>
-
       </div>
 
-      {/* Secondary Content Area: Revenue & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 3. Secondary Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
-        {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-               <DollarSign className="text-emerald-500" size={20}/> Platform Revenue (USD)
-            </h3>
+        {/* Revenue Bar Chart */}
+        <div className="lg:col-span-2 bg-[#050505] border border-zinc-900 p-8">
+          <div className="flex items-center gap-3 mb-8">
+            <DollarSign className="text-emerald-500" size={18}/>
+            <h3 className="text-white font-bold text-lg tracking-tight italic">Financial Settlement (USD)</h3>
           </div>
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#18181b" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#52525b', fontSize: 10, fontFamily: 'monospace'}} dy={10} />
+                <Tooltip cursor={{fill: '#18181b'}} contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #27272a', borderRadius: '2px', fontSize: '10px', fontFamily: 'monospace' }} />
+                <Bar dataKey="revenue" fill="#10b981" radius={[2, 2, 0, 0]} barSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Live Activity Feed */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="font-bold text-slate-800 text-lg mb-6 flex items-center gap-2">
-                <Activity className="text-blue-500" size={20}/> Live Feed
-            </h3>
+        {/* Live Activity Feed: Monospace Style */}
+        <div className="bg-[#050505] border border-zinc-900 p-8 overflow-hidden relative">
+            <div className="flex items-center gap-3 mb-8 border-b border-zinc-900 pb-4">
+                <Activity className="text-indigo-500" size={18}/>
+                <h3 className="text-white font-bold text-lg tracking-tight italic">Live Registry Feed</h3>
+            </div>
             <div className="space-y-6">
                 {recentActivity.map((item, i) => (
-                    <div key={i} className="flex gap-4 items-start">
-                        <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold shrink-0">
-                            {item.user[0]}
-                        </div>
+                    <div key={i} className="flex gap-4 items-start group">
+                        <div className="h-2 w-2 rounded-full bg-zinc-800 group-hover:bg-indigo-500 transition-colors mt-1.5 shrink-0" />
                         <div>
-                            <p className="text-sm text-slate-800">
-                                <span className="font-bold">{item.user}</span> {item.action} <span className="font-medium text-indigo-600">{item.target}</span>
+                            <p className="text-xs text-zinc-300 leading-relaxed">
+                                <span className="font-mono text-zinc-500 uppercase text-[10px] mr-1">{item.user}</span> 
+                                <span className="font-light">{item.action}</span> 
+                                <span className="text-indigo-400 font-mono text-[10px] ml-1">[{item.target}]</span>
                             </p>
-                            <p className="text-xs text-slate-400 mt-1">{item.time}</p>
+                            <p className="text-[9px] font-mono text-zinc-700 uppercase tracking-tighter mt-1">{item.time}</p>
                         </div>
                     </div>
                 ))}
@@ -179,44 +182,45 @@ const AdminDashboard = () => {
   );
 };
 
-// Sub-components for cleaner code
-interface StatCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  trend: string;
-  isNegative?: boolean;
-}
+// --- TECHNICAL HELPER COMPONENTS ---
 
-const StatCard = ({ icon, label, value, trend, isNegative = false }: StatCardProps) => (
-  <div className="bg-gray-950 p-6 rounded-2xl shadow-lg border border-slate-800 hover:shadow-sm hover:shadow-indigo-200  transition-shadow">
-    <div className="flex justify-between items-start mb-4">
-      <div className="p-3 bg-slate-50 rounded-xl">{icon}</div>
-      <span className={`text-xs font-bold px-2 py-1 rounded-full ${isNegative ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-100 text-emerald-600'}`}>
-        {trend}
-      </span>
-    </div>
-    <p className="text-slate-500 text-sm font-semibold">{label}</p>
-    <h2 className="text-2xl font-bold text-white-900 mt-1">{value}</h2>
-  </div>
-);
-
-interface AlertItemProps {
-  project: string;
-  status: string;
-  color: string;
-}
-
-const AlertItem = ({ project, status, color }: AlertItemProps) => (
-  <div className="flex items-center justify-between p-4 rounded-xl border border-slate-50 hover:bg-slate-50 transition-all cursor-pointer">
-    <div>
-      <h4 className="font-bold text-slate-800 text-sm">{project}</h4>
-      <div className={`mt-1 inline-block px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${color}`}>
-        {status}
+const StatCard = ({ icon, label, value, trend, isNegative, color }: any) => {
+  const accentColors = {
+    emerald: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5",
+    indigo: "text-indigo-500 border-indigo-500/20 bg-indigo-500/5",
+    rose: "text-rose-500 border-rose-500/20 bg-rose-500/5",
+  };
+  return (
+    <div className="bg-[#050505] p-6 hover:bg-[#080808] transition-colors group">
+      <div className="flex justify-between items-start mb-6">
+        <div className={`p-2 border rounded-sm ${accentColors[color as keyof typeof accentColors]}`}>{icon}</div>
+        <span className={`text-[10px] font-mono font-bold tracking-tighter ${isNegative ? 'text-rose-500' : 'text-emerald-500'}`}>
+          {trend}
+        </span>
       </div>
+      <p className="text-[10px] font-mono font-bold text-zinc-600 uppercase tracking-widest mb-1">// {label}</p>
+      <h2 className="text-2xl font-bold text-white tabular-nums tracking-tighter">{value}</h2>
     </div>
-    <ArrowUpRight size={16} className="text-slate-300" />
-  </div>
-);
+  );
+};
+
+const AlertItem = ({ project, status, variant }: any) => {
+  const themes = {
+    danger: "text-rose-500 bg-rose-500/5 border-rose-500/20",
+    warning: "text-amber-500 bg-amber-500/5 border-amber-500/20",
+    primary: "text-indigo-500 bg-indigo-500/5 border-indigo-500/20",
+  };
+  return (
+    <div className="flex items-center justify-between p-4 bg-black border border-zinc-900 group cursor-pointer hover:border-zinc-700 transition-all">
+      <div className="min-w-0">
+        <h4 className="font-bold text-zinc-200 text-sm truncate tracking-tight">{project}</h4>
+        <div className={`mt-2 inline-block px-2 py-0.5 border text-[8px] font-mono font-bold uppercase tracking-widest ${themes[variant as keyof typeof themes]}`}>
+          {status}
+        </div>
+      </div>
+      <ArrowUpRight size={14} className="text-zinc-800 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+    </div>
+  );
+};
 
 export default AdminDashboard;

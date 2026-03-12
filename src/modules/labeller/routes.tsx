@@ -3,7 +3,7 @@ import { LabellerLayout } from './layout/LabellerLayout'
 import { LabellerDashboard } from './pages/Dashboard'
 import { FindWorkPage } from './pages/FindWorkPage'
 import { WalletPage } from './pages/ProfileAndWallet'
-import { WorkbenchPage } from './pages/Workbench'
+import { CustomWorkbench } from './pages/Workbench'
 import { SettingsPage } from './pages/Settings'
 import { OnboardingEnforcer } from './onboarding/Onboarding'
 function LabellerRoutes() {
@@ -13,7 +13,7 @@ function LabellerRoutes() {
         <Route index element={<LabellerDashboard />} />
         <Route path="work" element={<FindWorkPage />} />
         <Route path="wallet" element={<WalletPage />} />
-        <Route path="workbench" element={<WorkbenchPage />} />
+        <Route path="workbench" element={<CustomWorkbench />} />
         <Route path="settings" element={<SettingsPage/>}/>
         <Route path="onboarding" element={<OnboardingEnforcer />} />
       </Route>

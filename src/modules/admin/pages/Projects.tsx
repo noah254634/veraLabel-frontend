@@ -1,57 +1,65 @@
 import React from 'react';
 import { 
-  Briefcase, MoreHorizontal, Users, BarChart3, 
-  Clock, CheckCircle2, AlertTriangle, Layers,
-  Filter, Plus, Search, ArrowUpRight
+  MoreHorizontal, BarChart3, Clock, Terminal, 
+  Activity, Filter, Plus, Search, ArrowUpRight,
+  Database, ShieldCheck, AlertCircle
 } from 'lucide-react';
 
 const AdminProjectsPage = () => {
   return (
-    <div className="space-y-8 pb-20">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Project Registry</h1>
-          <p className="text-slate-500 font-medium">Monitoring {24} active production pipelines</p>
+    <div className="w-full animate-in fade-in duration-700">
+      
+      {/* Header: Infrastructure Provisioning */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-indigo-500 mb-4">
+            <Terminal size={14} />
+            <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold underline underline-offset-8">Pipeline_Registry_v.01</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter leading-none">
+            Project Registry
+          </h1>
+          <p className="text-zinc-500 font-light text-sm mt-4">
+            Monitoring <span className="text-indigo-400 font-mono font-bold">24</span> active production pipelines across global nodes.
+          </p>
         </div>
-        <button className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">
-          <Plus size={20} /> Provision New Project
+        <button className="flex items-center gap-2 bg-white text-black px-8 py-4 font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all rounded-sm shadow-2xl shadow-indigo-500/20 active:scale-95">
+          <Plus size={16} /> Provision_New_Project
         </button>
+      </header>
+
+      {/* Global Health Aggregator: High-Density Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-12 shadow-2xl">
+        <HealthMetric label="Sync_Stable" count={18} color="bg-emerald-500" />
+        <HealthMetric label="Node_At_Risk" count={4} color="bg-amber-500" />
+        <HealthMetric label="System_Critical" count={2} color="bg-rose-500" />
       </div>
 
-      {/* Global Project Health Aggregator */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <HealthMetric label="On Track" count={18} color="bg-emerald-500" />
-        <HealthMetric label="At Risk" count={4} color="bg-amber-500" />
-        <HealthMetric label="Critical/Delayed" count={2} color="bg-rose-500" />
-      </div>
-
-      {/* Control Bar */}
-      <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+      {/* Control Bar: Darkened Search & Filter */}
+      <div className="flex items-center justify-between bg-[#050505] p-2 border border-zinc-900 mb-10">
         <div className="flex items-center gap-3 px-3 flex-1">
-          <Search size={18} className="text-slate-400" />
+          <Search size={16} className="text-zinc-700" />
           <input 
             type="text" 
-            placeholder="Search projects by buyer, tag, or ID..." 
-            className="bg-transparent border-none outline-none text-sm w-full"
+            placeholder="Query projects by buyer, tag, or UUID..." 
+            className="bg-transparent border-none outline-none text-xs text-white placeholder:text-zinc-800 w-full font-mono"
           />
         </div>
-        <div className="flex gap-2">
-          <button className="p-2 hover:bg-slate-50 rounded-lg text-slate-500"><Filter size={18} /></button>
-          <button className="p-2 hover:bg-slate-50 rounded-lg text-slate-500"><BarChart3 size={18} /></button>
+        <div className="flex gap-px bg-zinc-900 border border-zinc-900">
+          <button className="p-3 bg-black hover:bg-zinc-900 transition-colors text-zinc-500 hover:text-white"><Filter size={16} /></button>
+          <button className="p-3 bg-black hover:bg-zinc-900 transition-colors text-zinc-500 hover:text-white"><BarChart3 size={16} /></button>
         </div>
       </div>
 
-      {/* Projects Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Projects Grid: 1px Hairline Borders */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
         <ProjectCard 
-          name="Autonomous Navigation Dataset v4" 
+          name="Autonomous Navigation v4" 
           buyer="Tesla Autopilot Team"
           progress={78}
           accuracy={94.2}
           annotators={124}
           status="Active"
-          priority="High"
         />
         <ProjectCard 
           name="Medical MRI Segmentation" 
@@ -60,7 +68,6 @@ const AdminProjectsPage = () => {
           accuracy={98.9}
           annotators={12}
           status="At Risk"
-          priority="Critical"
         />
         <ProjectCard 
           name="E-commerce Sentiment Analysis" 
@@ -69,7 +76,6 @@ const AdminProjectsPage = () => {
           accuracy={91.5}
           annotators={45}
           status="Completed"
-          priority="Normal"
         />
         <ProjectCard 
           name="Multi-Modal LiDAR Mapping" 
@@ -78,96 +84,80 @@ const AdminProjectsPage = () => {
           accuracy={88.2}
           annotators={89}
           status="Active"
-          priority="High"
         />
       </div>
     </div>
   );
 };
 
-// --- SUBCOMPONENTS ---
+// --- TECHNICAL SUBCOMPONENTS ---
 
-interface ProjectCardProps {
-  name: string;
-  buyer: string;
-  progress: number;
-  accuracy: number;
-  annotators: number;
-  status: string;
-  priority: string;
-}
-
-const ProjectCard = ({ name, buyer, progress, accuracy, annotators, status, priority }: ProjectCardProps) => (
-  <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm hover:shadow-md transition-all">
-    <div className="flex justify-between items-start mb-6">
-      <div className="space-y-1">
+const ProjectCard = ({ name, buyer, progress, accuracy, annotators, status }: any) => (
+  <div className="bg-[#050505] p-8 transition-all hover:bg-[#080808] group relative">
+    <div className="flex justify-between items-start mb-8">
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <div className={`h-1.5 w-1.5 rounded-full ${status === 'At Risk' ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+          <h3 className="font-bold text-white text-xl tracking-tight italic group-hover:text-indigo-400 transition-colors">{name}</h3>
+        </div>
         <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${status === 'At Risk' ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
-            <h3 className="font-bold text-slate-900 text-lg">{name}</h3>
+          <span className="text-[9px] font-mono text-zinc-700 uppercase tracking-widest font-bold">Client_Node:</span>
+          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">{buyer}</span>
         </div>
-        <p className="text-sm text-slate-400 font-medium">Client: <span className="text-slate-600 font-bold">{buyer}</span></p>
       </div>
-      <button className="p-2 text-slate-300 hover:text-slate-600"><MoreHorizontal /></button>
+      <button className="p-2 text-zinc-800 hover:text-white transition-colors"><MoreHorizontal size={18} /></button>
     </div>
 
-    {/* Metrics Strip */}
-    <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-slate-50 p-3 rounded-2xl">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Completion</p>
-            <p className="text-lg font-black text-slate-900">{progress}%</p>
-        </div>
-        <div className="bg-slate-50 p-3 rounded-2xl">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Accuracy</p>
-            <p className={`text-lg font-black ${accuracy < 90 ? 'text-rose-600' : 'text-slate-900'}`}>{accuracy}%</p>
-        </div>
-        <div className="bg-slate-50 p-3 rounded-2xl">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Annotators</p>
-            <p className="text-lg font-black text-slate-900">{annotators}</p>
-        </div>
+    {/* Metrics Grid: Technical Table look */}
+    <div className="grid grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-8 overflow-hidden">
+        <MetricTile label="Completion" value={`${progress}%`} />
+        <MetricTile label="Accuracy" value={`${accuracy}%`} warning={accuracy < 90} />
+        <MetricTile label="Nodes_Active" value={annotators} />
     </div>
 
-    {/* Progress Bar */}
-    <div className="space-y-2">
-        <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-            <span>Project Velocity</span>
-            <span className="text-slate-900">{progress}/100%</span>
+    {/* Velocity Bar: Razor Sharp */}
+    <div className="space-y-3">
+        <div className="flex justify-between text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-600">
+            <span>// Project_Velocity</span>
+            <span className="text-zinc-400 tabular-nums">{progress}/100%</span>
         </div>
-        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-zinc-950 rounded-none overflow-hidden">
             <div 
-                className={`h-full transition-all duration-1000 ${status === 'At Risk' ? 'bg-rose-500' : 'bg-indigo-600'}`} 
+                className={`h-full transition-all duration-1000 ${status === 'At Risk' ? 'bg-rose-500' : 'bg-indigo-500'}`} 
                 style={{ width: `${progress}%` }} 
             />
         </div>
     </div>
 
-    <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-        <div className="flex -space-x-3">
-            {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-8 w-8 rounded-full border-2 border-white bg-slate-200" />
+    <div className="mt-10 pt-6 border-t border-zinc-900 flex items-center justify-between">
+        <div className="flex -space-x-2">
+            {[1, 2, 3].map(i => (
+                <div key={i} className="h-8 w-8 rounded-sm border-2 border-[#050505] bg-zinc-900 flex items-center justify-center text-[8px] font-mono text-zinc-600">U_{i}</div>
             ))}
-            <div className="h-8 w-8 rounded-full border-2 border-white bg-indigo-50 text-indigo-600 text-[10px] flex items-center justify-center font-bold">+{annotators - 4}</div>
+            <div className="h-8 w-8 rounded-sm border-2 border-[#050505] bg-indigo-500/10 text-indigo-500 text-[10px] flex items-center justify-center font-bold font-mono">+{annotators - 3}</div>
         </div>
-        <button className="flex items-center gap-1 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-widest">
-            Audit Pipeline <ArrowUpRight size={16} />
+        <button className="flex items-center gap-3 text-[10px] font-bold text-zinc-500 hover:text-white transition-all uppercase tracking-[0.2em] group/btn">
+            Audit_Pipeline <ArrowUpRight size={14} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
         </button>
     </div>
   </div>
 );
 
-interface HealthMetricProps {
-  label: string;
-  count: number;
-  color: string;
-}
+const MetricTile = ({ label, value, warning }: any) => (
+  <div className="bg-[#050505] p-4 group-hover:bg-black transition-colors">
+      <p className="text-[8px] font-mono font-bold text-zinc-700 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-lg font-bold tabular-nums tracking-tighter ${warning ? 'text-rose-500' : 'text-zinc-200'}`}>{value}</p>
+  </div>
+);
 
-const HealthMetric = ({ label, count, color }: HealthMetricProps) => (
-    <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
-        <div className={`h-10 w-1 rounded-full ${color}`} />
-        <div>
-            <p className="text-2xl font-black text-slate-900 leading-none">{count}</p>
-            <p className="text-xs font-bold text-slate-400 uppercase mt-1">{label}</p>
-        </div>
-    </div>
+const HealthMetric = ({ label, count, color }: any) => (
+  <div className="bg-[#050505] p-6 flex items-center gap-6 group hover:bg-[#080808] transition-colors">
+      <div className={`h-8 w-1 ${color} shadow-[0_0_10px_rgba(0,0,0,0.5)]`} />
+      <div>
+          <p className="text-3xl font-bold text-white leading-none tracking-tighter tabular-nums">{count}</p>
+          <p className="text-[10px] font-mono font-bold text-zinc-600 uppercase tracking-[0.2em] mt-2">{label}</p>
+      </div>
+  </div>
 );
 
 export default AdminProjectsPage;

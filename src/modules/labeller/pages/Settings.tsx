@@ -91,7 +91,7 @@ export const SettingsPage = () => {
             </div>
           )}
 
-          {/* PAYOUT METHODS (M-Pesa) */}
+          {/* PAYOUT METHODS */}
           {activeTab === 'payouts' && (
             <div className="space-y-6 animate-in slide-in-from-right-2 duration-300">
               <h3 className="text-lg font-bold mb-4">Payout Configuration</h3>

@@ -1,7 +1,35 @@
 @import "tailwindcss";
 
+/* Custom Scrollbar for Chrome, Safari, and Edge */
+::-webkit-scrollbar {
+  width: 6px; /* Makes it very thin and professional */
+}
 
+::-webkit-scrollbar-track {
+  background: #020203; /* Matches your layout background */
+}
 
+::-webkit-scrollbar-thumb {
+  background: #18181b; /* Zinc-900 color */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6366f1; /* Indigo-500 when hovering */
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #18181b #020203;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 /* Custom Scrollbar for the Workbench */
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

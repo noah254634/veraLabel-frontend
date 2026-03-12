@@ -1,77 +1,78 @@
-/**
- * Browse.tsx
- * High-end Dark Marketplace with realistic AI Dataset content.
- */
-
 import React, { useState } from 'react';
-import { Search, Sparkles, Zap } from 'lucide-react';
+import { Search, Terminal } from 'lucide-react';
 import CategoryBar from '../components/CategoryBar';
 import DatasetCard from '../components/DatasetCard';
 import QuickCheckOutModal from '../components/QuickCheckOutModal';
 import useBuyerStore from "../store/buyerStore"
-import { data } from 'react-router-dom';
 import type { Dataset } from "../../../shared/types/dataset";
 
-
 const CATEGORIES = ['All Assets', 'Computer Vision', 'NLP', 'Healthcare', 'Automotive', 'Satellite'];
+
 const Browse: React.FC = () => {
-  const {datasets,getDatasets}=useBuyerStore()
+  const { datasets, getDatasets } = useBuyerStore();
   const [selectedCategory, setSelectedCategory] = useState('All Assets');
   const [activeDataset, setActiveDataset] = useState<Dataset | null>(null);
-  React.useEffect(()=>{
-    getDatasets()
-  },[])
-  console.log(datasets)
+
+  React.useEffect(() => {
+    getDatasets();
+  }, [getDatasets]);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200">
-      {/* Background Decorative Element */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-indigo-600/5 blur-[120px] pointer-events-none" />
+    <div className="w-full">
+      {/* 1. REMOVED min-h-screen and bg-[#020203] 
+          2. REMOVED duplicate background glow (handled by AppLayout)
+      */}
 
-      {/* Glass Navigation */}
-      <div className="sticky top-0 z-50 bg-[#020617]/70 backdrop-blur-2xl border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <CategoryBar 
-            categories={CATEGORIES}
-            activeCategory={selectedCategory}
-            onSelect={setSelectedCategory}
-          />
+      {/* Market Intelligence Header: Adjusted for Layout Alignment */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 mb-12 border-l-2 border-indigo-500 pl-6">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-3 mb-6 text-indigo-500">
+            <Terminal size={14} />
+            <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold underline underline-offset-8">Registry_Access_Level_01</span>
+          </div>
+          
+          <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tighter mb-4 leading-tight">
+            VeraLabel <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-zinc-200 to-indigo-600 italic">
+              Asset Registry
+            </span>
+          </h1>
+          
+          <p className="text-zinc-500 font-light text-sm md:text-base leading-relaxed max-w-md">
+            Querying high-fidelity, precision-vetted datasets across global continental nodes.
+          </p>
+        </div>
+
+        {/* Search Input: Matches Dashboard Density */}
+        <div className="w-full lg:w-80 group">
+          <label className="block text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-600 mb-2 ml-1">
+            // Index_Query
+          </label>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-700 group-focus-within:text-indigo-400 transition-colors" size={16} />
+            <input 
+              type="text" 
+              placeholder="Filter assets..." 
+              className="w-full bg-zinc-950 border border-zinc-900 py-3 pl-11 pr-4 text-xs font-medium text-white focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-800 rounded-sm"
+            />
+          </div>
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-        {/* Hero Area */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-6 border border-indigo-500/20">
-              <Zap size={12} fill="currentColor" />
-              Direct Asset Acquisition
-            </div>
-            <h1 className="text-5xl font-black text-white tracking-tighter mb-4">
-              VeraLabel <span className="text-indigo-500">Market</span>
-            </h1>
-            <p className="text-slate-400 font-medium text-lg leading-relaxed">
-              Acquire high-fidelity, verified datasets for mission-critical AI training.
-            </p>
-          </div>
+      {/* Category Bar Integration */}
+      <div className="mb-10 border-b border-zinc-900/50 pb-4">
+        <CategoryBar 
+          categories={CATEGORIES}
+          activeCategory={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+      </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={20} />
-              <input 
-                type="text" 
-                placeholder="Search premium data..." 
-                className="bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold focus:ring-2 focus:ring-indigo-500/50 outline-none w-full md:w-80 transition-all placeholder:text-slate-600"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Results Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {datasets.map((dataset) => (
+      {/* Results Grid: Now perfectly aligned with Layout margins */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 shadow-2xl">
+        {datasets.map((dataset) => (
+          <div key={dataset._id} className="bg-[#050505] hover:bg-zinc-950 transition-colors duration-300">
             <DatasetCard 
-              key={dataset._id}
               id={dataset._id}
               title={dataset.name}
               description={dataset.description}
@@ -79,31 +80,39 @@ const Browse: React.FC = () => {
               currency="USD"
               rating={3}
               totalReviews={dataset.reviews?.length || 0}
-              tags={dataset.category ? [dataset.category] : ["Automotive"]}
+              tags={dataset.category ? [dataset.category] : ["Engineering"]}
               format={dataset.datasetFormat}
               onView={() => setActiveDataset(dataset)}
             />
-          ))}
-        </div>
-
-        {/* Footer Accent */}
-        <div className="mt-24 text-center border-t border-slate-900 pt-12">
-          <div className="flex justify-center items-center gap-2 text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">
-            <Sparkles size={14} />
-            Enterprise Data Standard
           </div>
-        </div>
-      </main>
+        ))}
+      </div>
 
-      {/* Checkout Transition Modal */}
+      {/* Empty State */}
+      {datasets.length === 0 && (
+         <div className="py-24 text-center border border-dashed border-zinc-900">
+           <div className="animate-pulse text-zinc-700 font-mono text-[10px] uppercase tracking-[0.5em]">
+             System_Scan: Zero_Assets_Found
+           </div>
+         </div>
+      )}
+
+      {/* Secondary Meta Info */}
+      <footer className="mt-20 pt-8 border-t border-zinc-900 flex justify-between items-center opacity-30">
+        <span className="text-[9px] font-mono uppercase tracking-widest">Protocol: Secure_Market_v1.0</span>
+        <div className="h-px flex-1 mx-8 bg-zinc-900" />
+        <span className="text-[9px] font-mono uppercase tracking-widest text-indigo-500">All Nodes Stable</span>
+      </footer>
+
+      {/* Checkout Modal */}
       <QuickCheckOutModal 
         isOpen={!!activeDataset} 
         dataset={activeDataset ? {
           id: activeDataset._id,
           title: activeDataset.name,
           price: Number(activeDataset.price) || 0,
-          format:activeDataset.datasetFormat,
-          totalReviews:activeDataset.reviews?.length || 7,
+          format: activeDataset.datasetFormat,
+          totalReviews: activeDataset.reviews?.length || 7,
           rating: 3
         } : null}
         onClose={() => setActiveDataset(null)}

@@ -1,28 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
-  Users,
-  Search,
-  ShieldCheck,
-  UserMinus,
-  UserPlus,
-  Ban,
-  MoreHorizontal,
-  MapPin,
-  Globe,
-  Award,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  ExternalLink,
-  Filter,
-  ChevronLeft,
-  Star,
-  ThumbsUp,
-  ThumbsDown,
-  ShieldAlert,
-  Unlock,
-  UserCheck,
-  UserX,
+  Users, Search, UserMinus, UserPlus, Ban, MapPin, 
+  Award, Clock, ChevronLeft, Star, ShieldAlert, 
+  Unlock, UserCheck, UserX, Terminal, Activity,
+  Filter, MoreHorizontal, Globe,
   type LucideProps,
 } from "lucide-react";
 import type { User } from "../../../shared/types/user";
@@ -30,315 +11,131 @@ import useStore from "../store/userManagementStore";
 
 const AdminUserModule = () => {
   const {
-    users,
-    loading,
-    getUsers,
-    getUserByEmail,
-    getUserByUsername,
-    getUserByRole,
-    getUserByStatus,
-    getUserByCountry,
-    promoteUser,
-    demoteUser,
-    suspendUser,
-    unsuspendUser,
-    blockUser,
-    unblockUser,
-    deleteUser,
-    verifyUser,
-    unverifyUser,
-    rateUser, // rateUser added per request
+    users, loading, getUsers, getUserByEmail, getUserByUsername, getUserByRole,
+    getUserByStatus, getUserByCountry, promoteUser, demoteUser, suspendUser,
+    unsuspendUser, blockUser, unblockUser, deleteUser, verifyUser, unverifyUser, rateUser,
   } = useStore();
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchType, setSearchType] = useState("username");
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    getUsers();
-  }, [getUsers]);
+  useEffect(() => { getUsers(); }, [getUsers]);
 
+  // Restored: Re-sync selected user when store updates
   useEffect(() => {
     if (!selectedUser) return;
     const updated = users.find((user) => user._id === selectedUser._id);
-    if (updated && updated !== selectedUser) {
-      setSelectedUser(updated);
-    }
+    if (updated && updated !== selectedUser) { setSelectedUser(updated); }
   }, [users, selectedUser?._id]);
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
 
+  // Restored: Complete Search Logic
   const executeSearch = () => {
     const value = searchTerm.trim();
-    if (value.length <= 2) {
-      getUsers();
-      return;
-    }
+    if (value.length <= 2) { getUsers(); return; }
 
     switch (searchType) {
-      case "email":
-        void getUserByEmail(value);
-        return;
-      case "username":
-        void getUserByUsername(value);
-        return;
-      case "role":
-        void getUserByRole(value);
-        return;
-      case "status":
-        void getUserByStatus(value);
-        return;
-      case "location":
-        void getUserByCountry(value);
-        return;
-      case "verified":
-      case "suspended":
-      case "blocked":
-      case "rating":
-        return;
-      default:
-        void getUserByUsername(value);
-        return;
+      case "email": void getUserByEmail(value); break;
+      case "username": void getUserByUsername(value); break;
+      case "role": void getUserByRole(value); break;
+      case "status": void getUserByStatus(value); break;
+      case "location": void getUserByCountry(value); break;
+      default: void getUserByUsername(value);
     }
   };
 
-  const isClientFilter =
-    searchType === "verified" ||
-    searchType === "suspended" ||
-    searchType === "blocked" ||
-    searchType === "rating";
-
-  const displayedUsers = isClientFilter
-    ? users.filter((user) => {
-        const q = searchTerm.trim().toLowerCase();
-        if (!q) return true;
-        switch (searchType) {
-          case "verified":
-            return user.isVerified
-              ? q === "true" || q === "verified" || q === "active"
-              : q === "false" || q === "unverified" || q === "inactive";
-          case "suspended":
-            return user.isSuspended?.status
-              ? q === "true" || q === "yes" || q === "suspended"
-              : q === "false" || q === "no" || q === "active";
-          case "blocked":
-            return user.isBlocked?.status
-              ? q === "true" || q === "yes" || q === "blocked"
-              : q === "false" || q === "no" || q === "active";
-          case "rating":
-            return String(user.trustScore || 0).startsWith(q);
-          default:
-            return true;
-        }
-      })
-    : users;
   return (
-    <div className="flex h-screen bg-[#0B0F1A] text-slate-300 overflow-hidden font-sans">
-      {/* --- LEFT SIDEBAR: THE FULL COMMAND PROFILE (50%) --- */}
+    <div className="relative flex flex-col md:flex-row w-full h-[calc(100vh-140px)] bg-[#020203] text-zinc-400 overflow-hidden border border-zinc-900 shadow-2xl animate-in fade-in duration-500">
+      
+      {/* --- LEFT: CONTEXTUAL PROFILE (Restored Detail View) --- */}
       <aside
-        className={`transition-all duration-500 ease-in-out border-r border-slate-800 bg-[#0F172A] flex flex-col relative z-20 ${
-          selectedUser ? "w-1/2 opacity-100" : "w-0 opacity-0 overflow-hidden"
-        }`}
+        className={`
+          fixed inset-0 z-50 w-full bg-[#050505] 
+          md:relative md:inset-auto md:z-20 md:w-1/2 md:border-r md:border-zinc-900 
+          transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+          ${selectedUser ? "translate-x-0 opacity-100" : "-translate-x-full md:hidden opacity-0"}
+        `}
       >
         {selectedUser && (
-          <div className="h-full flex flex-col p-8 overflow-y-auto custom-scrollbar">
-            <header className="flex justify-between items-center mb-6">
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="p-2 hover:bg-slate-800 rounded-full text-slate-500 transition-all"
-              >
-                <ChevronLeft size={24} />
+          <div className="h-full flex flex-col overflow-y-auto custom-scrollbar p-8">
+            <header className="flex justify-between items-center mb-8 shrink-0">
+              <button onClick={() => setSelectedUser(null)} className="flex items-center gap-2 text-[10px] font-mono font-bold text-indigo-500 uppercase tracking-widest hover:text-white transition-all">
+                <ChevronLeft size={16} /> [Return_to_Registry]
               </button>
               <div className="flex gap-2">
-                <StatusBadge status={selectedUser.status} />
-                <span className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-slate-700">
+                <StatusBadge status={selectedUser.isVerified ? "active" : "unverified"} />
+                <span className="px-3 py-1 bg-zinc-900 border border-zinc-800 text-[9px] font-mono font-bold text-indigo-500 uppercase tracking-widest">
                   {selectedUser.role}
                 </span>
               </div>
             </header>
 
-            {/* Profile Identity & RATING SYSTEM */}
-            <div className="flex items-start gap-6 mb-10 bg-slate-900/40 p-6 rounded-[2rem] border border-slate-800/50">
-              <div className="h-24 w-24 rounded-3xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white text-4xl font-black shadow-2xl">
-                {selectedUser.name?.charAt(0)}
-              </div>
-              <div className="flex-1 space-y-2">
-                <h2 className="text-2xl font-black text-white">
-                  {selectedUser.name}
-                </h2>
-                <p className="text-slate-500 text-sm font-mono italic">
-                  {selectedUser.email}
-                </p>
-
-                {/* Annotator Rating Component */}
-                <div className="pt-2">
-                  <p className="text-[10px] font-black uppercase text-slate-600 mb-2 tracking-widest">
-                    Rate Annotator Performance
-                  </p>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={18}
-                        className={`cursor-pointer transition-all ${star <= (selectedUser.trustScore ?? 0) ? "text-amber-400 fill-amber-400" : "text-slate-700"}`}
-                        onClick={() => {
-                          setSelectedUser({
-                            ...selectedUser,
-                            trustScore: star,
-                          });
-                          rateUser(selectedUser._id, star);
-                        }}
-                      />
-                    ))}
+            <div className="space-y-10">
+              {/* Identity Header */}
+              <div className="flex items-start gap-8 p-8 bg-black border border-zinc-900 rounded-sm">
+                <div className="h-24 w-24 shrink-0 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white text-4xl font-bold">
+                  {selectedUser.name?.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2 text-indigo-500">
+                    <Terminal size={14} />
+                    <span className="font-mono text-[9px] uppercase tracking-[0.3em] font-bold">Node_Identity</span>
+                  </div>
+                  <h2 className="text-3xl font-bold text-white tracking-tighter truncate">{selectedUser.name}</h2>
+                  <p className="text-zinc-500 text-xs font-mono truncate">{selectedUser.email}</p>
+                  
+                  {/* Performance Rating */}
+                  <div className="mt-6 pt-4 border-t border-zinc-900">
+                    <p className="text-[9px] font-mono font-bold uppercase text-zinc-600 mb-3 tracking-widest">// Quality_Trust_Score</p>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={16}
+                          className={`cursor-pointer transition-all ${star <= (selectedUser.trustScore ?? 0) ? "text-amber-500 fill-amber-500" : "text-zinc-800"}`}
+                          onClick={() => rateUser(selectedUser._id, star)}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* FULL ACTION GRID - EVERY METHOD FROM STORE */}
-            <div className="grid grid-cols-1 gap-8">
-              {/* Approval & Trust Actions */}
-              <section className="space-y-4">
-                <h3 className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em]">
-                  Verification & Approval
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <ActionBtn
-                    label="Approve User"
-                    icon={<UserCheck />}
-                    onClick={() => verifyUser(selectedUser._id)}
-                    variant="success"
+              {/* RESTORED: Full Action Grid */}
+              <div className="grid grid-cols-1 gap-8">
+                <ActionGroup label="Verification_Protocols" color="text-indigo-500">
+                  <ActionBtn label="Approve User" icon={<UserCheck />} onClick={() => verifyUser(selectedUser._id)} variant="success" />
+                  <ActionBtn label="Reject User" icon={<UserX />} onClick={() => unverifyUser(selectedUser._id)} variant="ghost" />
+                </ActionGroup>
+
+                <ActionGroup label="Rank_Promotion" color="text-emerald-500">
+                  <ActionBtn label="Promote to Reviewer" icon={<Award />} onClick={() => promoteUser(selectedUser._id)} variant="primary" />
+                  <ActionBtn label="Demote User" icon={<ShieldAlert />} onClick={() => demoteUser(selectedUser._id)} variant="ghost" />
+                </ActionGroup>
+
+                <ActionGroup label="Security_Penalties" color="text-rose-500">
+                  <ActionBtn 
+                    label={selectedUser.isSuspended?.status ? "Lift_Suspension" : "Suspend_24H"} 
+                    icon={<Clock />} 
+                    onClick={() => selectedUser.isSuspended?.status ? unsuspendUser(selectedUser._id, "") : suspendUser(selectedUser._id, "Policy")} 
+                    variant="warning" 
                   />
-                  <ActionBtn
-                    label="Reject User"
-                    icon={<UserX />}
-                    onClick={() => unverifyUser(selectedUser._id)}
-                    variant="danger"
+                  <ActionBtn 
+                    label={selectedUser.isBlocked?.status ? "Unblock_Node" : "Block_Permanent"} 
+                    icon={selectedUser.isBlocked?.status ? <Unlock /> : <Ban />} 
+                    onClick={() => selectedUser.isBlocked?.status ? unblockUser(selectedUser._id, "") : blockUser(selectedUser._id, "Violation")} 
+                    variant="danger" 
                   />
-                </div>
-              </section>
+                </ActionGroup>
+              </div>
 
-              {/* Authority & Role Promotion */}
-              <section className="space-y-4">
-                <h3 className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.2em]">
-                  Rank & Promotion
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <ActionBtn
-                    label="Promote to Reviewer"
-                    icon={<Award />}
-                    onClick={() => promoteUser(selectedUser._id)}
-                    variant="primary"
-                  />
-                  <ActionBtn
-                    label="Demote User"
-                    icon={<ShieldAlert />}
-                    onClick={() => demoteUser(selectedUser._id)}
-                    variant="ghost"
-                  />
+              <div className="pt-8 border-t border-zinc-900 flex justify-between items-center">
+                <div className="flex items-center gap-2 text-zinc-600 font-mono text-[10px]">
+                  <MapPin size={14} />
+                  <span>LOC: {(selectedUser.userLocation && typeof selectedUser.userLocation === 'object' && selectedUser.userLocation.country) || "GLOBAL_NODE"}</span>
                 </div>
-              </section>
-
-              {/* Access Control (Block/Suspend) */}
-              <section className="space-y-4">
-                <h3 className="text-[10px] font-black uppercase text-rose-500 tracking-[0.2em]">
-                  Security Penalties
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {selectedUser.isSuspended.status ? (
-                    <ActionBtn
-                      label="Unsuspend"
-                      icon={<Clock />}
-                      onClick={() => {
-                        setSelectedUser({
-                          ...selectedUser,
-                          isSuspended: { status: false, reason: "" },
-                        });
-                        unsuspendUser(
-                          selectedUser._id,
-                          selectedUser.isSuspended.reason,
-                        );
-                      }}
-                      variant="secondary"
-                    />
-                  ) : (
-                    <ActionBtn
-                      label="Suspend 24h"
-                      icon={<Clock />}
-                      onClick={() => {
-                        setSelectedUser({
-                          ...selectedUser,
-                          isSuspended: {
-                            status: true,
-                            reason: selectedUser.isSuspended.reason,
-                          },
-                        });
-                        suspendUser(
-                          selectedUser._id,
-                          selectedUser.isSuspended.reason,
-                        );
-                      }}
-                      variant="warning"
-                    />
-                  )}
-
-                  {selectedUser.isBlocked?.status ? (
-                    <ActionBtn
-                      label="Unblock User"
-                      icon={<Unlock />}
-                      onClick={() => {
-                        setSelectedUser({
-                          ...selectedUser,
-                          isBlocked: { status: false, reason: "" },
-                        });
-                        unblockUser(
-                          selectedUser._id,
-                          selectedUser.isBlocked?.reason || "",
-                        );
-                      }}
-                      variant="secondary"
-                    />
-                  ) : (
-                    <ActionBtn
-                      label="Block Permanent"
-                      icon={<Ban />}
-                      onClick={() => {
-                        setSelectedUser({
-                          ...selectedUser,
-                          isBlocked: {
-                            status: true,
-                            reason: selectedUser.isBlocked?.reason || "",
-                          },
-                        });
-                        blockUser(
-                          selectedUser._id,
-                          selectedUser.isBlocked?.reason || "",
-                        );
-                      }}
-                      variant="danger"
-                    />
-                  )}
-                </div>
-              </section>
-
-              {/* Data & Destruction */}
-              <div className="pt-6 border-t border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-slate-500">
-                  <MapPin size={16} />
-                  <span className="text-xs">
-                    {typeof selectedUser.userLocation === "string"
-                      ? selectedUser.userLocation
-                      : selectedUser.userLocation?.country || "Unknown"}
-                  </span>
-                </div>
-                <button
-                  onClick={() =>
-                    deleteUser(selectedUser._id, "Administrative Purge")
-                  }
-                  className="flex items-center gap-2 text-rose-500 hover:text-rose-400 text-[10px] font-black uppercase tracking-widest transition-all"
-                >
-                  <UserMinus size={16} /> Purge Account
+                <button onClick={() => deleteUser(selectedUser._id, "Purge")} className="text-rose-500 hover:text-white text-[10px] font-mono font-bold uppercase tracking-widest transition-all">
+                  [Purge_Record]
                 </button>
               </div>
             </div>
@@ -346,105 +143,86 @@ const AdminUserModule = () => {
         )}
       </aside>
 
-      {/* --- RIGHT SIDEBAR: THE REGISTRY (50%) --- */}
-      <main
-        className={`flex-1 flex flex-col transition-all duration-500 ${selectedUser ? "w-1/2" : "w-full"}`}
-      >
-        <header className="p-8 border-b border-slate-800 flex justify-between items-center bg-[#0B0F1A]/50 backdrop-blur-md">
-          <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
-            VeraLabel Registry
-          </h1>
-          <div className="flex items-center gap-4">
-            <select
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-400 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer "
-            >
-              <option value="" disabled selected hidden>
-                Sort by
-              </option>
-              <option value="username">Username</option>
-              <option value="email">Email</option>
-              <option value="location">Location</option>
-              <option value="role">Role</option>
-              <option value="status">Status</option>
-              <option value="verified">Verified</option>
-              <option value="suspended">Suspended</option>
-              <option value="blocked">Blocked</option>
-              <option value="rating">Rating</option>
-              <option value="ID">Id</option>
-            </select>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={executeSearch}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors"
-                aria-label="Search users"
-              >
-                <Search size={16} />
-              </button>
-              <input
-                type="text"
-                value={searchTerm}
-                placeholder={`Search by ${searchType}`}
-                onChange={handleSearch}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") executeSearch();
-                }}
-                className="bg-slate-900 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs focus:ring-1 focus:ring-indigo-500 outline-none w-64"
-              />
+      {/* --- RIGHT: THE REGISTRY (Restored Search & Add Features) --- */}
+      <main className={`flex-1 flex flex-col min-w-0 ${selectedUser ? "hidden md:flex" : "flex"}`}>
+        <header className="p-8 md:p-10 border-b border-zinc-900 bg-black shrink-0">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
+            <div>
+              <div className="flex items-center gap-2 text-indigo-500 mb-2">
+                 <Activity size={14} />
+                 <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold">Registry_v4.0_Personnel</span>
+              </div>
+              <h1 className="text-4xl font-bold text-white tracking-tighter italic">Global Operators</h1>
             </div>
-            <button className="bg-indigo-600 p-2.5 rounded-xl text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20">
-              <UserPlus size={20} />
-            </button>
+
+            {/* RESTORED: Full Search & Add Interface */}
+            <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+              <div className="bg-zinc-950 border border-zinc-900 p-1 flex flex-1 xl:w-[450px]">
+                 <select
+                   value={searchType}
+                   onChange={(e) => setSearchType(e.target.value)}
+                   className="bg-transparent text-[9px] font-mono font-bold text-zinc-500 uppercase px-3 outline-none cursor-pointer border-r border-zinc-900"
+                 >
+                   <option value="username">User</option>
+                   <option value="email">Email</option>
+                   <option value="location">Loc</option>
+                   <option value="role">Role</option>
+                   <option value="status">Stat</option>
+                 </select>
+                 <input
+                   type="text"
+                   placeholder={`Query by ${searchType}...`}
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   onKeyDown={(e) => e.key === "Enter" && executeSearch()}
+                   className="bg-black px-4 py-2 text-xs text-white outline-none flex-1 placeholder:text-zinc-800"
+                 />
+                 <button onClick={executeSearch} className="px-4 text-zinc-600 hover:text-indigo-500 transition-colors">
+                   <Search size={16}/>
+                 </button>
+              </div>
+              <button className="bg-white p-3 text-black hover:bg-indigo-50 transition-all rounded-sm shadow-xl shadow-indigo-500/10 shrink-0">
+                <UserPlus size={18} />
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="p-8 flex-1 overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-[10px] font-black uppercase text-slate-600 tracking-widest border-b border-slate-800">
-                <th className="pb-4 px-2">Worker</th>
-                {!selectedUser && <th className="pb-4 px-2">Location</th>}
-                <th className="pb-4 px-2">Status</th>
-                <th className="pb-4 px-2 text-right">Rating</th>
+        {/* Scrollable Table Area */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 z-10 bg-[#0A0A0A] border-b border-zinc-900">
+              <tr className="text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest italic">
+                <th className="p-6">// Identity_Node</th>
+                {!selectedUser && <th className="p-6 hidden lg:table-cell">// Geo_Location</th>}
+                <th className="p-6">// Status</th>
+                <th className="p-6 text-right">// Quality</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/40">
-              {displayedUsers.map((user: User) => (
+            <tbody className="divide-y divide-zinc-900">
+              {users.map((user: User) => (
                 <tr
                   key={user._id}
                   onClick={() => setSelectedUser(user)}
-                  className={`group cursor-pointer transition-colors ${selectedUser?._id === user._id ? "bg-indigo-500/10" : "hover:bg-slate-800/30"}`}
+                  className={`group cursor-pointer transition-all ${selectedUser?._id === user._id ? "bg-indigo-500/10" : "hover:bg-zinc-950"}`}
                 >
-                  <td className="py-4 px-2">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">
-                        {user.name?.slice(0, 2)}
+                  <td className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 border border-zinc-900 bg-zinc-950 flex items-center justify-center text-[10px] font-bold text-zinc-700 group-hover:text-white group-hover:border-zinc-700 transition-all">
+                        {user.name?.slice(0, 2).toUpperCase()}
                       </div>
-                      <p className="text-sm font-bold text-slate-200 group-hover:text-white">
-                        {user.name}
-                      </p>
+                      <p className="text-sm font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">{user.name}</p>
                     </div>
                   </td>
                   {!selectedUser && (
-                    <td className="py-4 px-2 text-xs text-slate-500">
-                      {typeof user.userLocation === "string"
-                        ? user.userLocation
-                        : [user.userLocation?.country, user.userLocation?.city]
-                            .filter(Boolean)
-                            .join(" | ") || "Unknown"}
+                    <td className="p-6 text-[11px] text-zinc-600 font-light hidden lg:table-cell uppercase tracking-tight">
+                      {(user.userLocation && typeof user.userLocation === 'object' && user.userLocation.country) || "UNKNOWN"}
                     </td>
                   )}
-                  <td className="py-4 px-2">
-                    <StatusBadge
-                      status={user.isVerified ? "active" : "unverified"}
-                    />
-                  </td>
-                  <td className="py-4 px-2 text-right">
-                    <div className="flex items-center justify-end gap-1 text-amber-500 text-xs font-black">
-                      <Star size={12} fill="currentColor" />{" "}
-                      {user.trustScore || 0}
+                  <td className="p-6"><StatusBadge status={user.isVerified ? "active" : "unverified"} /></td>
+                  <td className="p-6 text-right">
+                    <div className="flex items-center justify-end gap-2 text-amber-500/40 group-hover:text-amber-500 font-mono font-bold text-[10px] transition-colors">
+                      <Star size={10} fill="currentColor" /> {user.trustScore || 0}
                     </div>
                   </td>
                 </tr>
@@ -457,53 +235,47 @@ const AdminUserModule = () => {
   );
 };
 
-// --- RESTORED ACTION COMPONENTS ---
+// --- RESTORED TECHNICAL HELPERS ---
 
-const ActionBtn = ({
-  label,
-  icon,
-  onClick,
-  variant,
-}: {
+const ActionGroup = ({ label, color, children }: { label: string; color: string; children: React.ReactNode }) => (
+  <section className="space-y-4">
+    <h3 className={`text-[9px] font-mono font-bold uppercase ${color} tracking-[0.3em]`}>// {label}</h3>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-zinc-900 border border-zinc-900 shadow-2xl">{children}</div>
+  </section>
+);
+
+interface ActionBtnProps {
   label: string;
-  icon: React.ReactElement<LucideProps>;
+  icon: React.ReactElement;
   onClick: () => void;
-  variant: string;
-}) => {
-  const themes: any = {
-    primary: "bg-indigo-600 text-white shadow-indigo-600/20",
-    secondary: "bg-slate-800 text-slate-200 hover:bg-slate-700",
-    success:
-      "bg-emerald-600/10 text-emerald-500 border border-emerald-600/20 hover:bg-emerald-600 hover:text-white",
-    danger:
-      "bg-rose-600/10 text-rose-500 border border-rose-600/20 hover:bg-rose-600 hover:text-white",
-    warning:
-      "bg-amber-600/10 text-amber-500 border border-amber-600/20 hover:bg-amber-600 hover:text-white",
-    ghost:
-      "bg-slate-800/50 text-slate-400 border border-slate-700 hover:text-white",
-  };
+  variant: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'ghost';
+}
 
+const ActionBtn = ({ label, icon, onClick, variant }: ActionBtnProps) => {
+  const themes: Record<ActionBtnProps['variant'], string> = {
+    primary: "bg-indigo-600 text-white hover:bg-indigo-500",
+    secondary: "bg-zinc-950 text-zinc-400 hover:text-white",
+    success: "bg-[#0A0A0A] text-emerald-500 hover:bg-emerald-600 hover:text-white",
+    danger: "bg-[#0A0A0A] text-rose-500 hover:bg-rose-600 hover:text-white",
+    warning: "bg-[#0A0A0A] text-amber-500 hover:bg-amber-600 hover:text-white",
+    ghost: "bg-[#0A0A0A] text-zinc-700 hover:text-white",
+  };
   return (
-    <button
-      onClick={onClick}
-      className={`flex items-center justify-center gap-2 py-3.5 px-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${themes[variant]}`}
-    >
-      {React.cloneElement(icon, { size: 16 })} {label}
+    <button onClick={onClick} className={`flex items-center justify-center gap-3 py-4 px-4 text-[9px] font-mono font-bold uppercase tracking-[0.15em] transition-all ${themes[variant]}`}>
+      {React.cloneElement(icon, { size: 14 })} {label}
     </button>
   );
 };
 
 const StatusBadge = ({ status }: { status?: string }) => {
   const s = status?.toLowerCase() || "pending";
-  const c: any = {
-    active: "text-emerald-500 bg-emerald-500/10",
-    blocked: "text-rose-500 bg-rose-500/10",
-    suspended: "text-amber-500 bg-amber-500/10",
+  const colors: Record<string, string> = { 
+    active: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5", 
+    blocked: "text-rose-500 border-rose-500/20 bg-rose-500/5", 
+    suspended: "text-amber-500 border-amber-500/20 bg-amber-500/5" 
   };
   return (
-    <span
-      className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${c[s] || "bg-slate-800 text-slate-500"}`}
-    >
+    <span className={`px-2 py-0.5 border text-[8px] font-mono font-bold uppercase tracking-tighter ${colors[s] || "bg-zinc-900 border-zinc-800 text-zinc-600"}`}>
       {s}
     </span>
   );

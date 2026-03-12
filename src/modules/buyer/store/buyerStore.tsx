@@ -1,9 +1,10 @@
 import { toast } from "react-hot-toast";
 import { create } from "zustand";
 import type { Buyer } from "../types/buyer";
-import type { Order } from "../types/order";
+import type { OrderType } from "../types/order";
 import type { Dataset } from "../../../shared/types/dataset";
 import { buyerService } from "../service/buyerService";
+import type{ datasetRequest } from "../types/datasetRequest";
 type BuyerStore = {
   datasets:Dataset[]
   getDatasets:()=>Promise<Dataset[]|void>
@@ -18,6 +19,8 @@ type BuyerStore = {
   checkOut:(datasetId:string,isExclusive:boolean)=>Promise<string>
   datasetRequest:(request:FormData)=>Promise<void>
   finalizePayment:(reference:string)=>Promise<any>
+  getOrders:()=>Promise<OrderType[]|void>
+  uploadDataset:(data:FormData)=>Promise<void>
   
 };
 const useBuyerStore = create<BuyerStore>((set,get)=>({
@@ -27,6 +30,29 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
   loading:false,
   setLoading:(loading)=>set({loading}),
   searchBySize:async()=>{},
+  getOrders:async()=>{
+    set({loading:true})
+    try{
+      const response=await buyerService.getOrders()
+      set({loading:false})
+      console.log(response)
+      return response.orders
+    }catch(err){
+      set({loading:false})
+    }
+  },
+  uploadDataset:async(data)=>{
+    set({loading:true})
+    try{
+      const response=await buyerService.uploadFile(data)
+      set({loading:false})
+      console.log(response)
+      return response
+    
+    }catch(err){
+      set({loading:false})
+    } 
+  },
   getDatasets:async()=>{
     set({loading:true})
     try{
