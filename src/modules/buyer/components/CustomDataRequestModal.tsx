@@ -53,7 +53,7 @@ const CustomDataRequestModal: React.FC<CustomDataRequestModalProps> = ({ isOpen,
       if (value) data.append(key, value);
     });
     await uploadDataset(data);
-    await submitDatasetRequest(data);
+    //await submitDatasetRequest(data);
     setLoading(false);
     onClose();
   };

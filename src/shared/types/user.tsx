@@ -13,6 +13,7 @@ export interface User {
     role: Role
     name: string
     email: string
+    earnings:number
     balance: number
     userLocation?: string | {
         country?: string

@@ -6,13 +6,13 @@ export const UserService = {
         const response=await api.get('/users')
         return response.data
     },
-    promoteUser:async(id:string):Promise<any>=>{
-        const response=await api.put(`admin/users/${id}/promote`)
+    promoteUser:async(id:string,reason:string):Promise<any>=>{
+        const response=await api.put(`admin/users/${id}/promote`,{reason:reason})
         return response.data
 
     },
-    demoteUser:async(id:string):Promise<any>=>{
-        const response=await api.put(`admin/users/${id}/demote`)
+    demoteUser:async(id:string,reason:string):Promise<any>=>{
+        const response=await api.put(`admin/users/${id}/demote`,{reason:reason})
         return response.data    
 
     },
@@ -28,14 +28,14 @@ export const UserService = {
     addUser:async()=>{
 
     },
-    verifyUser:async(id:string)=>{
-        const response=await api.put(`admin/users/${id}/verify`)
+    verifyUser:async(id:string,reason:string)=>{
+        const response=await api.put(`admin/users/${id}/verify`,{reason})
         return response.data
 
 
     },
-    unverifyUser:async(id:string):Promise<void>=>{
-        const response=await api.put(`admin/users/${id}/unverify`)
+    unverifyUser:async(id:string,reason:string):Promise<void>=>{
+        const response=await api.put(`admin/users/${id}/unverify`,{reason:reason})
         return response.data
 
 

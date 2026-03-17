@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import { api } from "../../../shared/types/api";
 import type { Dataset } from "../../../shared/types/dataset";
 import type { datasetRequest } from "../types/datasetRequest";
@@ -23,14 +24,18 @@ export const buyerService = {
       format,
       sourceLink,
     });
+    toast.success("File staged for transmission");
     const { uploadUrl, key } = response.data;
-    await fetch(uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.type,
-      },
-      body: file,
-    });
+    console.log(uploadUrl,key);
+    if (file && uploadUrl) {
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+        },
+        body: file,
+      });
+    }
     const confirmResponse = await api.post("/datasets/confirmUpload", {
       key,
       })

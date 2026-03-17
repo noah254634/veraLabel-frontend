@@ -11,13 +11,13 @@ type AdminStore = {
   setError: (error: string | null) => void;
   getUsers: () => Promise<User[] | void>;
   setUsers: (users: User[]) => void;
-  promoteUser: (id: string) => Promise<void>;
-  demoteUser: (id: string) => Promise<void>;
+  promoteUser: (id: string, reason: string) => Promise<void>;
+  demoteUser: (id: string, reason: string) => Promise<void>;
   deleteUser: (id: string, reason: string) => void;
   updateUser: () => void;
   addUser: () => void;
-  verifyUser: (id: string) => void;
-  unverifyUser: (id: string) => void;
+  verifyUser: (id: string, reason: string) => void;
+  unverifyUser: (id: string, reason: string) => void;
   blockUser: (id: string, reason: string) => void;
   unblockUser: (id: string, reason: string) => void;
   suspendUser: (id: string, reason: string) => void;
@@ -54,11 +54,11 @@ const useStore = create<AdminStore>((set, get) => ({
       set({ loading: false });
     }
   },
-  promoteUser: async (id: string) => {
+  promoteUser: async (id: string, reason: string) => {
     const previousUser = get().users.find((user) => user._id === id);
     try {
       set({ loading: true });
-      const response = await UserService.promoteUser(id);
+      const response = await UserService.promoteUser(id, reason);
       const updatedUser = response?.user || response;
       if (updatedUser?._id) {
         set({
@@ -91,11 +91,11 @@ const useStore = create<AdminStore>((set, get) => ({
       set({ loading: false });
     }
   },
-  demoteUser: async (id: string) => {
+  demoteUser: async (id: string, reason: string) => {
     const previousUser = get().users.find((user) => user._id === id);
     try {
       set({ loading: true });
-      const response = await UserService.demoteUser(id);
+      const response = await UserService.demoteUser(id, reason);
       const updatedUser = response?.user || response;
       if (updatedUser?._id) {
         set({
@@ -144,7 +144,7 @@ const useStore = create<AdminStore>((set, get) => ({
   },
   updateUser: async () => {},
   addUser: async () => {},
-  verifyUser: async (id) => {
+  verifyUser: async (id, reason) => {
     const previousUser = get().users.find((user) => user._id === id);
     set({
       users: get().users.map((user) =>
@@ -153,7 +153,7 @@ const useStore = create<AdminStore>((set, get) => ({
     });
     try {
       set({ loading: true });
-      const response = await UserService.verifyUser(id);
+      const response = await UserService.verifyUser(id, reason);
       const updatedUser = response?.user || response;
       if (updatedUser?._id) {
         set({
@@ -179,7 +179,7 @@ const useStore = create<AdminStore>((set, get) => ({
       set({ loading: false });
     }
   },
-  unverifyUser: async (id: string) => {
+  unverifyUser: async (id: string, reason: string) => {
     const previousUser = get().users.find((user) => user._id === id);
     set({
       users: get().users.map((user) =>
@@ -188,7 +188,7 @@ const useStore = create<AdminStore>((set, get) => ({
     });
     try {
       set({ loading: true });
-      const response = await UserService.unverifyUser(id) as any;
+      const response = await UserService.unverifyUser(id,reason) as any;
       const updatedUser = response?.user || response;
       if (updatedUser?._id) {
         set({

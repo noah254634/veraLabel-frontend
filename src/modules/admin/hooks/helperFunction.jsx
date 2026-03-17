@@ -17,12 +17,13 @@ export const useAdminAction = (actionCallback) => {
     setTargetId(null);
   };
 
-  const handleExecute = async () => {
-    if (!targetId || !reason.trim()) return;
+  const handleExecute = async (reasonInput) => {
+    const finalReason = typeof reasonInput === 'string' ? reasonInput : reason;
+    if (!targetId || !finalReason?.trim()) return;
     
     setIsSubmitting(true);
     try {
-      await actionCallback(targetId, reason);
+      await actionCallback(targetId, finalReason);
       closeAction();
     } finally {
       setIsSubmitting(false);

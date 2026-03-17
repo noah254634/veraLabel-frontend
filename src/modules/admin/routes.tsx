@@ -8,6 +8,7 @@ import AdminProjectsPage from "./pages/Projects"
 import AdminUserModule from "./pages/Users"
 import ModelsPage from "./pages/Models"
 import useAdminStore from "./store/userManagementStore"
+import AdminProjects from "./pages/Registry/index"
 export const AdminRoutes = (
   <Route path="admin" element={<AdminLayout />}>
     <Route index element={<AdminDashboard />} />
@@ -15,7 +16,7 @@ export const AdminRoutes = (
     <Route path="datasets" element={<DatasetAdminPage />} />
     <Route path="settings" element={<SettingsPage />} />
     <Route path="help" element={<HelpPage />} />
-    <Route path="projects" element={<AdminProjectsPage />} />
+    <Route path="projects" element={<AdminProjects />} />
     <Route path="users" element={<AdminUserModule useAdminStore={useAdminStore} />} />
     <Route path="models" element={<ModelsPage />} />
   </Route>

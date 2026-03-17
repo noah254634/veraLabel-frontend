@@ -50,6 +50,9 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
       return response
     
     }catch(err){
+      const errorMessage = err instanceof Error ? err.message : "Upload failed";
+      console.error(errorMessage);
+      toast.error(errorMessage);
       set({loading:false})
     } 
   },
