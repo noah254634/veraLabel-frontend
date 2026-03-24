@@ -1,7 +1,10 @@
 export interface Task {
+  taskType: any
+  taskId: any
   id: string
   projectId: string
   datasetId: string
+  r2_url: string
 
   status: "pending" | "assigned" | "in_progress" | "completed"
 

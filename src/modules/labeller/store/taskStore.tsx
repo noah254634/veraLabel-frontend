@@ -35,7 +35,22 @@ export const useTaskStore = create<TaskStore>((set) => ({
   setError: (error) => set({ error }),
   tasks: [],
   setTasks: (tasks) => set({ tasks }),
-  getTasks: async () => [],
+  getTasks: async () =>{
+    try {
+        set({loading:true})
+        set({error:null})
+        const response = await taskService.getTasks() as unknown as Task[];
+        const tasks = response;
+        console.log(tasks)
+        set({loading:false, tasks: tasks})
+        return tasks
+    } catch (err) {
+        set({loading:false})
+        const errorMessage = err instanceof Error ? err.message : "Something went wrong";
+        toast.error(errorMessage);
+        return []
+    }
+  },
   tasksDone: async () => "0",
   tasksPending: async () => "0",
   tasksInProgress: async () => {
@@ -50,6 +65,7 @@ export const useTaskStore = create<TaskStore>((set) => ({
         set({loading:false})
         const errorMessage = err instanceof Error ? err.message : "Something went wrong";
         toast.error(errorMessage);
+        return errorMessage
     }
   },
   addTask: async (task) => {},
