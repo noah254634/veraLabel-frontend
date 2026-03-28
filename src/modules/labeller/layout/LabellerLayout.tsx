@@ -3,7 +3,7 @@ import { Sidebar } from "../components/Sidebar";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../auth/useAuthstore";
 import { OnboardingEnforcer } from "../onboarding/Onboarding";
-import { Terminal, ShieldCheck, Wallet } from "lucide-react";
+import { Terminal, Wallet } from "lucide-react";
 
 export const LabellerLayout = ({
   children,
@@ -20,6 +20,7 @@ export const LabellerLayout = ({
     (role === "labeler" || role === "labeller") &&
     !onboardingCompleted &&
     !location.pathname.startsWith("/labeller/onboarding");
+  const isWorkbenchRoute = location.pathname.startsWith("/labeller/workbench");
 
   return (
     /* 1. STYLES: Switched to Obsidian #020203 and removed font-inter for system sans */
@@ -77,17 +78,26 @@ export const LabellerLayout = ({
         </header>
 
         {/* 4. MAIN CONTENT AREA */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-8 relative">
-          <div className="max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
-            <Outlet />
-            {children}
-          </div>
+        <main className={`flex-1 relative ${isWorkbenchRoute ? "overflow-hidden p-0" : "overflow-y-auto custom-scrollbar p-8"}`}>
+          {isWorkbenchRoute ? (
+            <div className="h-full w-full animate-in fade-in duration-500">
+              <Outlet />
+              {children}
+            </div>
+          ) : (
+            <>
+              <div className="max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
+                <Outlet />
+                {children}
+              </div>
 
-          {/* Technical Footer Accent */}
-          <footer className="mt-20 pt-8 border-t border-zinc-900 flex justify-between items-center opacity-20 pb-10">
-            <span className="text-[9px] font-mono uppercase tracking-[0.3em]">Authorized_Operator_Only</span>
-            <span className="text-[9px] font-mono uppercase tracking-[0.3em]">VeraLabel_Infrastructure_v4</span>
-          </footer>
+              {/* Technical Footer Accent */}
+              <footer className="mt-20 pt-8 border-t border-zinc-900 flex justify-between items-center opacity-20 pb-10">
+                <span className="text-[9px] font-mono uppercase tracking-[0.3em]">Authorized_Operator_Only</span>
+                <span className="text-[9px] font-mono uppercase tracking-[0.3em]">VeraLabel_Infrastructure_v4</span>
+              </footer>
+            </>
+          )}
         </main>
       </div>
     </div>

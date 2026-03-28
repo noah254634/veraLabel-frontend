@@ -63,7 +63,6 @@ function BuyerSideBar() {
           to="/buyer/logout" 
           label="Terminate Session" 
           icon={<LogOut size={18} strokeWidth={1.5} />} 
-          className="text-zinc-500 hover:text-red-400 transition-colors"
         />
       </div>
 

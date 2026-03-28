@@ -3,7 +3,11 @@ import { api } from "../../../shared/types/api"
 export const taskService={
     getTasks:async():Promise<Task[]>=>{
         const response=await api.get("/tasks")
-        return response.data.tasks
+        const payload = response.data
+        if (Array.isArray(payload?.items)) return payload.items
+        if (Array.isArray(payload?.tasks)) return payload.tasks
+        if (Array.isArray(payload)) return payload
+        return []
     },
     addTask:async():Promise<void>=>{},
     updateTask:async():Promise<void>=>{

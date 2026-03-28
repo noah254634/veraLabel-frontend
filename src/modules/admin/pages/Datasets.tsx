@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Database, CheckCircle, XCircle, Star, ShieldAlert, Globe, Lock, Search, 
   Download, Trash2, Terminal, ChevronRight
@@ -22,7 +22,7 @@ const DatasetAdminPage = () => {
   // Optimization: Memoize filtered list to prevent unnecessary re-renders
   const filteredDatasets = useMemo(() => {
     return datasets.filter((d) => {
-      const val = d[searchType]?.toString().toLowerCase() || "";
+      const val = (d as unknown as Record<string, unknown>)[searchType]?.toString().toLowerCase() || "";
       return val.includes(searchTerm.toLowerCase());
     });
   }, [datasets, searchTerm, searchType]);
@@ -33,10 +33,10 @@ const DatasetAdminPage = () => {
   );
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden space-y-6 p-4 md:p-6 bg-black">
+    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden gap-6 bg-black">
       
       {/* --- HEADER --- */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-l-2 border-indigo-500 pl-6 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2 text-indigo-500 mb-1">
             <Terminal size={14} />
@@ -78,7 +78,7 @@ const DatasetAdminPage = () => {
       </div>
 
       {/* --- MAIN CONTENT: Balanced Split View --- */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-px bg-zinc-900 border border-zinc-900 overflow-hidden shadow-2xl">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-px bg-zinc-900 border border-zinc-900 overflow-hidden shadow-2xl">
         
         {/* LEFT: DATA TABLE (Scrollable independently) */}
         <div className="flex-1 bg-[#050505] overflow-y-auto custom-scrollbar">

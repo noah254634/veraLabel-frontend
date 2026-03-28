@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
-  Terminal, Zap, Info, ShieldAlert, ChevronRight, X, 
+  Terminal, Zap, Info, ChevronRight, X, 
   Maximize2, MousePointer2, Type, Image as ImageIcon,
-  Save, SkipForward, AlertTriangle, Activity
+  SkipForward, AlertTriangle, Activity
 } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';
 import { useTaskStore } from '../store/taskStore';
-import { RLHFStage } from './modes/RLHF'; 
+import { UnifiedRLHFStage } from './modes/RLHF'; 
 
 export const CustomWorkbench = () => {
   const { getTasks, tasks, loading } = useTaskStore();
@@ -17,7 +17,26 @@ export const CustomWorkbench = () => {
     getTasks();
   }, [getTasks]);
 
+  useEffect(() => {
+    if (tasks.length === 0) {
+      setActiveTaskIndex(0);
+      return;
+    }
+
+    if (activeTaskIndex > tasks.length - 1) {
+      setActiveTaskIndex(tasks.length - 1);
+    }
+  }, [tasks.length, activeTaskIndex]);
+
   const currentTask = tasks?.[activeTaskIndex];
+  const hasTasks = tasks.length > 0;
+  const isLastTask = hasTasks && activeTaskIndex >= tasks.length - 1;
+
+  const handleSkip = () => {
+    if (!hasTasks || isLastTask) return;
+    setSelection(null);
+    setActiveTaskIndex((prev) => prev + 1);
+  };
 
   // Logic to handle "Next Task" in dev mode
   const handleSubmit = () => {
@@ -31,12 +50,20 @@ export const CustomWorkbench = () => {
     }
   };
 
-  if (loading || !currentTask) {
-    return <div className="h-screen bg-black flex items-center justify-center font-mono text-indigo-500">INITIALIZING_VeraLabel_NODES...</div>;
+  if (loading) {
+    return <div className="h-full w-full bg-black flex items-center justify-center font-mono text-indigo-500">INITIALIZING_VeraLabel_NODES...</div>;
+  }
+
+  if (!hasTasks) {
+    return <div className="h-full w-full bg-black flex items-center justify-center font-mono text-zinc-500 uppercase tracking-widest">No tasks available in queue</div>;
+  }
+
+  if (!currentTask) {
+    return <div className="h-full w-full bg-black flex items-center justify-center font-mono text-zinc-500 uppercase tracking-widest">Queue complete</div>;
   }
 
   return (
-    <div className="h-screen w-full bg-[#020203] flex flex-col overflow-hidden text-zinc-300 font-sans">
+    <div className="h-full min-h-0 w-full bg-[#020203] flex flex-col overflow-hidden text-zinc-300 font-sans">
       
       {/* --- 1. HUD: OPERATOR TELEMETRY --- */}
       <header className="h-16 border-b border-zinc-900 bg-black flex items-center justify-between px-6 shrink-0">
@@ -70,10 +97,10 @@ export const CustomWorkbench = () => {
       </header>
 
       {/*  2. MULTI-MODAL WORKSPACE --- */}
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 min-h-0 flex overflow-hidden">
         
         {/* LEFT: TOOLS & INSTRUCTIONS */}
-        <aside className="w-80 border-r border-zinc-900 bg-black p-8 flex flex-col gap-10 overflow-y-auto">
+        <aside className="w-80 min-h-0 border-r border-zinc-900 bg-black p-8 flex flex-col gap-10 overflow-y-auto">
           <section>
             <div className="flex items-center gap-2 mb-4 text-zinc-500">
                 <Info size={14} />
@@ -109,15 +136,13 @@ export const CustomWorkbench = () => {
         </aside>
 
         {/* CENTER: THE ADAPTIVE STAGE */}
-        <div className="flex-1 relative bg-[#010101] flex items-center justify-center p-12 overflow-hidden">
+        <div className="flex-1 min-h-0 relative bg-[#010101] overflow-y-auto">
           {currentTask.taskType === 'rfhlearning' ? (
-            <RLHFStage 
-              task={currentTask} 
-              selection={selection} 
-              onSelect={setSelection} 
+            <UnifiedRLHFStage
+              task={currentTask as any}
             />
           ) : (
-            <div className="text-zinc-600 font-mono text-xs uppercase tracking-widest animate-pulse">
+            <div className="h-full w-full flex items-center justify-center text-zinc-600 font-mono text-xs uppercase tracking-widest animate-pulse">
               [ Waiting_For_Image_Protocol_Initialization ]
             </div>
           )}
@@ -132,8 +157,9 @@ export const CustomWorkbench = () => {
             <AlertTriangle size={14} /> Flag_Corrupt
           </button>
           <button 
-            onClick={() => setActiveTaskIndex(prev => prev + 1)}
-            className="flex items-center gap-2 text-[10px] font-bold text-zinc-600 hover:text-white transition-all uppercase tracking-widest"
+            onClick={handleSkip}
+            disabled={isLastTask}
+            className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${isLastTask ? 'text-zinc-800 cursor-not-allowed' : 'text-zinc-600 hover:text-white'}`}
           >
             <SkipForward size={14} /> Skip_Asset
           </button>

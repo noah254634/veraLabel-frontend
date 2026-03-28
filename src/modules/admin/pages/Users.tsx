@@ -121,7 +121,7 @@ const AdminUserModule = () => {
     setPendingAction(null);
   };
   return (
-    <div className="relative flex flex-col md:flex-row w-full h-[calc(100vh-140px)] bg-[#020203] text-zinc-400 overflow-hidden border border-zinc-900 shadow-2xl animate-in fade-in duration-500">
+    <div className="relative flex flex-col md:flex-row w-full h-full min-h-0 bg-[#020203] text-zinc-400 overflow-hidden animate-in fade-in duration-500">
       {/* --- LEFT: CONTEXTUAL PROFILE --- */}
       <aside
         className={`

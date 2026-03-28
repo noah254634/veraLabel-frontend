@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { analyticsStore } from '../store/analyticsStore';
 import { 
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, 
+  AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar 
 } from 'recharts';
 import { 
   ShieldCheck, AlertCircle, Users, Database, 
-  TrendingUp, ArrowUpRight, CheckCircle2, Clock, DollarSign, Activity, Terminal
+  TrendingUp, ArrowUpRight, DollarSign, Activity, Terminal
 } from 'lucide-react';
 import { useAuthStore } from '../../auth/useAuthstore';
 
@@ -49,7 +49,7 @@ const AdminDashboard = () => {
     <div className="w-full animate-in fade-in duration-700">
       
       {/* Header: Commands & Auth Level */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-12">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-500 mb-3">
             <Terminal size={14} />

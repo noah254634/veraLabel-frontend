@@ -8,4 +8,8 @@ export interface datasetRequest{
     sourceLink:string;
   }
 
-export type Domain = 'NLP' | 'CV' | 'Audio' | 'Tabular' | 'Finance';
+export type Domain = 'NLP' | 'RLHF' | 'Audio' | 'Tabular';
+export const INTENT_TYPES = {
+  LABELING: 'labeling', // User has data, needs it labeled
+  SOURCING: 'sourcing'  // User needs us to find/generate data
+};

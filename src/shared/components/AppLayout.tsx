@@ -30,15 +30,17 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
         w-[280px] h-full border-r flex flex-col
         md:translate-x-0 ${sidebarOpen ? "translate-x-0 shadow-2xl shadow-indigo-500/10" : "-translate-x-full"}`}
       >
-        <div className="p-6 shrink-0 flex items-center justify-between border-b border-zinc-900/50">
-          <div className="font-bold text-xl tracking-tighter flex items-center gap-2">
-            <div className="h-5 w-5 bg-indigo-600 rounded-sm" />
-            VeraLabel<span className="text-indigo-500">.</span>
+      <div className="p-6 shrink-0 flex items-center justify-between border-b border-zinc-900/50">
+        <div className="font-bold text-xl tracking-tighter flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.4)] flex items-center justify-center">
+            <span className="text-white font-black text-xl italic">V</span>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-zinc-500 hover:text-white transition-colors">
-            <X size={20} />
-          </button>
+          <span className="font-bold text-lg tracking-tight">VeraLabel</span>
         </div>
+        <button onClick={() => setSidebarOpen(false)} className="md:hidden text-zinc-500 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
+      </div>
 
         {/* Scrollable Nav Area */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">

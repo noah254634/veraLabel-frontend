@@ -11,7 +11,7 @@ export const LabellerDashboard = () => {
     <div className="w-full animate-in fade-in duration-700">
       
       {/* 1. Header: Operator Session Initialized */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12">
         <div className="max-w-xl">
           <div className="flex items-center gap-2 text-indigo-500 mb-4">
             <Terminal size={14} />

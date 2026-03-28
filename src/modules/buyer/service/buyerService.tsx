@@ -1,11 +1,13 @@
 import { toast } from "react-hot-toast";
 import { api } from "../../../shared/types/api";
 import type { Dataset } from "../../../shared/types/dataset";
-import type { datasetRequest } from "../types/datasetRequest";
 export const buyerService = {
   uploadFile: async (data: FormData): Promise<void> => {
-    const file = data.get("uploadedFile") as File;
-    const fileType = file?.type;
+    const file = (data.get("uploadedFile") || data.get("file")) as File | null;
+    if (!file) {
+      throw new Error("Please attach a file before upload");
+    }
+    const fileType = file.type || "application/octet-stream";
     const fileSize = file?.size;
     const budget = data.get("budget");
     const specifications = data.get("specifications");
@@ -13,7 +15,6 @@ export const buyerService = {
     const volume = data.get("volume");
     const format = data.get("format");
     const sourceLink = data.get("sourceLink");
-    console.log(file);
     const response = await api.post("/datasets/generateUploadUrl", {
       fileType,
       fileSize,
@@ -26,7 +27,6 @@ export const buyerService = {
     });
     toast.success("File staged for transmission");
     const { uploadUrl, key } = response.data;
-    console.log(uploadUrl,key);
     if (file && uploadUrl) {
       await fetch(uploadUrl, {
         method: "PUT",
