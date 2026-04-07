@@ -22,8 +22,11 @@ api.interceptors.response.use(
       error.message ||
       "Something went wrong";
     if (error.response?.status === 401) {
-      toast.error(`${backendMessage}}`,{duration:9000});
-      useAuthStore.getState().logout();
+      // Only show error and logout if user explicitly was authenticated
+      if (localStorage.getItem("isAuthenticated") === "true") {
+        toast.error(`${backendMessage}}`,{duration:9000});
+        useAuthStore.getState().logout();
+      }
       //window.location.href = "/login";
     }
     else{

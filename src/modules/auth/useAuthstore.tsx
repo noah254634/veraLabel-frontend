@@ -22,7 +22,7 @@ type AuthStore = {
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
-  isAuthenticated: false,
+  isAuthenticated: true,
   loading: false,
   isRestoringSession: false,
   error: null,
@@ -52,6 +52,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   syncAuth: async () => {
     const hasStoredSession = localStorage.getItem("isAuthenticated") === "true";
     if (!hasStoredSession) {
+      set({ loading: false, isRestoringSession: false });
       return;
     }
     set({ loading: true, isAuthenticated: false, isRestoringSession: true });
@@ -63,9 +64,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
         set({ user: res.data.user, isAuthenticated: true });
       }
     } catch (error) {
-      toast.error("Authentication failed");
       console.log(error);
       localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("user");
       set({ user: null, isAuthenticated: false });
     } finally {
       set({ loading: false, isRestoringSession: false });

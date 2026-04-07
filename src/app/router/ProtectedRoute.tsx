@@ -5,7 +5,7 @@ const ProtectedRoute = () => {
   const location = useLocation();
   const { isAuthenticated, user } = useAuthStore();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -15,7 +15,7 @@ const ProtectedRoute = () => {
   if (location.pathname.startsWith("/buyer") && (user?.role as string) !== "buyer") {
     return <Navigate to="/" replace />;
   }
-if (location.pathname.startsWith("/labeller") && (user?.role as string) !== "labeler") {
+if (location.pathname.startsWith("/labeller") && (user?.role as string) !== "labeller" && (user?.role as string) !== "labeler") {
   return <Navigate to="/" replace />;
 }
 

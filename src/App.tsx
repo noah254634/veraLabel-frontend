@@ -25,6 +25,7 @@ import { PrivacyPolicy } from "./modules/landingPage/pages/privacyPolicy";
 import { DataPolicy } from "./modules/landingPage/FooterComponents/DataPolicy";
 import { Contact } from "./modules/landingPage/FooterComponents/Contact";
 import { Terms } from "./modules/landingPage/FooterComponents/terms.js";
+import FAQPage from "./modules/landingPage/FooterComponents/FAQ.js";
 import ForgotPassword from "./modules/auth/ForgotPassword.js";
 
 export const App = () => {
@@ -98,12 +99,15 @@ export const App = () => {
         <Route path="/data-policy" element={<DataPolicy />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/terms" element={<Terms />} />
-        {/* auth routes */}
-        <Route path="/" element={<AuthLayout />}>
+        <Route path="/faq" element={<FAQPage />} />
+        
+        {/* auth routes - NOT protected */}
+        <Route element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
+        
         {/* protected routes */}
         <Route element={<ProtectedRoute />}>
           {AdminRoutes}
