@@ -9,8 +9,8 @@ export const PrimaryButton: React.FC<ButtonProps> = ({ children, variant = 'prim
   const baseStyles = "px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50";
   
   const variants = {
-    primary: "bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)]",
-    outline: "border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white"
+    primary: "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)]",
+    outline: "border border-zinc-900 text-zinc-300 hover:bg-white/5 hover:text-white"
   };
 
   return (

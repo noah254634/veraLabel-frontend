@@ -11,22 +11,25 @@ export const LabellerDashboard = () => {
     <div className="w-full animate-in fade-in duration-700">
       
       {/* 1. Header: Operator Session Initialized */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
         <div className="max-w-xl">
           <div className="flex items-center gap-2 text-indigo-500 mb-4">
             <Terminal size={14} />
-            <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold underline underline-offset-8">Operator_Session_v.04</span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold">Operator_Session_Initialized</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter leading-none italic">
-            Welcome back, <span className="text-indigo-400 font-light not-italic">{user?.name || "Operator"}</span>
+            Welcome, Labeller <span className="text-indigo-400 font-light not-italic">{user?.name || "Operator"}</span>
           </h1>
-          <p className="text-zinc-500 mt-4 text-sm font-light leading-relaxed italic">
-            Telemetry synchronized. Your node is currently ranked in the <span className="text-zinc-300 font-mono">98th_Percentile</span> for accuracy.
+          <p className="text-zinc-500 mt-4 text-sm font-light leading-relaxed">
+            Telemetry synchronized. Your node is performing in the <span className="text-zinc-300 font-mono">98th_Percentile</span> for accuracy and reliability.
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="bg-white text-black px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all rounded-sm shadow-xl shadow-indigo-500/10 active:scale-95">
-             Start_Work_Session
+          <button className="bg-zinc-950 border border-zinc-900 px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-white transition-all rounded-sm">
+            Performance_Log
+          </button>
+          <button className="bg-white text-black px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-indigo-50 transition-all rounded-sm shadow-xl shadow-indigo-500/10 active:scale-95">
+            Start_Session
           </button>
         </div>
       </header>

@@ -48,11 +48,11 @@ export const LabellerProfileForm = ({
         {formStep === 1 && (
           <div className="space-y-4">
             <div className="group">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                 Gender
               </label>
               <select
-                className="w-full bg-[#0B0E14] border border-white/5 rounded-xl p-4 text-white focus:border-blue-500 transition-all outline-none appearance-none"
+                className="w-full bg-[#1a1a1e] border border-zinc-900 rounded-xl p-4 text-white focus:border-indigo-500 transition-all outline-none appearance-none"
                 onChange={(e) =>
                   setProfile({ ...profile, gender: e.target.value as any })
                 }
@@ -64,13 +64,13 @@ export const LabellerProfileForm = ({
               </select>
             </div>
             <div className="group">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                 Age
               </label>
               <input
                 type="number"
                 placeholder="21"
-                className="w-full bg-[#0B0E14] border border-white/5 rounded-xl p-4 text-white focus:border-blue-500 transition-all outline-none"
+                className="w-full bg-[#1a1a1e] border border-zinc-900 rounded-xl p-4 text-white focus:border-indigo-500 transition-all outline-none"
                 onChange={(e) =>
                   setProfile({ ...profile, age: parseInt(e.target.value) })
                 }
@@ -83,13 +83,13 @@ export const LabellerProfileForm = ({
         {formStep === 2 && (
           <div className="space-y-4">
             <div className="group">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                 City / Region
               </label>
               <input
                 placeholder="e.g.Kenya, Nairobi, Bungoma"
                 defaultValue={profile.location ? [profile.location.country, profile.location.city, profile.location.region].filter((v, i, a) => v && v !== a[i-1]).join(", ") : ""}
-                className="w-full bg-[#0B0E14] border border-white/5 rounded-xl p-4 text-white focus:border-blue-500 transition-all outline-none"
+                className="w-full bg-[#1a1a1e] border border-zinc-900 rounded-xl p-4 text-white focus:border-indigo-500 transition-all outline-none"
                 onChange={(e) => {
                   const parts = e.target.value.split(",").map((p) => p.trim());
                   setProfile(prev => ({
@@ -111,8 +111,8 @@ export const LabellerProfileForm = ({
           <div
             className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 
     scrollbar-thin 
-    scrollbar-thumb-blue-500/30 
-    hover:scrollbar-thumb-blue-500/50 
+    scrollbar-thumb-indigo-600/30 
+    hover:scrollbar-thumb-indigo-600/50 
     scrollbar-track-white/5 "
           >
             <ExperienceProfiling
@@ -125,7 +125,7 @@ export const LabellerProfileForm = ({
             {profile.annotationExperience?.hasExperience && (
               <textarea
                 placeholder="List tools used (e.g. Labelbox, CVAT, VeraLabel v1)"
-                className="w-full bg-[#0B0E14] border border-white/5 rounded-xl p-4 text-white h-32 resize-none focus:border-blue-500 transition-all outline-none animate-in fade-in slide-in-from-top-2"
+                className="w-full bg-[#1a1a1e] border border-zinc-900 rounded-xl p-4 text-white h-32 resize-none focus:border-indigo-500 transition-all outline-none animate-in fade-in slide-in-from-top-2"
                 onChange={(e) =>
                   setProfile({ ...profile, expertise: e.target.value })
                 }

@@ -19,7 +19,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="w-full max-w-md mx-auto px-4 sm:px-0 animate-in fade-in slide-in-from-bottom-2 duration-700">
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center gap-2 mb-4 text-indigo-500 justify-center md:justify-start">

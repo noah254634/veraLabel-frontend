@@ -12,6 +12,7 @@ type AdminStore = {
   getUsers: () => Promise<User[] | void>;
   setUsers: (users: User[]) => void;
   promoteUser: (id: string, reason: string) => Promise<void>;
+  promoteToReviewer: (id: string, reason: string) => Promise<void>;
   demoteUser: (id: string, reason: string) => Promise<void>;
   deleteUser: (id: string, reason: string) => void;
   updateUser: () => void;
@@ -69,11 +70,48 @@ const useStore = create<AdminStore>((set, get) => ({
       } else {
         set({
           users: get().users.map((user) =>
-            user._id === id ? { ...user, role: "Admin" } : user,
+            user._id === id ? { ...user, role: "admin" } : user,
           ),
         });
       }
       toast.success("User promoted successfully");
+      return;
+    } catch (error) {
+      console.log(error);
+      if (previousUser) {
+        set({
+          users: get().users.map((user) =>
+            user._id === id ? previousUser : user,
+          ),
+        });
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : "Something went wrong";
+      toast.error(errorMessage);
+    } finally {
+      set({ loading: false });
+    }
+  },
+  promoteToReviewer: async (id: string, reason: string) => {
+    const previousUser = get().users.find((user) => user._id === id);
+    try {
+      set({ loading: true });
+      const response = await UserService.promoteToReviewer(id, reason);
+      const updatedUser = response?.user || response;
+      if (updatedUser?._id) {
+        set({
+          users: get().users.map((user) =>
+            user._id === id ? { ...user, ...updatedUser } : user,
+          ),
+        });
+      } else {
+        set({
+          users: get().users.map((user) =>
+            user._id === id ? { ...user, role: "reviewer" } : user,
+          ),
+        });
+      }
+      toast.success("User promoted to reviewer successfully");
       return;
     } catch (error) {
       console.log(error);
@@ -106,7 +144,7 @@ const useStore = create<AdminStore>((set, get) => ({
       } else {
         set({
           users: get().users.map((user) =>
-            user._id === id ? { ...user, role: "Labeler" } : user,
+            user._id === id ? { ...user, role: "labeler" } : user,
           ),
         });
       }

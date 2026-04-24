@@ -1,6 +1,5 @@
 import React from "react";
 import { X, ShieldCheck, AlertTriangle, RotateCcw, Info } from "lucide-react";
-// import { Task } from "./shared/types/Task"
 import {
   ImageInspector,
   AIReviewInspector,
@@ -20,7 +19,6 @@ const TaskInspectorModal = ({
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 md:p-10 animate-in fade-in duration-300">
       <div className="w-full max-w-6xl h-full bg-[#050505] border border-zinc-900 flex flex-col shadow-2xl">
-        {/* Header: Task Metadata */}
         <header className="p-4 border-b border-zinc-900 bg-black flex justify-between items-center">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-indigo-500">
@@ -46,10 +44,8 @@ const TaskInspectorModal = ({
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Main Viewport */}
           <main className="flex-1 bg-black relative flex items-center justify-center overflow-auto p-4">
             <div className="w-full h-full border border-zinc-900/50 bg-[#020202] flex items-center justify-center relative overflow-hidden">
-              {/* DYNAMIC CONTENT SWITCHER */}
               {task.type === "Bounding Box" || task.type === "Segmentation" ? (
                 <ImageInspector
                   src={task.fileUrl}
@@ -73,7 +69,6 @@ const TaskInspectorModal = ({
             </div>
           </main>
 
-          {/* Sidebar */}
           <aside className="w-80 border-l border-zinc-900 p-6 flex flex-col gap-8 bg-[#050505]">
             <section>
               <h3 className="text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest mb-4">

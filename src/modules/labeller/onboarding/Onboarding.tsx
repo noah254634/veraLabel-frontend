@@ -28,11 +28,11 @@ export const OnboardingEnforcer = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#07090D] md:p-6 overflow-y-auto flex items-start justify-center">
-      <div className="w-full max-w-6xl min-h-screen md:min-h-0 md:h-[min(850px,90vh)] bg-[#161B22] md:border md:border-white/5 md:rounded-[40px] shadow-3xl overflow-hidden flex flex-col md:flex-row">
+    <div className="fixed inset-0 z-[200] bg-[#020203] md:p-6 overflow-y-auto flex items-start justify-center">
+      <div className="w-full max-w-6xl min-h-screen md:min-h-0 md:h-[min(850px,90vh)] bg-[#050505] md:border md:border-zinc-900 md:rounded-[40px] shadow-3xl overflow-hidden flex flex-col md:flex-row">
         <OnboardingSidebar view={view} currentStep={currentStep} />
 
-        <main className="flex-1 flex flex-col relative bg-[radial-gradient(circle_at_50%_0%,#1e293b,transparent)] p-6 md:p-12 lg:p-16">
+        <main className="flex-1 flex flex-col relative bg-[radial-gradient(circle_at_50%_0%,#1f1f23,transparent)] p-6 md:p-12 lg:p-16">
           <div className={`w-full mx-auto h-full flex flex-col justify-center ${view === "SUCCESS" ? "max-w-full" : "max-w-2xl"}`}>
             {/* Phase : Personnel Profiling (NEW) */}
             {view === "PROFILING" && (

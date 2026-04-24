@@ -29,13 +29,13 @@ export const OnboardingSlides = ({ mode, onComplete, onStepChange }: any) => {
 
   return (
     <div className="h-full flex flex-col justify-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <span className="text-blue-500 text-xs font-bold tracking-[0.3em] uppercase mb-4">
+      <span className="text-indigo-400 text-xs font-bold tracking-[0.3em] uppercase mb-4">
         Phase: {mode}
       </span>
       <h2 className="text-5xl font-black text-white mb-6 tracking-tighter">
         {slides[index].title}
       </h2>
-      <p className="text-xl text-gray-400 max-w-lg leading-relaxed mb-12">
+      <p className="text-xl text-zinc-400 max-w-lg leading-relaxed mb-12">
         {slides[index].desc}
       </p>
       
@@ -45,7 +45,7 @@ export const OnboardingSlides = ({ mode, onComplete, onStepChange }: any) => {
         </PrimaryButton>
         <div className="flex gap-2">
           {slides.map((_, i) => (
-            <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === index ? 'w-8 bg-blue-500' : 'w-2 bg-white/10'}`} />
+            <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === index ? 'w-8 bg-indigo-600' : 'w-2 bg-white/10'}`} />
           ))}
         </div>
       </div>

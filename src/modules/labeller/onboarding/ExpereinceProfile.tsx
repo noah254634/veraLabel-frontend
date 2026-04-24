@@ -45,30 +45,30 @@ export const ExperienceProfiling = ({ onUpdate }: { onUpdate: (data: any) => voi
       <button 
         onClick={() => { setHasExp(!hasExp); updateParent(!hasExp, selectedTypes, duration); }}
         className={`w-full p-6 rounded-3xl border transition-all flex items-center justify-between group ${
-          hasExp ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'bg-[#0B0E14] border-white/5 hover:border-white/10'
+          hasExp ? 'bg-indigo-600/10 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'bg-[#1a1a1e] border-zinc-900 hover:border-zinc-800'
         }`}
       >
         <div className="flex items-center gap-4 text-left">
-          <div className={`p-3 rounded-2xl ${hasExp ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-500'}`}>
+          <div className={`p-3 rounded-2xl ${hasExp ? 'bg-indigo-600 text-white' : 'bg-white/5 text-zinc-500'}`}>
             <Briefcase size={24} />
           </div>
           <div>
             <h4 className="text-white font-bold tracking-tight">Prior Annotation Experience</h4>
-            <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">Protocol: V-XP 01</p>
+            <p className="text-zinc-500 text-xs uppercase tracking-widest font-bold">Protocol: V-XP 01</p>
           </div>
         </div>
-        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${hasExp ? 'border-blue-500 bg-blue-500' : 'border-white/10'}`}>
+        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${hasExp ? 'border-indigo-600 bg-indigo-600' : 'border-white/10'}`}>
           {hasExp && <CheckCircle2 size={14} className="text-white" />}
         </div>
       </button>
 
       {/* 2. THE REVEALED FORM (Conditional) */}
       {hasExp && (
-        <div className="space-y-8 p-6 bg-white/[0.02] border border-white/5 rounded-3xl animate-in slide-in-from-top-4 duration-500">
+        <div className="space-y-8 p-6 bg-white/[0.02] border border-zinc-900 rounded-3xl animate-in slide-in-from-top-4 duration-500">
           
           {/* Experience Types Grid */}
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Specialization Vectors</label>
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Specialization Vectors</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {EXP_TYPES.map((type) => (
                 <button
@@ -76,8 +76,8 @@ export const ExperienceProfiling = ({ onUpdate }: { onUpdate: (data: any) => voi
                   onClick={() => toggleType(type.id)}
                   className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-bold transition-all ${
                     selectedTypes.includes(type.id) 
-                    ? 'bg-white text-black border-white' 
-                    : 'bg-transparent border-white/10 text-gray-500 hover:border-white/20'
+                    ? 'bg-indigo-600 text-white border-indigo-600' 
+                    : 'bg-transparent border-zinc-900 text-zinc-500 hover:border-zinc-800'
                   }`}
                 >
                   {type.icon}
@@ -89,12 +89,12 @@ export const ExperienceProfiling = ({ onUpdate }: { onUpdate: (data: any) => voi
 
           {/* Duration Selector */}
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Temporal Mastery (Duration)</label>
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Temporal Mastery (Duration)</label>
             <div className="relative">
               <select 
                 value={duration}
                 onChange={(e) => { setDuration(e.target.value); updateParent(hasExp, selectedTypes, e.target.value); }}
-                className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-4 text-sm text-white outline-none focus:border-blue-500 appearance-none transition-all"
+                className="w-full bg-[#1a1a1e] border border-zinc-900 rounded-xl p-4 text-sm text-white outline-none focus:border-indigo-500 appearance-none transition-all"
               >
                 <option value="">Select Tenure</option>
                 <option value="less_than_3_months">&lt; 3 Months</option>
@@ -102,7 +102,7 @@ export const ExperienceProfiling = ({ onUpdate }: { onUpdate: (data: any) => voi
                 <option value="1_to_3_years">1 - 3 Years</option>
                 <option value="3_plus_years">3+ Years Professional</option>
               </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={16} />
             </div>
           </div>
 

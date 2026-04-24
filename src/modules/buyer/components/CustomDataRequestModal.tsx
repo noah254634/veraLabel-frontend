@@ -23,7 +23,33 @@ const initialFormData = {
   specifications: "",
   volume: "",
   format: "",
+  timeline: "",
+  qualityMetrics: "",
   uploadedFile: null as File | null,
+};
+
+// Domain-specific timeline options (in days)
+const DOMAIN_TIMELINES: Record<string, Array<{ label: string; days: number; description: string }>> = {
+  RLHF: [
+    { label: "Expedited", days: 7, description: "72-hour turnaround per 1K samples" },
+    { label: "Standard", days: 14, description: "2-week delivery with multi-reviewer consensus" },
+    { label: "Relaxed", days: 30, description: "30-day delivery, optimized for cost" },
+  ],
+  NLP: [
+    { label: "Express", days: 5, description: "Native speakers, domain expertise included" },
+    { label: "Standard", days: 14, description: "Verified annotators, quality assurance" },
+    { label: "Budget", days: 21, description: "Community annotators, standard QA" },
+  ],
+  Audio: [
+    { label: "Premium", days: 10, description: "Native speakers, accent diversity guaranteed" },
+    { label: "Standard", days: 21, description: "Balanced native/non-native speakers" },
+    { label: "Standard", days: 30, description: "High-volume, cost-optimized" },
+  ],
+  Tabular: [
+    { label: "Fast", days: 7, description: "Expedited validation and normalization" },
+    { label: "Standard", days: 14, description: "Full schema validation, duplicate removal" },
+    { label: "Comprehensive", days: 21, description: "Deep analysis, anomaly detection" },
+  ],
 };
 
 const CustomDataRequestModal = ({
@@ -33,7 +59,7 @@ const CustomDataRequestModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { datasetRequest } = useBuyerStore();
+  const { datasetRequest, generateUploadUrl, uploadFileToS3 } = useBuyerStore();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [intent, setIntent] = useState<"labeling" | "sourcing" | null>(null);
@@ -43,6 +69,8 @@ const CustomDataRequestModal = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState(initialFormData);
+  const [budget, setBudget] = useState("");
+  const [selectedTimeline, setSelectedTimeline] = useState<number | null>(null);
 
   const resetModalState = () => {
     setLoading(false);
@@ -50,6 +78,8 @@ const CustomDataRequestModal = ({
     setIntent(null);
     setValidationLog([]);
     setFormData(initialFormData);
+    setBudget("");
+    setSelectedTimeline(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -153,32 +183,49 @@ const CustomDataRequestModal = ({
     if (intent === "labeling" && !formData.uploadedFile) {
       return toast.error("Attach a file before transmission.");
     }
+    if (!budget) {
+      return toast.error("Budget is required");
+    }
 
     setLoading(true);
-    const data = new FormData();
-    data.append("intent", intent!);
-    data.append("domain", formData.domain);
-    // Map to backend DATA_TYPES
-    const typeMap: Record<string, string> = {
-      NLP: "text",
-      RLHF: "rlhf",
-      Audio: "media",
-      Tabular: "text",
-    };
-    data.append("dataType", typeMap[formData.domain] || "text");
-
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value && key !== "uploadedFile") data.append(key, value as string);
-    });
-    if (formData.uploadedFile)
-      data.append("uploadedFile", formData.uploadedFile);
-
     try {
-      await datasetRequest(data);
-      toast.success("Protocol Initialized Successfully");
+      // Map domain to fileType
+      const fileTypeMap: Record<string, string> = {
+        NLP: "general",
+        RLHF: "rlhf",
+        Audio: "media",
+        Tabular: "general",
+      };
+      const fileType = fileTypeMap[formData.domain] || "general";
+
+      // Step 1: Generate presigned upload URL
+      toast.loading("Generating upload URL...");
+      const { uploadUrl, key } = await generateUploadUrl(fileType);
+
+      // Step 2: Upload file directly to S3/R2
+      if (formData.uploadedFile) {
+        toast.loading("Uploading file to cloud storage...");
+        await uploadFileToS3(formData.uploadedFile, uploadUrl);
+      }
+
+      // Step 3: Create dataset request with fileUrl
+      toast.loading("Creating dataset request...");
+      await datasetRequest({
+        domain: formData.domain,
+        specifications: formData.specifications,
+        volume: formData.volume,
+        format: formData.format,
+        budget,
+        fileUrl: key,
+        timeline: formData.timeline,
+        qualityMetrics: formData.qualityMetrics,
+      });
+
+      toast.success("Dataset request created successfully!");
       handleModalClose();
     } catch (err) {
-      toast.error("Transmission Interrupted");
+      const errorMessage = err instanceof Error ? err.message : "Request failed";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -195,7 +242,7 @@ const CustomDataRequestModal = ({
         <div className="absolute top-0 left-0 w-full h-[2px] bg-zinc-900">
           <div
             className="h-full bg-indigo-500 transition-all shadow-[0_0_15px_#6366f1]"
-            style={{ width: `${((step + 1) / 4) * 100}%` }}
+            style={{ width: `${((step + 1) / 5) * 100}%` }}
           />
         </div>
 
@@ -281,6 +328,7 @@ const CustomDataRequestModal = ({
                     type="button"
                     onClick={() => {
                       setFormData({ ...formData, domain: d.id as Domain });
+                      setSelectedTimeline(null);
                       setStep(2);
                     }}
                     className={`p-6 text-left group bg-[#050505] hover:bg-zinc-950 transition-all ${formData.domain === d.id ? "border-l-2 border-indigo-500" : ""}`}
@@ -298,8 +346,103 @@ const CustomDataRequestModal = ({
             </div>
           )}
 
-          {/* STEP 2: TECHNICALS & LOG */}
+          {/* STEP 2: DELIVERY TIMELINE & SLA */}
           {step === 2 && (
+            <div className="space-y-8">
+              <header className="mb-10">
+                <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
+                  <Terminal size={14} /> Phase_02 // Delivery SLA
+                </div>
+                <h2 className="text-3xl font-bold text-white italic">
+                  Timeline & Quality Expectations
+                </h2>
+                <p className="text-zinc-500 text-xs mt-3">
+                  Select your preferred delivery timeline. Faster turnaround includes enhanced quality assurance and expertise.
+                </p>
+              </header>
+
+              <div className="space-y-3">
+                {DOMAIN_TIMELINES[formData.domain]?.map((timeline, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTimeline(idx);
+                      setFormData({ ...formData, timeline: timeline.label });
+                    }}
+                    className={`w-full p-4 text-left border transition-all ${
+                      selectedTimeline === idx
+                        ? "border-indigo-500 bg-indigo-950/30"
+                        : "border-zinc-800 bg-zinc-950 hover:border-zinc-700"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="text-sm font-bold text-white">{timeline.label}</p>
+                        <p className="text-[9px] font-mono text-zinc-400 mt-1">{timeline.days}-Day Turnaround</p>
+                      </div>
+                      <span className="text-[9px] font-mono bg-zinc-900 px-2 py-1 rounded text-zinc-300">
+                        EST. {timeline.days}d
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 font-light">{timeline.description}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Quality Metrics for Domain */}
+              {formData.domain && (
+                <div className="space-y-2 border-t border-zinc-900 pt-6">
+                  <label className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest ml-1">
+                    // Quality Acceptance Criteria
+                  </label>
+                  <textarea
+                    value={formData.qualityMetrics}
+                    onChange={(e) =>
+                      setFormData({ ...formData, qualityMetrics: e.target.value })
+                    }
+                    rows={2}
+                    placeholder={
+                      formData.domain === "RLHF"
+                        ? "e.g., >95% inter-rater agreement, min 3 reviewers per sample"
+                        : formData.domain === "NLP"
+                        ? "e.g., >90% accuracy, native speakers preferred"
+                        : formData.domain === "Audio"
+                        ? "e.g., Clear audio, SNR >20dB, accent diversity"
+                        : "e.g., No duplicates, schema validation passed"
+                    }
+                    className="w-full bg-zinc-950 border border-zinc-900 p-4 text-white text-xs outline-none focus:border-indigo-500/50"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="flex-1 text-zinc-600 font-bold text-[10px] uppercase tracking-widest"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedTimeline) {
+                      toast.error("Please select a timeline");
+                      return;
+                    }
+                    setStep(3);
+                  }}
+                  className="flex-[2] py-4 bg-white text-black font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 flex items-center justify-center gap-2"
+                >
+                  Continue <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: TECHNICALS & LOG */}
+          {step === 3 && (
             <div className="space-y-6">
               <header>
                 <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
@@ -372,14 +515,14 @@ const CustomDataRequestModal = ({
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   className="flex-1 text-zinc-600 font-bold text-[10px] uppercase tracking-widest"
                 >
                   Back
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
+                  onClick={() => setStep(4)}
                   className="flex-[2] py-4 bg-white text-black font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 flex items-center justify-center gap-2"
                 >
                   Logistics <ChevronRight size={14} />
@@ -388,12 +531,12 @@ const CustomDataRequestModal = ({
             </div>
           )}
 
-          {/* STEP 3: LOGISTICS */}
-          {step === 3 && (
+          {/* STEP 4: LOGISTICS */}
+          {step === 4 && (
             <div className="space-y-8">
               <header className="mb-10">
                 <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
-                  <Terminal size={14} /> Phase_03 // Finalization
+                  <Terminal size={14} /> Phase_04 // Finalization
                 </div>
                 <h2 className="text-3xl font-bold text-white italic">
                   System Logistics
@@ -429,6 +572,18 @@ const CustomDataRequestModal = ({
                     className="w-full bg-zinc-950 border border-zinc-900 p-4 text-white text-xs outline-none"
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest ml-1">
+                    Budget_USD
+                  </label>
+                  <input
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    type="number"
+                    placeholder="e.g. 500"
+                    className="w-full bg-zinc-950 border border-zinc-900 p-4 text-white text-xs outline-none"
+                  />
+                </div>
               </div>
 
               <button
@@ -444,7 +599,7 @@ const CustomDataRequestModal = ({
               </button>
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 className="w-full text-zinc-600 font-bold text-[10px] uppercase tracking-widest"
               >
                 Back to Technicals

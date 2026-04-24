@@ -18,6 +18,13 @@ const ProtectedRoute = () => {
 if (location.pathname.startsWith("/labeller") && (user?.role as string) !== "labeller" && (user?.role as string) !== "labeler") {
   return <Navigate to="/" replace />;
 }
+if (location.pathname.startsWith("/reviewer") && (user?.role as string) !== "reviewer") {
+  return <Navigate to="/" replace />;
+}
+if (location.pathname.startsWith("/superadmin") && (user?.role as string) !== "superadmin") {
+  return <Navigate to="/" replace />;
+}
+
 
   // Render the children (the protected component)
   return <Outlet />;

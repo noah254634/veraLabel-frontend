@@ -8,9 +8,7 @@ export const ImageInspector = ({ src, annotations }) => (
       className="max-w-full max-h-[70vh] object-contain border border-zinc-800"
       alt="Inspection Target"
     />
-    {/* SVG Overlay for Annotations */}
     <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
-      {/* Box*/}
       <rect 
         x="20%" y="30%" width="15%" height="20%" 
         className="fill-indigo-500/20 stroke-indigo-500 stroke-2"
@@ -34,7 +32,6 @@ export const AIReviewInspector = ({ prompt, response }) => (
     <div className="space-y-2">
       <p className="text-[9px] font-mono text-emerald-500 uppercase font-bold tracking-widest">// Labeller_Response_Optimization</p>
       <div className="p-4 bg-zinc-950 border border-zinc-900 text-zinc-200 text-sm leading-relaxed">
-        {/* i'll use  'react-diff-viewer' library */}
         <span className="bg-emerald-500/20 text-emerald-400 px-1">Optimization Note:</span> The labeller added a cleanup function and a debounce layer to prevent memory leaks during rapid state updates.
       </div>
     </div>
@@ -57,7 +54,6 @@ export const AudioInspector = ({ src, transcript }) => {
 
   return (
     <div className="w-full max-w-4xl p-8 space-y-8 animate-in fade-in duration-500">
-      {/* 1. WAVEFORM VISUALIZER (Simulated for UI) */}
       <div className="relative h-32 w-full bg-zinc-950 border border-zinc-900 flex items-center justify-center overflow-hidden px-4">
         <div className="flex items-center gap-[2px] w-full h-full">
           {[...Array(60)].map((_, i) => (
@@ -72,7 +68,6 @@ export const AudioInspector = ({ src, transcript }) => {
         <div className="absolute left-1/2 top-0 bottom-0 w-px bg-rose-500 shadow-[0_0_10px_red] z-10" />
       </div>
 
-      {/* 2. AUDIO CONTROLS */}
       <div className="flex items-center justify-between bg-black border border-zinc-900 p-4">
         <div className="flex items-center gap-4">
           <button 
@@ -104,7 +99,6 @@ export const AudioInspector = ({ src, transcript }) => {
         </div>
       </div>
 
-      {/* 3. TRANSCRIPTION PREVIEW */}
       <div className="space-y-3">
         <h3 className="text-[9px] font-mono font-bold text-indigo-500 uppercase tracking-[0.3em] flex items-center gap-2">
            <FastForward size={12} /> // Labeller_Transcript_Output

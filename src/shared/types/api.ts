@@ -7,7 +7,7 @@ export type ApiResponse<T> = {
 };
 
 export const api = axios.create({
-  baseURL: "http://localhost:5000/api/v1",
+  baseURL: "/api/v1",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -16,21 +16,13 @@ export const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const backendMessage =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.message ||
-      "Something went wrong";
+    // Don't show error message directly - it's handled by route-specific error handlers
     if (error.response?.status === 401) {
       // Only show error and logout if user explicitly was authenticated
       if (localStorage.getItem("isAuthenticated") === "true") {
-        toast.error(`${backendMessage}}`,{duration:9000});
+        // Don't toast here - let the component handle it
         useAuthStore.getState().logout();
       }
-      //window.location.href = "/login";
-    }
-    else{
-      toast.error(`${backendMessage}}`,{duration:9000});
     }
     return Promise.reject(error);
   },

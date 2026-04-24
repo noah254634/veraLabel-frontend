@@ -26,6 +26,10 @@ const LoginPage = () => {
         navigate(completed ? "/labeller" : "/labeller/onboarding", { replace: true });
         return;
       }
+      if (role === "reviewer") {
+        navigate("/reviewer", { replace: true });
+        return;
+      }
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
@@ -45,7 +49,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="w-full max-w-md mx-auto px-4 sm:px-0 animate-in fade-in slide-in-from-bottom-2 duration-700">
       {/* Header: Centered on mobile, precise alignment */}
       <div className="mb-12">
         <div className="flex items-center gap-2 mb-4 text-indigo-500 justify-center md:justify-start">

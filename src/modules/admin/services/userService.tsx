@@ -11,6 +11,11 @@ export const UserService = {
         return response.data
 
     },
+    promoteToReviewer:async(id:string,reason:string):Promise<any>=>{
+        const response=await api.put(`admin/users/${id}/promote-to-reviewer`,{reason:reason})
+        return response.data
+
+    },
     demoteUser:async(id:string,reason:string):Promise<any>=>{
         const response=await api.put(`admin/users/${id}/demote`,{reason:reason})
         return response.data    

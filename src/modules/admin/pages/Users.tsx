@@ -38,6 +38,7 @@ const AdminUserModule = () => {
     getUserByStatus,
     getUserByCountry,
     promoteUser,
+    promoteToReviewer,
     demoteUser,
     suspendUser,
     unsuspendUser,
@@ -112,6 +113,7 @@ const AdminUserModule = () => {
     if (type === "UNVERIFY_USER") unverifyUser(user._id, reason);
     if (type === "VERIFY_USER") verifyUser(user._id, reason);
     if (type === "PROMOTE_USER") promoteUser(user._id, reason);
+    if (type === "PROMOTE_TO_REVIEWER_USER") promoteToReviewer(user._id, reason);
     if (type === "DEMOTE_USER") demoteUser(user._id, reason);
     if (type === "PURGE_USER") deleteUser(user._id, reason);
 
@@ -392,6 +394,18 @@ const AdminUserModule = () => {
                     }}
                     //onClick={() => promoteUser(selectedUser._id)}
                     variant="primary"
+                  />
+                  <ActionBtn
+                    label="Promote to Reviewer"
+                    icon={<Award />}
+                     onClick={() => {
+                      setPendingAction({
+                        type: "PROMOTE_TO_REVIEWER_USER",
+                        user: selectedUser,
+                      });
+                      setIsActionModalOpen(true);
+                    }}
+                    variant="ghost"
                   />
                   <ActionBtn
                     label="Demote User"

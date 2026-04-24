@@ -10,7 +10,8 @@ import {
   HelpCircle,
   Terminal,
   Activity,
-  ShieldCheck
+  ShieldCheck,
+  TrendingUp
 } from 'lucide-react';
 import LogoutButton from "../../auth/logout";
 
@@ -48,6 +49,11 @@ export const AdminSidebar = () => {
       </div>
 
       <div className="space-y-1">
+        <NavItem 
+          to="/admin/analytics" 
+          label="Analytics_Suite" 
+          icon={<TrendingUp size={18} strokeWidth={1.5} />} 
+        />
         <NavItem 
           to="/admin/datasets" 
           label="Asset_Inventory" 

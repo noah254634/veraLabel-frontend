@@ -3,7 +3,7 @@ import {
   UserPlus,
   RotateCcw,
   CheckCircle,
-  Eye, // Added for the review action
+  Eye,
   Filter,
   ChevronDown,
 } from "lucide-react";
@@ -19,7 +19,7 @@ const TaskConsole = () => {
       status: "In Progress",
       labeller: "Noah K.",
       type: "Bounding Box",
-      datasetName: "Autonomous_Nav_v4", // Added for the modal metadata
+      datasetName: "Autonomous_Nav_v4",
       timeTaken: "12m 45s",
     },
     {
@@ -35,7 +35,6 @@ const TaskConsole = () => {
 
   return (
     <div className="bg-[#050505] border border-zinc-900 mt-8 overflow-hidden">
-      {/* Table Header */}
       <div className="grid grid-cols-6 gap-4 p-4 bg-zinc-950 border-b border-zinc-900 text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
         <div className="col-span-1">Unit_ID</div>
         <div className="col-span-1">Dataset_Source</div>
@@ -45,11 +44,9 @@ const TaskConsole = () => {
         <div className="col-span-1 text-right">Actions_Manual</div>
       </div>
 
-      {/* Task Rows */}
       {tasks.map((task) => (
         <div
           key={task.id}
-          // CLICK HANDLER TO OPEN MODAL
           onClick={() => setSelectedTask(task)}
           className="grid grid-cols-6 gap-4 p-4 border-b border-zinc-900 items-center hover:bg-[#080808] group transition-all cursor-pointer"
         >
@@ -74,9 +71,7 @@ const TaskConsole = () => {
             </span>
           </div>
 
-          {/* ACTION BUTTONS */}
           <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-            {/* e.stopPropagation prevents the modal from opening when clicking specific small buttons */}
             <button
               title="Assign Task"
               className="p-2 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-indigo-600 transition-all rounded-sm"
@@ -104,7 +99,6 @@ const TaskConsole = () => {
         </div>
       ))}
 
-      {/* The Modal */}
       <TaskInspectorModal
         isOpen={!!selectedTask}
         task={selectedTask}

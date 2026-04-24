@@ -50,9 +50,9 @@ export const TrainingCanvas = ({ onComplete }: { onComplete: () => void }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Target className="text-blue-500" size={20} /> Skill Verification
+            <Target className="text-indigo-500" size={20} /> Skill Verification
           </h3>
-          <p className="text-gray-500 text-xs md:text-sm uppercase tracking-widest font-bold">
+          <p className="text-zinc-500 text-xs md:text-sm uppercase tracking-widest font-bold">
             Target: Main Processor (CPU)
           </p>
         </div>
@@ -61,7 +61,7 @@ export const TrainingCanvas = ({ onComplete }: { onComplete: () => void }) => {
           className="p-2 hover:bg-white/5 rounded-full transition-colors group"
           title="Reset Canvas"
         >
-          <RefreshCw size={18} className="text-gray-500 group-hover:rotate-180 transition-transform duration-500" />
+          <RefreshCw size={18} className="text-zinc-500 group-hover:rotate-180 transition-transform duration-500" />
         </button>
       </div>
 
@@ -74,7 +74,7 @@ export const TrainingCanvas = ({ onComplete }: { onComplete: () => void }) => {
         onTouchStart={handleStart}
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}
-        className="relative flex-1 min-h-[300px] md:min-h-0 w-full bg-[#0B0E14] rounded-3xl border border-white/10 overflow-hidden cursor-crosshair touch-none select-none"
+        className="relative flex-1 min-h-[300px] md:min-h-0 w-full bg-[#1a1a1e] rounded-3xl border border-zinc-900 overflow-hidden cursor-crosshair touch-none select-none"
       >
         <img 
           src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80" 
@@ -93,7 +93,7 @@ export const TrainingCanvas = ({ onComplete }: { onComplete: () => void }) => {
         {/* DRAWN BOX (Rendered with percentages) */}
         {box && (
           <div 
-            className="absolute border-2 border-blue-500 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.3)] ring-1 ring-white/20"
+            className="absolute border-2 border-indigo-500 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.3)] ring-1 ring-white/20"
             style={{ 
               left: `${box.x}%`, 
               top: `${box.y}%`, 
@@ -101,7 +101,7 @@ export const TrainingCanvas = ({ onComplete }: { onComplete: () => void }) => {
               height: `${box.h}%` 
             }}
           >
-            <div className="absolute -top-6 left-0 bg-blue-600 text-[9px] px-2 py-0.5 font-black uppercase text-white rounded-sm">
+            <div className="absolute -top-6 left-0 bg-indigo-600 text-[9px] px-2 py-0.5 font-black uppercase text-white rounded-sm">
               CPU_PIONEER_VERIFY
             </div>
             {/* Corner Accents */}
@@ -115,11 +115,11 @@ export const TrainingCanvas = ({ onComplete }: { onComplete: () => void }) => {
         <PrimaryButton 
           disabled={!box || box.w < 2} 
           onClick={onComplete}
-          className="w-full py-4 md:py-6 shadow-xl shadow-blue-500/10 text-sm md:text-base"
+          className="w-full py-4 md:py-6 shadow-xl shadow-indigo-600/10 text-sm md:text-base"
         >
           Verify Annotation Accuracy
         </PrimaryButton>
-        <p className="text-center text-[9px] text-gray-600 mt-4 uppercase font-bold tracking-widest italic">
+        <p className="text-center text-[9px] text-zinc-600 mt-4 uppercase font-bold tracking-widest italic">
           High precision unlocks 24h M-Pesa payouts
         </p>
       </div>

@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "./modules/auth/useAuthstore";
 import "./app.css";
 import PaymentVerify from "./modules/buyer/PaymentVerify";
+import { detectDeviceCapabilities } from "./shared/utils/deviceCapabilities";
 // @ts-ignore
 import { Careers } from "./modules/landingPage/FooterComponents/Carreers";
 // @ts-ignore
@@ -27,7 +28,7 @@ import { Contact } from "./modules/landingPage/FooterComponents/Contact";
 import { Terms } from "./modules/landingPage/FooterComponents/terms.js";
 import FAQPage from "./modules/landingPage/FooterComponents/FAQ.js";
 import ForgotPassword from "./modules/auth/ForgotPassword.js";
-
+import ReviewerRoutes from "./modules/reviewer/routes/reviewerRoutes";
 export const App = () => {
   const { isRestoringSession, syncAuth } = useAuthStore();
   useEffect(() => {
@@ -35,6 +36,11 @@ export const App = () => {
       syncAuth();
     }
   }, [syncAuth]);
+
+  // Auto-detect device capabilities on app startup
+  useEffect(() => {
+    detectDeviceCapabilities();
+  }, []);
 
   if (isRestoringSession) {
     return (
@@ -113,6 +119,7 @@ export const App = () => {
           {AdminRoutes}
           <Route path="buyer/*" element={<BuyerRoutes />} />
           <Route path="labeller/*" element={<LabellerRoutes />} />
+          <Route path="reviewer/*" element={<ReviewerRoutes />} />
         </Route>
       </Routes>
     </BrowserRouter>

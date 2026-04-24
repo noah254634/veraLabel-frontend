@@ -25,7 +25,6 @@ const ProjectCard = ({ name, buyer, progress, accuracy, nodes, status }) => {
         <Metric label="Nodes_Active" value={nodes} />
       </div>
 
-      {/* Progress Velocity */}
       <div className="space-y-2">
         <div className="flex justify-between text-[9px] font-mono text-zinc-600 font-bold uppercase">
           <span>// Velocity_Index</span>

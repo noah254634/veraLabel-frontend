@@ -22,14 +22,14 @@ type AuthStore = {
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
-  isAuthenticated: true,
+  isAuthenticated: false,
   loading: false,
   isRestoringSession: false,
   error: null,
   checkAuth: async () => {
     try {
       set({ loading: true, isRestoringSession: false });
-      const response = await fetch("http://localhost:5000/api/v1/auth/check-auth", {
+      const response = await fetch("/api/v1/auth/check-auth", {
         credentials: "include",
       });
       if (!response.ok) {
@@ -58,13 +58,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ loading: true, isAuthenticated: false, isRestoringSession: true });
     try {
       const res = await api.get("/auth/me");
-      console.log(res);
       if (res.status === 200) {
         // Fix: Extract user from the response object (which contains message and user)
         set({ user: res.data.user, isAuthenticated: true });
       }
     } catch (error) {
-      console.log(error);
       localStorage.removeItem("isAuthenticated");
       localStorage.removeItem("user");
       set({ user: null, isAuthenticated: false });
@@ -78,23 +76,24 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ loading: true, error: null, isRestoringSession: false });
       const response = await loginApi(credentials);
       const data = await response.json();
-      const user = data.user;
+      const user = data?.user;
+      
+      if (!user) {
+        throw new Error('User data missing from response');
+      }
+
       set({ user, isAuthenticated: true, loading: false });
       localStorage.setItem("isAuthenticated", "true");
-      console.log(user);
-      console.log(data.message);
-      console.log(response);
       toast.success("Login successful");
       return user;
     } catch (err) {
-      toast.error("Login failed");
-      set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
+      const errorMsg = err instanceof Error ? err.message : "An unknown error occurred";
+      set({ error: errorMsg, loading: false });
       throw err;
     }
   },
   signup: async (credentials) => {
     try {
-      console.log(credentials);
       set({ loading: true, error: null, isRestoringSession: false });  
       const response = await signupApi(credentials);
       const data = await response.json();
@@ -104,14 +103,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
       toast.success("Signup successful");
       return user;
   }catch (err) {
-      toast.error(`Signup failed: ${err}`,{duration:3000});
-      set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
+      // Don't show error message - signupApi already handled it
+      set({ error: "An unknown error occurred", loading: false });
     }
   },
   logout: async() =>{
     try{
       set({error:null, isRestoringSession: false});
-      const response = await fetch("http://localhost:5000/api/v1/auth/logout",{
+      const response = await fetch("/api/v1/auth/logout",{
         method:"POST",
         credentials:"include",
         });

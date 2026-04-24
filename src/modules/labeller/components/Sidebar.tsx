@@ -1,87 +1,109 @@
-import { Home, Search, LayoutPanelLeft, Wallet, Settings, LogOut, Award,Telescope } from 'lucide-react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuthStore } from "../../auth/useAuthstore";
-import toast from "react-hot-toast";
+import React from "react";
+import { NavItem } from "../../../shared/components/navigation/NavItem";
+import {
+  LayoutDashboard,
+  Search,
+  Zap,
+  Wallet,
+  Settings,
+  HelpCircle,
+  Terminal,
+  Activity,
+  GraduationCap
+} from 'lucide-react';
+import LogoutButton from "../../auth/logout";
 
-export function Sidebar() {
-  const navigate = useNavigate();
-  const { logout } = useAuthStore();
-
-  const handleLogout = async () => {
-    try {
-      logout();
-      navigate("/login", { replace: true });
-      toast.success("Logout successful");
-    } catch (error) {
-      toast.error("Logout failed");
-    }
-  };
-
+export const LabellerSidebar = () => {
   return (
-        <aside className="h-full min-h-0 w-64 bg-[#0B0E14] border-r border-white/5 flex flex-col shrink-0">
-      {/* BRANDING */}
-      <div className="p-6 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.4)] flex items-center justify-center">
-            <span className="text-white font-black text-xl italic">V</span>
-          </div>
-          <span className="font-bold text-lg tracking-tight">VeraLabel</span>
-        </div>
+    <nav className="flex flex-col h-full py-4 selection:bg-indigo-500/30">
+      
+      {/* --- SECTION 1: LABELLER OPERATIONS --- */}
+      <div className="px-4 mb-4 flex items-center gap-2 opacity-30">
+        <Terminal size={12} />
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
+          Labeller_Operations
+        </span>
       </div>
 
-      {/* NAVIGATION */}
-      <nav className="flex-1 min-h-0 px-4 space-y-1.5 overflow-y-auto custom-scrollbar pb-4">
-        <NavItem to="/labeller" label="Dashboard" icon={<Home size={20} strokeWidth={1.5} />} end />
-        <NavItem to="/labeller/work" label="Find Work" icon={<Search size={20} strokeWidth={1.5} />} />
-        <NavItem to="/labeller/workbench" label="Pro Space" icon={<LayoutPanelLeft size={20} strokeWidth={1.5} />} />
-        <NavItem to="/labeller/wallet" label="Wallet" icon={<Wallet size={20} strokeWidth={1.5} />} />
-        <NavItem to="/labeller/onboarding" label="Onboarding" icon={<Telescope size={20} strokeWidth={1.5} />} />
-        <div className="pt-8 pb-4 px-3">
-           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[2px]">Configuration</p>
-        </div>
-        
-        <NavItem to="/labeller/settings" label="Settings" icon={<Settings size={20} strokeWidth={1.5} />} />
-      </nav>
-
-      {/* BOTTOM WIDGET: PROGRESS & LOGOUT */}
-      <div className="p-4 mt-auto">
-        <div className="bg-[#161B22] rounded-2xl p-4 border border-white/5 mb-4">
-          <div className="flex items-center gap-2 mb-2 text-blue-400">
-            <Award size={14} />
-            <span className="text-[10px] font-bold uppercase">Level: Gold</span>
-          </div>
-          <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-             <div className="bg-blue-500 h-full w-[70%] rounded-full" />
-          </div>
-          <p className="text-[9px] text-gray-500 mt-2 text-center italic">120 XP to Diamond</p>
-        </div>
-
-        <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-gray-500 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all text-sm font-medium">
-          <LogOut size={18} strokeWidth={1.5} />
-          Sign Out
-        </button>
+      <div className="space-y-1">
+        <NavItem
+          to="/labeller"
+          label="Dashboard"
+          icon={<LayoutDashboard size={18} strokeWidth={1.5} />}
+          end
+        />
+        <NavItem 
+          to="/labeller/work" 
+          label="Find Work" 
+          icon={<Search size={18} strokeWidth={1.5} />} 
+        />
+        <NavItem 
+          to="/labeller/workbench" 
+          label="Pro Space" 
+          icon={<Zap size={18} strokeWidth={1.5} />} 
+        />
       </div>
-    </aside>
-  );
-}
 
-// HELPER COMPONENT FOR CLEANER CODE
-function NavItem({ to, label, icon, end = false }: { to: string; label: string; icon: any; end?: boolean }) {
-  return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) => `
-        flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
-        ${isActive 
-          ? 'bg-blue-600/10 text-blue-400 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.2)]' 
-          : 'text-gray-500 hover:text-white hover:bg-white/5'}
-      `}
-    >
-      {icon}
-      {label}
-    </NavLink>
-  );
-}
+      {/* --- SECTION 2: EARNINGS & REWARDS --- */}
+      <div className="mt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
+        <Activity size={12} />
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
+          Earnings_Rewards
+        </span>
+      </div>
 
-export default Sidebar;
+      <div className="space-y-1">
+        <NavItem 
+          to="/labeller/wallet" 
+          label="Wallet & Payouts" 
+          icon={<Wallet size={18} strokeWidth={1.5} />} 
+        />
+      </div>
+
+      {/* --- SECTION 3: TRAINING & SETTINGS --- */}
+      <div className="mt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
+        <GraduationCap size={12} />
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
+          Training_Config
+        </span>
+      </div>
+
+      <div className="space-y-1">
+        <NavItem 
+          to="/labeller/onboarding" 
+          label="Training Programs" 
+          icon={<GraduationCap size={18} strokeWidth={1.5} />} 
+        />
+        <NavItem 
+          to="/labeller/settings" 
+          label="Preferences" 
+          icon={<Settings size={18} strokeWidth={1.5} />} 
+        />
+      </div>
+
+      {/* --- BOTTOM: SUPPORT & LOGOUT --- */}
+      <div className="mt-auto pt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
+        <HelpCircle size={12} />
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
+          Support
+        </span>
+      </div>
+
+      <div className="px-4 space-y-1">
+        <LogoutButton />
+      </div>
+
+      {/* Status Indicator */}
+      <div className="mt-auto px-4 pt-8">
+        <div className="p-3 bg-zinc-950 border border-zinc-900 rounded-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 bg-indigo-500 rounded-full animate-pulse" />
+            <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">Node_Labeller_Active</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default LabellerSidebar;

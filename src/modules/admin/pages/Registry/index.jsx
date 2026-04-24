@@ -17,7 +17,6 @@ const AdminProjects = () => {
   return (
     <div className="flex flex-col min-h-screen bg-black animate-in fade-in duration-700 border-l border-zinc-900">
       
-      {/* SECTION 1: HEADER & STATS (Locked to top) */}
       <div className="p-6 lg:p-10 border-b border-zinc-900">
         <RegistryHeader activeCount={projects.length} />
         <div className="mt-10">
@@ -25,7 +24,6 @@ const AdminProjects = () => {
         </div>
       </div>
 
-      {/* SECTION 2: NAVIGATION TABS (Sticky Anchor) */}
       <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-md border-b border-zinc-900 px-6 lg:px-10">
         <div className="flex items-center gap-8">
           <TabButton 
@@ -43,11 +41,9 @@ const AdminProjects = () => {
         </div>
       </div>
 
-      {/* SECTION 3: DYNAMIC CONTENT AREA */}
       <div className="flex-1 bg-black">
         {activeTab === 'inventory' ? (
           <div className="flex flex-col">
-            {/* Control Bar as a sub-header */}
             <div className="bg-[#050505] p-4 border-b border-zinc-900">
               <ControlBar />
             </div>
@@ -78,7 +74,6 @@ const AdminProjects = () => {
         )}
       </div>
 
-      {/* FOOTER NODE (Grounds the bottom of the page) */}
       <footer className="mt-auto border-t border-zinc-900 p-4 bg-[#020202]">
         <div className="flex items-center gap-2 opacity-20">
           <Terminal size={10} className="text-white" />

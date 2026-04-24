@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import React, { useState } from "react";
 import { Menu, X, Activity } from "lucide-react";
+import { SidebarProvider } from "../hooks/useSidebar";
 
 type AppLayoutProps = {
   children: React.ReactNode;
@@ -12,8 +13,9 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    /* 1. FIXED HEIGHT VIEWPORT: Prevents the whole page from scrolling */
-    <div className="h-screen w-full bg-[#020203] text-zinc-100 flex overflow-hidden font-sans selection:bg-indigo-500/30">
+    <SidebarProvider setSidebarOpen={setSidebarOpen}>
+      {/* 1. FIXED HEIGHT VIEWPORT: Prevents the whole page from scrolling */}
+      <div className="h-screen w-full bg-[#020203] text-zinc-100 flex overflow-hidden font-sans selection:bg-indigo-500/30">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -27,7 +29,7 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
       <aside
         className={`fixed top-0 left-0 bg-[#050505] border-zinc-900 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] z-[70]
         w-[280px] h-full border-r flex flex-col
-        md:translate-x-0 ${sidebarOpen ? "translate-x-0 shadow-2xl shadow-indigo-500/10" : "-translate-x-full"}`}
+        ${sidebarOpen ? "translate-x-0 shadow-2xl shadow-indigo-500/10" : "-translate-x-full"}`}
       >
         <div className="p-6 shrink-0 flex items-center justify-between border-b border-zinc-900/50">
           <div className="font-bold text-xl tracking-tighter flex items-center gap-2">
@@ -38,7 +40,7 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden text-zinc-500 hover:text-white transition-colors"
+            className="text-zinc-500 hover:text-white transition-colors"
           >
             <X size={20} />
           </button>
@@ -51,13 +53,13 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
       </aside>
 
       {/* Main Container: Controlled flex growth */}
-      <div className="flex-1 flex flex-col md:ml-[280px] min-w-0 h-full relative">
+      <div className={`flex-1 flex flex-col min-w-0 h-full relative transition-all duration-500 ${sidebarOpen ? "md:ml-[280px]" : ""}`}>
         {/* Header: Locked to top */}
         <header className="h-16 shrink-0 bg-[#020203]/80 backdrop-blur-xl border-b border-zinc-900 flex items-center justify-between px-6 z-50">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 -ml-2 text-zinc-400 md:hidden hover:text-white transition-colors"
+              className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors"
               aria-label="Toggle sidebar"
             >
               <Menu size={22} />
@@ -92,5 +94,6 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
         </main>
       </div>
     </div>
+    </SidebarProvider>
   );
 }

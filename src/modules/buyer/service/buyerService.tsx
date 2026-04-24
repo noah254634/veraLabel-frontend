@@ -2,45 +2,28 @@ import { toast } from "react-hot-toast";
 import { api } from "../../../shared/types/api";
 import type { Dataset } from "../../../shared/types/dataset";
 export const buyerService = {
-  uploadFile: async (data: FormData): Promise<void> => {
-    const file = (data.get("uploadedFile") || data.get("file")) as File | null;
+  datasetOrders: async (): Promise<any> => {
+    const response = await api.get("/marketplace/datasetOrders");
+    return response.data;
+  },
+  generateUploadUrl: async (fileType: string): Promise<{ uploadUrl: string; key: string }> => {
+    const response = await api.post("/datasets/generateUploadUrl", {
+      fileType,
+    });
+    return response.data;
+  },
+  uploadFile: async (file: File, uploadUrl: string): Promise<void> => {
     if (!file) {
       throw new Error("Please attach a file before upload");
     }
-    const fileType = file.type || "application/octet-stream";
-    const fileSize = file?.size;
-    const budget = data.get("budget");
-    const specifications = data.get("specifications");
-    const domain = data.get("domain");
-    const volume = data.get("volume");
-    const format = data.get("format");
-    const sourceLink = data.get("sourceLink");
-    const response = await api.post("/datasets/generateUploadUrl", {
-      fileType,
-      fileSize,
-      budget,
-      specifications,
-      domain,
-      volume,
-      format,
-      sourceLink,
+    await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+      },
+      body: file,
     });
-    toast.success("File staged for transmission");
-    const { uploadUrl, key } = response.data;
-    if (file && uploadUrl) {
-      await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
-      });
-    }
-    const confirmResponse = await api.post("/datasets/confirmUpload", {
-      key,
-      })
-
-    return confirmResponse.data;
+    toast.success("File uploaded successfully");
   },
   getOrders: async (): Promise<any> => {
     const response = await api.get("/marketplace/orders");
@@ -66,8 +49,18 @@ export const buyerService = {
     console.log(response);
     return response.data.url;
   },
-  datasetRequest: async (data: FormData): Promise<void> => {
-    const response = await api.post("/marketplace/send-dataset-request", data);
+  datasetRequest: async (requestData: {
+    domain: string;
+    specifications: string;
+    volume: string;
+    format: string;
+    budget: string;
+    fileUrl: string;
+    timeline: string;
+    qualityMetrics: string;
+  }): Promise<any> => {
+    const response = await api.post("/datasets/createDatasetRequest", requestData);
+    toast.success("Dataset request created successfully");
     return response.data;
   },
 };
