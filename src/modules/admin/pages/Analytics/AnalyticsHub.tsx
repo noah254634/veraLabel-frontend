@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { BarChart3, Users, Database, TrendingUp, DollarSign, Terminal } from 'lucide-react';
+import { BarChart3, Users, Database, TrendingUp, DollarSign, Terminal, Zap } from 'lucide-react';
 import LabellerAnalytics from './LabellerAnalytics';
 import DatasetAnalytics from './DatasetAnalytics';
 import BuyerAnalytics from './BuyerAnalytics';
 import RevenueAnalytics from './RevenueAnalytics';
+import TaskProcessingAnalytics from './TaskProcessingAnalytics';
 
-type TabType = 'labellers' | 'datasets' | 'buyers' | 'revenue';
+type TabType = 'labellers' | 'datasets' | 'buyers' | 'revenue' | 'tasks';
 
 interface Tab {
   id: TabType;
@@ -41,6 +42,12 @@ const AnalyticsHub = () => {
       label: 'Revenue',
       icon: <DollarSign className="w-5 h-5" />,
       component: <RevenueAnalytics />
+    },
+    {
+      id: 'tasks',
+      label: 'Tasks',
+      icon: <Zap className="w-5 h-5" />,
+      component: <TaskProcessingAnalytics />
     }
   ];
 

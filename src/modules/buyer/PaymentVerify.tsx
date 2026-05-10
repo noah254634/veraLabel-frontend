@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import useBuyerStore from './store/buyerStore';
+import { useBuyerStore } from './store/buyerStore';
 import { Loader2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 

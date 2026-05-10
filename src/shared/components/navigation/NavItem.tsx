@@ -1,4 +1,3 @@
-// shared/components/navigation/NavItem.tsx
 import { NavLink } from "react-router-dom"
 import React from "react"
 

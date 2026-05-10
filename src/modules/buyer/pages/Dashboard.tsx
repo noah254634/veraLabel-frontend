@@ -1,8 +1,8 @@
 import { useAuthStore } from "../../auth/useAuthstore";
 import React, { useEffect, useState, useMemo } from "react";
 import CustomDataRequestModal from "../components/CustomDataRequestModal";
-import useBuyerStore from "../store/buyerStore";
-import { api } from "../../../shared/types/api";
+import { useBuyerStore } from "../store/buyerStore";
+import { useDashboardStore } from "../store/dashboardStore";
 import { toast } from "react-hot-toast";
 import {
   TrendingUp,
@@ -17,8 +17,10 @@ import {
   Loader2,
   Download,
   AlertCircle,
-  X
+  X,
+  ShieldCheck
 } from "lucide-react";
+import RequestCard from "../components/RequestCard";
 
 const StatCard = ({ label, value, trend, icon, color }: any) => {
   const accentColors = {
@@ -52,48 +54,37 @@ const StatCard = ({ label, value, trend, icon, color }: any) => {
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const { getDatasets, getDatasetOrders, buyerDatasetOrders } = useBuyerStore();
+  const { getDatasets, getDatasetOrders, buyerDatasetOrders, buyerDatasetStats } = useBuyerStore();
+  const { loadingOrderIds, initiatePayment, cancelPayment, reportIssue } = useDashboardStore();
   const [customDataRequestModal, setCustomDataRequestModal] = useState(false);
-  const [loadingOrderIds, setLoadingOrderIds] = useState<Record<string, boolean>>({});
 
-  // Calculate stats dynamically
+  // Use backend stats if available, otherwise calculate from local (which might be limited)
   const stats = useMemo(() => {
-    const totalSpent = buyerDatasetOrders?.reduce((acc, order) => {
-      const budget = parseFloat(order.budget.replace(/[^0-9.-]+/g, ""));
-      return acc + (isNaN(budget) ? 0 : budget);
-    }, 0) || 0;
-
-    const activeAssets = buyerDatasetOrders?.filter(o => o.status === "done").length || 0;
-    const pendingSync = buyerDatasetOrders?.filter(o => o.status === "pending" || o.status === "processing").length || 0;
+    if (buyerDatasetStats) {
+      return {
+        totalSpent: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(buyerDatasetStats.totalSpent),
+        activeAssets: buyerDatasetStats.activeAssets,
+        pendingSync: buyerDatasetStats.pendingSync.toString().padStart(2, '0')
+      };
+    }
 
     return {
-      totalSpent: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSpent),
-      activeAssets,
-      pendingSync: pendingSync.toString().padStart(2, '0')
+      totalSpent: "$0.00",
+      activeAssets: 0,
+      pendingSync: "00"
     };
-  }, [buyerDatasetOrders]);
+  }, [buyerDatasetStats]);
 
   const handlePaymentInitiation = async (orderId: string, budget: string) => {
-    setLoadingOrderIds(prev => ({ ...prev, [orderId]: true }));
     try {
-      const response = await api.post("/payments/create", {
-        requestId: orderId,
-        amount: budget,
-      });
-      if (response.data?.url) {
+      const response = await initiatePayment(orderId, budget);
+      if (response?.url) {
         // Refresh orders before redirecting to payment
         await getDatasetOrders();
-        window.location.href = response.data.url;
+        window.location.href = response.url;
       }
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Payment initialization failed";
-      toast.error(msg);
-    } finally {
-      setLoadingOrderIds(prev => {
-        const newState = { ...prev };
-        delete newState[orderId];
-        return newState;
-      });
+      // Error already handled in store
     }
   };
 
@@ -116,25 +107,19 @@ const Dashboard: React.FC = () => {
   const handleCancelPayment = async (orderId: string) => {
     if (!confirm("Are you sure you want to cancel this order?")) return;
     try {
-      await api.put(`/marketplace/cancelPayment/${orderId}`);
-      toast.success("Order cancelled successfully");
+      await cancelPayment(orderId);
       await getDatasetOrders();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to cancel");
+      // Error already handled in store
     }
   };
 
   const handleReportIssue = async (orderId: string, reason: string) => {
-    if (!reason.trim()) {
-      toast.error("Please provide a reason");
-      return;
-    }
     try {
-      await api.post(`/marketplace/reportIssue/${orderId}`, { reason });
-      toast.success("Issue reported successfully");
+      await reportIssue(orderId, reason);
       await getDatasetOrders();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to report");
+      // Error already handled in store
     }
   };
 
@@ -195,131 +180,19 @@ const Dashboard: React.FC = () => {
           <div className="space-y-px bg-zinc-900 border border-zinc-900">
             {buyerDatasetOrders && buyerDatasetOrders.length > 0 ? (
               buyerDatasetOrders.map((order) => (
-                <div key={order._id} className="bg-[#050505] p-5 hover:bg-zinc-950 transition-all group">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">
-                        {order.domain} Request
-                      </p>
-                      <p className="text-[10px] font-mono text-zinc-500 mt-1">{order.format}</p>
-                    </div>
-                    <span className={`text-[9px] font-mono font-bold px-3 py-1 rounded border ${
-                      order.status === "pending" ? "bg-zinc-900 border-zinc-700 text-zinc-300" :
-                      order.status === "processing" ? "bg-indigo-950 border-indigo-700 text-indigo-300" :
-                      order.status === "done" ? "bg-emerald-950 border-emerald-700 text-emerald-300" :
-                      "bg-red-950 border-red-700 text-red-300"
-                    }`}>
-                      {order.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-500 font-light leading-relaxed mb-3">
-                    {order.description}
-                  </p>
-                  <div className="grid grid-cols-4 gap-4 text-[9px] mb-3">
-                    <div>
-                      <p className="text-zinc-600 font-mono uppercase tracking-wider">Volume</p>
-                      <p className="text-white font-bold">{order.volume}</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-600 font-mono uppercase tracking-wider">Budget</p>
-                      <p className="text-white font-bold">{order.budget}</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-600 font-mono uppercase tracking-wider">Timeline</p>
-                      <p className="text-white font-bold">{order.timeline || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-600 font-mono uppercase tracking-wider">Submitted</p>
-                      <p className="text-white font-bold">{new Date(order.createdAt).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Progress and Delivery Info */}
-                  {order.status !== "pending" && (
-                    <div className="border-t border-zinc-900 pt-3 mt-3 space-y-2">
-                      {/* Progress Bar */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-wider">Progress</p>
-                          <p className="text-[8px] text-zinc-400">{order.itemsCompleted || 0} / {order.volume}</p>
-                        </div>
-                        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all"
-                            style={{ width: `${getProgressPercentage(order.itemsCompleted || 0, order.volume)}%` }}
-                          />
-                        </div>
-                      </div>
-                      {/* Delivery Date */}
-                      <p className="text-[8px] text-zinc-500">
-                        <span className="text-zinc-600 font-mono">Delivery:</span> {calculateDeliveryDate(order.timeline, order.createdAt)}
-                      </p>
-                    </div>
-                  )}
-
-                  {order.qualityMetrics && (
-                    <div className="text-[9px] border-t border-zinc-900 pt-2 mt-2">
-                      <p className="text-zinc-600 font-mono uppercase tracking-wider mb-1">Quality Criteria</p>
-                      <p className="text-zinc-400 italic text-[8px]">{order.qualityMetrics}</p>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-zinc-900">
-                    {/* Pay Escrow Button */}
-                    {order.status === "pending" && !order.isPaid && (
-                      <button 
-                        onClick={() => handlePaymentInitiation(order._id, order.budget)}
-                        disabled={loadingOrderIds[order._id]}
-                        className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:from-emerald-700 disabled:to-emerald-600 text-white font-bold text-[7px] uppercase tracking-widest transition-all inline-flex items-center justify-center gap-1 border border-emerald-400/20 shadow-lg hover:shadow-emerald-500/20 disabled:opacity-75 rounded-sm"
-                      >
-                        {loadingOrderIds[order._id] ? (
-                          <Loader2 className="animate-spin" size={9} />
-                        ) : (
-                          <CreditCard size={9} />
-                        )}
-                        {loadingOrderIds[order._id] ? "Processing" : "Pay"}
-                      </button>
-                    )}
-
-                    {/* Download Button */}
-                    {order.status === "done" && order.downloadUrl && (
-                      <a 
-                        href={order.downloadUrl}
-                        download
-                        className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold text-[7px] uppercase tracking-widest transition-all inline-flex items-center justify-center gap-1 border border-blue-400/20 shadow-lg hover:shadow-blue-500/20 rounded-sm"
-                      >
-                        <Download size={9} />
-                        Download
-                      </a>
-                    )}
-
-                    {/* Cancel Payment Button */}
-                    {order.status === "pending" && order.canBeCancelled && (
-                      <button 
-                        onClick={() => handleCancelPayment(order._id)}
-                        className="px-3 py-1.5 bg-gradient-to-r from-red-600/70 to-red-500/70 hover:from-red-500/70 hover:to-red-400/70 text-white font-bold text-[7px] uppercase tracking-widest transition-all inline-flex items-center justify-center gap-1 border border-red-400/20 shadow-lg hover:shadow-red-500/20 rounded-sm"
-                      >
-                        <X size={9} />
-                        Cancel
-                      </button>
-                    )}
-
-                    {/* Report Issue Button */}
-                    {order.status !== "pending" && !order.reportReason && (
-                      <button 
-                        onClick={() => {
-                          const reason = prompt("Please describe the issue:");
-                          if (reason) handleReportIssue(order._id, reason);
-                        }}
-                        className="px-3 py-1.5 bg-gradient-to-r from-amber-600/70 to-amber-500/70 hover:from-amber-500/70 hover:to-amber-400/70 text-white font-bold text-[7px] uppercase tracking-widest transition-all inline-flex items-center justify-center gap-1 border border-amber-400/20 shadow-lg hover:shadow-amber-500/20 rounded-sm"
-                      >
-                        <AlertCircle size={9} />
-                        Report
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <RequestCard
+                  key={order._id}
+                  order={order}
+                  onPay={handlePaymentInitiation}
+                  onCancel={handleCancelPayment}
+                  onReport={(id) => {
+                    const reason = prompt("Please describe the issue:");
+                    if (reason) handleReportIssue(id, reason);
+                  }}
+                  isProcessing={!!loadingOrderIds[order._id]}
+                  getProgressPercentage={getProgressPercentage}
+                  calculateDeliveryDate={calculateDeliveryDate}
+                />
               ))
             ) : (
               <div className="bg-[#050505] p-8 text-center">

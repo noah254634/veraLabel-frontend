@@ -11,7 +11,8 @@ import {
   Terminal,
   Activity,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  Bell
 } from 'lucide-react';
 import LogoutButton from "../../auth/logout";
 
@@ -68,6 +69,11 @@ export const AdminSidebar = () => {
           to="/admin/models" 
           label="Neural_Models" 
           icon={<Bot size={18} strokeWidth={1.5} />} 
+        />
+        <NavItem
+          to="/admin/notifications"
+          label="Notifications"
+          icon={<Bell size={18} strokeWidth={1.5} />}
         />
       </div>
 

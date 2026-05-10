@@ -4,12 +4,10 @@ import { Mail, MessageSquare, MapPin, Globe, Terminal, ArrowUpRight } from 'luci
 export const Contact = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-500 font-sans selection:bg-blue-500/30">
-      {/* Top Border Accent */}
       <div className="h-1 w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
       <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
         
-        {/* Header / Identification */}
         <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
           <div className="flex items-center gap-4">
             <div className="h-1.5 w-1.5 bg-blue-600 rounded-full animate-pulse" />
@@ -22,7 +20,6 @@ export const Contact = () => {
           </span>
         </div>
 
-        {/* Hero Section */}
         <section className="mb-24">
           <h1 className="text-4xl md:text-6xl font-medium text-white tracking-tighter leading-tight mb-8">
             Initiate <br />
@@ -34,10 +31,8 @@ export const Contact = () => {
           </p>
         </section>
 
-        {/* Contact Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 border-t border-zinc-900 pt-16">
           
-          {/* LEFT: THE FORM (Raw & Minimalist) */}
           <div className="lg:col-span-7 space-y-12">
             <form className="space-y-10">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -81,10 +76,8 @@ export const Contact = () => {
             </form>
           </div>
 
-          {/* RIGHT: SYSTEM ENDPOINTS */}
           <div className="lg:col-span-5 space-y-12">
             
-            {/* Location Nodes */}
             <div className="space-y-6">
               <h3 className="text-white font-mono text-[10px] uppercase tracking-[0.3em]">Operational Nodes</h3>
               <div className="space-y-px bg-zinc-900 border border-zinc-900">
@@ -94,7 +87,6 @@ export const Contact = () => {
               </div>
             </div>
 
-            {/* Direct Connect */}
             <div className="p-8 border border-zinc-900 space-y-6 bg-zinc-900/10">
               <h3 className="text-white font-medium text-lg">Direct Inquiries</h3>
               <div className="space-y-4">
@@ -118,8 +110,6 @@ export const Contact = () => {
     </div>
   );
 };
-
-// --- PRIVATE COMPONENTS ---
 
 const LocationNode = ({ city, region, status }) => (
   <div className="bg-[#050505] p-6 flex justify-between items-center group">

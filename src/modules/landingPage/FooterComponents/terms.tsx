@@ -3,7 +3,7 @@ export const Terms = () => (
     <div className="h-1 w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
     <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
-      {/* Header */}
+
       <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
         <div className="flex items-center gap-4">
           <div className="h-1.5 w-1.5 bg-blue-600 rounded-full" />
@@ -30,7 +30,7 @@ export const Terms = () => (
         </p>
       </section>
 
-      {/* Enterprise Sections */}
+
       <div className="space-y-16">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 border-t border-zinc-900 pt-12">
           <div className="md:col-span-4 text-white font-mono text-[10px] uppercase tracking-widest">

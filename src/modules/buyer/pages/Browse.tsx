@@ -3,7 +3,7 @@ import { Search, Terminal } from 'lucide-react';
 import CategoryBar from '../components/CategoryBar';
 import DatasetCard from '../components/DatasetCard';
 import QuickCheckOutModal from '../components/QuickCheckOutModal';
-import useBuyerStore from "../store/buyerStore"
+import { useBuyerStore } from "../store/buyerStore"
 import type { Dataset } from "../../../shared/types/dataset";
 
 const CATEGORIES = ['All Assets', 'Computer Vision', 'NLP', 'Healthcare', 'Automotive', 'Satellite'];

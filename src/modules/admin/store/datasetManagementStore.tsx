@@ -9,8 +9,11 @@ type DatasetStore = {
   loading: boolean;
   setLoading: (loading: boolean) => void;
   datasets: Dataset[];
+  currentStatus: "all" | "pending" | "approved" | "rejected" | "flagged";
+  setCurrentStatus: (status: "all" | "pending" | "approved" | "rejected" | "flagged") => void;
   setDatasets: (datasets: Dataset[]) => Promise<void>;
   getDataset: () => Promise<Dataset[] | null>;
+  getDatasetsByStatus: (status: "pending" | "approved" | "rejected" | "flagged") => Promise<Dataset[] | null>;
   deleteDataset: (id: string, reason: string) => Promise<void>;
   addDataset: () => Promise<void>;
   publishDataset: () => Promise<void>;
@@ -30,6 +33,8 @@ export const dataStore = create<DatasetStore>((set, get) => ({
   loading: false,
   setLoading: (loading: boolean) => set({ loading }),
   datasets: [],
+  currentStatus: "all",
+  setCurrentStatus: (status: "all" | "pending" | "approved" | "rejected" | "flagged") => set({ currentStatus: status }),
   setDatasets: async (datasets: Dataset[]) => set({ datasets }),
   getDataset: async () => {
     try {
@@ -46,6 +51,42 @@ export const dataStore = create<DatasetStore>((set, get) => ({
             ? error.message
             : "Something went wrong";
       toast.error(`Something went wrong:${errorMessage}`);
+      set({ error: errorMessage });
+      return null;
+    } finally {
+      set({ loading: false });
+    }
+  },
+  getDatasetsByStatus: async (status: "pending" | "approved" | "rejected" | "flagged") => {
+    try {
+      set({ loading: true, currentStatus: status });
+      let datasets: Dataset[] = [];
+      
+      switch (status) {
+        case "pending":
+          datasets = await datasetService.fetchPendingDatasets();
+          break;
+        case "approved":
+          datasets = await datasetService.fetchApprovedDatasets();
+          break;
+        case "rejected":
+          datasets = await datasetService.fetchRejectedDatasets();
+          break;
+        case "flagged":
+          datasets = await datasetService.fetchFlaggedDatasets();
+          break;
+      }
+      
+      set({ datasets });
+      return datasets;
+    } catch (error) {
+      const errorMessage =
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : error instanceof Error
+            ? error.message
+            : "Something went wrong";
+      toast.error(`Failed to fetch ${status} datasets: ${errorMessage}`);
       set({ error: errorMessage });
       return null;
     } finally {

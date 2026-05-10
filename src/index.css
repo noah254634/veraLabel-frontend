@@ -44,3 +44,21 @@
   border-radius: 4px !important;
   font-weight: 700 !important;
 }
+
+@keyframes scan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(500%); }
+}
+
+.animate-scan {
+  animation: scan 3s linear infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, Loader2, Lock, ArrowRight, Terminal } from 'lucide-react';
-import useBuyerStore from '../store/buyerStore';
+import { useBuyerStore } from '../store/buyerStore';
 import { toast } from 'react-hot-toast';
 
 interface QuickCheckoutModalProps {

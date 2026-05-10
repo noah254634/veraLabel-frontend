@@ -1,5 +1,5 @@
 import React from "react";
-import useBuyerStore from "../store/buyerStore";
+import { useBuyerStore } from "../store/buyerStore";
 import type { OrderType } from "../types/order";
 import {
   Clock,
@@ -12,7 +12,7 @@ import {
 import OrderDetailCard from "../components/OrderDetailCar";
 
 const Order: React.FC = () => {
-  const { getOrders } = useBuyerStore();
+  const { getPaymentHistory } = useBuyerStore();
   const [orders, setOrders] = React.useState<OrderType[]>([]);
   const [selectedOrder, setSelectedOrder] = React.useState<OrderType | null>(null);
 
@@ -20,12 +20,19 @@ const Order: React.FC = () => {
   const handleCloseDetails = () => setSelectedOrder(null);
 
   React.useEffect(() => {
-    const fetchOrders = async () => {
-      const response = await getOrders();
-      if (response) setOrders(response);
+    const fetchPayments = async () => {
+      const response = await getPaymentHistory();
+      if (response) {
+        // Map payment data to OrderType by converting amount to totalPrice
+        const normalizedOrders = response.map((payment: any) => ({
+          ...payment,
+          totalPrice: payment.amount
+        }));
+        setOrders(normalizedOrders);
+      }
     };
-    fetchOrders();
-  }, [getOrders]);
+    fetchPayments();
+  }, [getPaymentHistory]);
 
   return (
     <div className="w-full animate-in fade-in duration-700">

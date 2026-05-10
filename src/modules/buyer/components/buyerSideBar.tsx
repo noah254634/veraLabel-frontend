@@ -35,10 +35,10 @@ function BuyerSideBar() {
           icon={<Search size={18} strokeWidth={1.5} />} 
         />
         
-        <NavItem 
-          to="/buyer/order" 
-          label="Transaction Logs" 
-          icon={<ClipboardList size={18} strokeWidth={1.5} />} 
+        <NavItem
+          to="/buyer/order"
+          label="Transaction Logs"
+          icon={<ClipboardList size={18} strokeWidth={1.5} />}
         />
       </div>
 

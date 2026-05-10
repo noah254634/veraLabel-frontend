@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import React, { useState } from "react";
 import { Menu, X, Activity } from "lucide-react";
 import { SidebarProvider } from "../hooks/useSidebar";
+import { NotificationBell } from "./NotificationBell";
 
 type AppLayoutProps = {
   children: React.ReactNode;
@@ -14,9 +15,9 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
 
   return (
     <SidebarProvider setSidebarOpen={setSidebarOpen}>
-      {/* 1. FIXED HEIGHT VIEWPORT: Prevents the whole page from scrolling */}
+
       <div className="h-screen w-full bg-[#020203] text-zinc-100 flex overflow-hidden font-sans selection:bg-indigo-500/30">
-      {/* Mobile Overlay */}
+
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -25,7 +26,7 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
         />
       )}
 
-      {/* Sidebar: Now using h-full to stay locked */}
+
       <aside
         className={`fixed top-0 left-0 bg-[#050505] border-zinc-900 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] z-[70]
         w-[280px] h-full border-r flex flex-col
@@ -46,15 +47,15 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
           </button>
         </div>
 
-        {/* Scrollable Nav Area */}
+
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <div className="space-y-1">{sidebar}</div>
         </div>
       </aside>
 
-      {/* Main Container: Controlled flex growth */}
+
       <div className={`flex-1 flex flex-col min-w-0 h-full relative transition-all duration-500 ${sidebarOpen ? "md:ml-[280px]" : ""}`}>
-        {/* Header: Locked to top */}
+
         <header className="h-16 shrink-0 bg-[#020203]/80 backdrop-blur-xl border-b border-zinc-900 flex items-center justify-between px-6 z-50">
           <div className="flex items-center gap-4">
             <button
@@ -70,22 +71,23 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="hidden xs:flex items-center gap-2 px-3 py-1 bg-indigo-500/5 border border-indigo-500/10 rounded-sm">
               <div className="h-1.5 w-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
               <span className="text-[9px] font-mono font-bold text-indigo-400 uppercase tracking-widest">
                 Node_Secure
               </span>
             </div>
+            <NotificationBell />
           </div>
         </header>
 
-        {/* 2. THE CONTENT STAGE: This handles all internal scrolling */}
+
         <main className="flex-1 relative overflow-hidden flex flex-col bg-[#020203]">
-          {/* Global Subtle Ambient Glow */}
+
           <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-indigo-500/[0.03] to-transparent pointer-events-none" />
 
-          {/* Internal Scroll Wrapper */}
+
           <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             <div className="p-6 md:p-10 lg:p-12 w-full max-w-[1600px] mx-auto min-h-full">
               {children}

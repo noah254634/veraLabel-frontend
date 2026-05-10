@@ -4,12 +4,10 @@ import { ShieldCheck, Eye, Lock, Globe, Fingerprint, Zap } from 'lucide-react';
 export const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-500 font-sans selection:bg-blue-500/30">
-      {/* Top Border Accent */}
       <div className="h-1 w-full bg-gradient-to-r from-transparent via-blue-900/20 to-transparent" />
 
       <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
         
-        {/* Protocol Header */}
         <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
           <div className="flex items-center gap-4">
             <div className="h-1.5 w-1.5 bg-blue-600 rounded-full" />
@@ -22,7 +20,6 @@ export const PrivacyPolicy = () => {
           </span>
         </div>
 
-        {/* Hero Section */}
         <section className="mb-24">
           <h1 className="text-4xl md:text-6xl font-medium text-white tracking-tighter leading-tight mb-8">
             Privacy as <br />
@@ -33,10 +30,8 @@ export const PrivacyPolicy = () => {
           </p>
         </section>
 
-        {/* Technical Privacy Pillars */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
           
-          {/* Pillar 01: Identity Isolation */}
           <div className="bg-[#050505] p-12 group hover:bg-zinc-900/20 transition-all">
             <div className="flex items-center gap-3 mb-8">
               <Fingerprint className="text-blue-500" size={18} />
@@ -54,7 +49,6 @@ export const PrivacyPolicy = () => {
             </ul>
           </div>
 
-          {/* Pillar 02: Financial Security */}
           <div className="bg-[#050505] p-12 group hover:bg-zinc-900/20 transition-all border-l border-zinc-900">
             <div className="flex items-center gap-3 mb-8">
               <Zap className="text-blue-500" size={18} />
@@ -72,7 +66,6 @@ export const PrivacyPolicy = () => {
             </ul>
           </div>
 
-          {/* Pillar 03: Data Sovereignty */}
           <div className="bg-[#050505] p-12 group hover:bg-zinc-900/20 transition-all border-t border-zinc-900">
             <div className="flex items-center gap-3 mb-8">
               <Globe className="text-blue-500" size={18} />
@@ -90,7 +83,6 @@ export const PrivacyPolicy = () => {
             </ul>
           </div>
 
-          {/* Pillar 04: AI Ethics */}
           <div className="bg-[#050505] p-12 group hover:bg-zinc-900/20 transition-all border-t border-l border-zinc-900">
             <div className="flex items-center gap-3 mb-8">
               <Lock className="text-blue-500" size={18} />
@@ -110,7 +102,6 @@ export const PrivacyPolicy = () => {
 
         </div>
 
-        {/* Footer Audit Tag */}
         <div className="mt-20 flex justify-between items-center border-t border-zinc-900 pt-10">
           <div className="flex items-center gap-2">
             <ShieldCheck size={14} className="text-blue-600" />

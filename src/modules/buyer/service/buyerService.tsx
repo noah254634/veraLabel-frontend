@@ -23,11 +23,18 @@ export const buyerService = {
       },
       body: file,
     });
-    toast.success("File uploaded successfully");
+  },
+  confirmUpload: async (r2Key: string, datasetId: string, dataType: string): Promise<any> => {
+    const response = await api.post("/datasets/confirmUpload", {
+      r2Key,
+      datasetId,
+      dataType,
+    });
+    return response.data;
   },
   getOrders: async (): Promise<any> => {
     const response = await api.get("/marketplace/orders");
-    return response.data;
+    return response.data.orders;
   },
   finalizePayment: async (reference: string): Promise<any> => {
     const response = await api.get(`/payments/success/${reference}`);
@@ -37,7 +44,10 @@ export const buyerService = {
     const response = await api.get("/datasets/buyerSideDatasets");
     return response.data;
   },
-
+  getPaymentHistory: async (): Promise<any> => {
+    const response = await api.get("/payments/history");
+    return response.data;
+  },
   checkOut: async (
     datasetId: string,
     isExclusive: boolean,
@@ -54,13 +64,20 @@ export const buyerService = {
     specifications: string;
     volume: string;
     format: string;
-    budget: string;
+    budget: string | number;
     fileUrl: string;
     timeline: string;
     qualityMetrics: string;
   }): Promise<any> => {
-    const response = await api.post("/datasets/createDatasetRequest", requestData);
-    toast.success("Dataset request created successfully");
+    const response = await api.post("/datasets/createDataset", {
+      ...requestData,
+      budget: typeof requestData.budget === 'string'
+        ? parseFloat(requestData.budget)
+        : requestData.budget,
+      volume: typeof requestData.volume === 'string'
+        ? parseInt(requestData.volume)
+        : requestData.volume
+    });
     return response.data;
   },
 };

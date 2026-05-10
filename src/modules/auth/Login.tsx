@@ -50,7 +50,7 @@ const LoginPage = () => {
 
   return (
     <div className="w-full max-w-md mx-auto px-4 sm:px-0 animate-in fade-in slide-in-from-bottom-2 duration-700">
-      {/* Header: Centered on mobile, precise alignment */}
+
       <div className="mb-12">
         <div className="flex items-center gap-2 mb-4 text-indigo-500 justify-center md:justify-start">
           <ShieldCheck size={18} strokeWidth={2.5} />
@@ -68,7 +68,7 @@ const LoginPage = () => {
       </div>
 
       <form className="space-y-8" onSubmit={handleSubmit}>
-        {/* Email Field: Sharper, no ring-border, focus-bottom */}
+
         <div className="space-y-3 group">
           <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-zinc-600 group-focus-within:text-indigo-500 transition-colors ml-1">
             // Identity_Email
@@ -90,7 +90,7 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/* Password Field */}
+
         <div className="space-y-3 group">
           <div className="flex justify-between items-center ml-1">
             <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-zinc-600 group-focus-within:text-indigo-500 transition-colors">
@@ -115,7 +115,7 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/* Error Alert: High-density styling */}
+
         {error && (
           <div className="p-4 border-l-2 border-red-900 bg-red-950/10 animate-in fade-in zoom-in-95 duration-300">
             <p className="text-red-500 text-[11px] font-mono uppercase tracking-wider flex items-center gap-3">
@@ -125,7 +125,7 @@ const LoginPage = () => {
           </div>
         )}
 
-        {/* Submit Button: Sharp Corners, Solid Impact */}
+
         <button
           disabled={loading}
           className="w-full group relative flex items-center justify-center gap-3 bg-zinc-100 hover:bg-white text-black py-4 font-bold text-[11px] uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -141,7 +141,7 @@ const LoginPage = () => {
         </button>
       </form>
 
-      {/* Footer: Subtle and wide-spaced */}
+
       <div className="mt-12 pt-8 border-t border-zinc-900/50">
         <p className="text-center text-[11px] text-zinc-600 font-light tracking-wide">
           UNAUTHORIZED ACCESS IS LOGGED.{" "}

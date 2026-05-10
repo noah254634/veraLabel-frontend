@@ -13,6 +13,34 @@ export const datasetService = {
     return response.data;
 
   },
+  fetchPendingDatasets: async (): Promise<Dataset[]> => {
+    const response = await api.get("/admin/datasets/pending");
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch pending datasets");
+    }
+    return response.data;
+  },
+  fetchApprovedDatasets: async (): Promise<Dataset[]> => {
+    const response = await api.get("/admin/datasets/approved");
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch approved datasets");
+    }
+    return response.data;
+  },
+  fetchRejectedDatasets: async (): Promise<Dataset[]> => {
+    const response = await api.get("/admin/datasets/rejected");
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch rejected datasets");
+    }
+    return response.data;
+  },
+  fetchFlaggedDatasets: async (): Promise<Dataset[]> => {
+    const response = await api.get("/admin/datasets/flagged");
+    if (response.status !== 200) {
+      throw new Error("Failed to fetch flagged datasets");
+    }
+    return response.data;
+  },
   getDataset: async (): Promise<Dataset[] | null> => {
     return null;
   },

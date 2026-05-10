@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import useBuyerStore from "../store/buyerStore";
+import { useBuyerStore } from "../store/buyerStore";
 import { isAudioFile } from "../constants/checkAudio";
 import {
   Database,
@@ -59,8 +59,7 @@ const CustomDataRequestModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { datasetRequest, generateUploadUrl, uploadFileToS3 } = useBuyerStore();
-  const [loading, setLoading] = useState(false);
+  const { datasetRequest, generateUploadUrl, uploadFileToS3, confirmUpload, loading } = useBuyerStore();
   const [step, setStep] = useState(0);
   const [intent, setIntent] = useState<"labeling" | "sourcing" | null>(null);
   const [validationLog, setValidationLog] = useState<
@@ -73,7 +72,6 @@ const CustomDataRequestModal = ({
   const [selectedTimeline, setSelectedTimeline] = useState<number | null>(null);
 
   const resetModalState = () => {
-    setLoading(false);
     setStep(0);
     setIntent(null);
     setValidationLog([]);
@@ -187,7 +185,7 @@ const CustomDataRequestModal = ({
       return toast.error("Budget is required");
     }
 
-    setLoading(true);
+
     try {
       // Map domain to fileType
       const fileTypeMap: Record<string, string> = {
@@ -208,9 +206,9 @@ const CustomDataRequestModal = ({
         await uploadFileToS3(formData.uploadedFile, uploadUrl);
       }
 
-      // Step 3: Create dataset request with fileUrl
+      // Step 3: Create dataset request (creates Dataset record and returns ID)
       toast.loading("Creating dataset request...");
-      await datasetRequest({
+      const requestResult = await datasetRequest({
         domain: formData.domain,
         specifications: formData.specifications,
         volume: formData.volume,
@@ -221,13 +219,18 @@ const CustomDataRequestModal = ({
         qualityMetrics: formData.qualityMetrics,
       });
 
+      // Step 4: Confirm upload and trigger worker with actual dataset ID
+      toast.loading("Confirming upload with backend...");
+      // Backend returns { response: { datasetId, datasetRequest } }
+      const datasetId = requestResult?.response?.datasetId || requestResult?.datasetId || key;
+      await confirmUpload(key, datasetId, fileType);
+
       toast.success("Dataset request created successfully!");
       handleModalClose();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Request failed";
       toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+
     }
   };
 

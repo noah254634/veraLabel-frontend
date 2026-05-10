@@ -1,11 +1,11 @@
 export const Mission = () => (
   <div className="min-h-screen bg-[#050505] text-zinc-500 font-sans selection:bg-blue-500/30">
-    {/* Top Border Accent -*/}
+
     <div className="h-1 w-full bg-gradient-to-r from-blue-900/20 via-blue-600/40 to-transparent" />
 
     <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
       
-      {/* Identification Header */}
+
       <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
         <div className="flex items-center gap-4">
           <div className="h-1.5 w-1.5 bg-blue-600 rounded-full animate-pulse" />
@@ -18,14 +18,14 @@ export const Mission = () => (
         </span>
       </div>
 
-      {/* Re-Scaled Heading Section */}
+
       <section className="mb-24">
         <h1 className="text-4xl md:text-6xl font-medium text-white tracking-tighter leading-tight mb-8">
           Inclusive <br />
           <span className="text-zinc-600">Intelligence.</span>
         </h1>
         
-        {/* Adjusted Paragraph: Medium weight, refined tracking */}
+
         <p className="text-xl md:text-2xl text-zinc-300 font-normal tracking-tight max-w-3xl leading-snug">
           VeraLabel.ai is architecting the democratization of the global AI landscape. 
           Our objective is to ensure the next generation of machines understands 
@@ -33,7 +33,7 @@ export const Mission = () => (
         </p>
       </section>
 
-      {/* Technical Framework Grid */}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-zinc-900">
         {[
           {
@@ -62,7 +62,7 @@ export const Mission = () => (
         ))}
       </div>
 
-      {/* Footer System Tag */}
+
       <div className="mt-20 flex justify-end">
         <div className="px-3 py-1 border border-zinc-800 rounded-full">
            <span className="font-mono text-[8px] text-zinc-600 uppercase tracking-widest">System Authenticated</span>

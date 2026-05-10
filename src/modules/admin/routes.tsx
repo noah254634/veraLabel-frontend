@@ -10,6 +10,7 @@ import ModelsPage from "./pages/Models"
 import AnalyticsHub from "./pages/Analytics/AnalyticsHub"
 import useAdminStore from "./store/userManagementStore"
 import AdminProjects from "./pages/Registry/index"
+import NotificationTester from "../../NotificationTester"
 export const AdminRoutes = (
   <Route path="admin" element={<AdminLayout />}>
     <Route index element={<AdminDashboard />} />
@@ -21,5 +22,6 @@ export const AdminRoutes = (
     <Route path="projects" element={<AdminProjects />} />
     <Route path="users" element={<AdminUserModule useAdminStore={useAdminStore} />} />
     <Route path="models" element={<ModelsPage />} />
+    <Route path="notifications" element={<NotificationTester />} />
   </Route>
 )

@@ -1,10 +1,10 @@
 export const About = () => (
   <div className="min-h-screen bg-[#050505] text-zinc-400 font-sans selection:bg-blue-500/30 selection:text-blue-200">
-    {/* Subtle Glow Effect */}
+
     <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
 
     <main className="max-w-5xl mx-auto px-6 pt-32 pb-24">
-      {/* Breadcrumb / Label */}
+
       <div className="flex items-center gap-3 mb-12">
         <span className="h-px w-8 bg-blue-600" />
         <span className="text-blue-500 font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
@@ -12,7 +12,7 @@ export const About = () => (
         </span>
       </div>
 
-      {/* Main Heading */}
+
       <section className="mb-24">
         <h1 className="text-5xl md:text-8xl font-bold text-white tracking-tighter mb-10 leading-[0.9]">
           The Ground <br /> 
@@ -29,7 +29,7 @@ export const About = () => (
         </p>
       </section>
 
-      {/* The Core Thesis Section */}
+
       <section className="grid grid-cols-1 md:grid-cols-12 gap-12 py-20 border-y border-zinc-900">
         <div className="md:col-span-5">
           <h2 className="text-white text-xs font-mono uppercase tracking-widest sticky top-32">
@@ -54,7 +54,7 @@ export const About = () => (
         </div>
       </section>
 
-      {/* Technical & Economic Columns */}
+
       <section className="grid grid-cols-1 md:grid-cols-2 gap-16 pt-24">
         <div className="group">
           <div className="h-px w-full bg-zinc-900 group-hover:bg-blue-900/50 transition-colors mb-8" />

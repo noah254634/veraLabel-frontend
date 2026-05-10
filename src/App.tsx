@@ -13,6 +13,7 @@ import LabellerRoutes from "./modules/labeller/routes";
 import { useEffect } from "react";
 import { useAuthStore } from "./modules/auth/useAuthstore";
 import "./app.css";
+import { useFCM } from "./shared/hooks/useFCM";
 import PaymentVerify from "./modules/buyer/PaymentVerify";
 import { detectDeviceCapabilities } from "./shared/utils/deviceCapabilities";
 // @ts-ignore
@@ -37,7 +38,8 @@ export const App = () => {
     }
   }, [syncAuth]);
 
-  // Auto-detect device capabilities on app startup
+  useFCM();
+
   useEffect(() => {
     detectDeviceCapabilities();
   }, []);
@@ -93,7 +95,6 @@ export const App = () => {
     },
   }}
 />
-      {/* public routes */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/help" element={<HelpPage />} />
@@ -107,14 +108,12 @@ export const App = () => {
         <Route path="/terms" element={<Terms />} />
         <Route path="/faq" element={<FAQPage />} />
         
-        {/* auth routes - NOT protected */}
         <Route element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
         
-        {/* protected routes */}
         <Route element={<ProtectedRoute />}>
           {AdminRoutes}
           <Route path="buyer/*" element={<BuyerRoutes />} />

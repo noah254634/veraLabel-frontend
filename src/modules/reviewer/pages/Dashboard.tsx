@@ -24,7 +24,7 @@ const ReviewerDashboard = () => {
   return (
     <div className="w-full min-h-screen bg-[#020408] p-8 font-mono text-slate-500">
       
-      {/* --- TOP HUD: TACTICAL STATUS (Cyan/Indigo Pivot) --- */}
+
       <header className="flex justify-between items-start mb-12">
         <div className="flex gap-8">
           <div className="relative h-16 w-16 bg-cyan-500/5 border border-cyan-500/20 rounded-full flex items-center justify-center">
@@ -51,10 +51,10 @@ const ReviewerDashboard = () => {
         </div>
       </header>
 
-      {/* --- CORE AUDIT METRICS --- */}
+
       <div className="grid grid-cols-12 gap-6 mb-8">
         
-        {/* Signal Variance Chart (Linguistic Nuance) */}
+
         <div className="col-span-8 bg-[#05070A] border border-slate-900 p-8 relative group overflow-hidden">
           <div className="flex justify-between items-start mb-10">
             <div className="space-y-1">
@@ -90,7 +90,7 @@ const ReviewerDashboard = () => {
           </div>
         </div>
 
-        {/* Task Efficiency Dial */}
+
         <div className="col-span-4 bg-[#05070A] border border-slate-900 p-8 flex flex-col">
            <div className="flex items-center gap-3 mb-8">
               <Zap className="text-cyan-500" size={18} />
@@ -106,10 +106,10 @@ const ReviewerDashboard = () => {
         </div>
       </div>
 
-      {/* --- LOWER HUB: QUEUE & TELEMETRY --- */}
+
       <div className="grid grid-cols-3 gap-6">
         
-        {/* Critical Overrides List */}
+
         <div className="col-span-2 bg-[#05070A] border border-slate-900 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ const ReviewerDashboard = () => {
           </div>
         </div>
 
-        {/* System Uptime Monitor */}
+
         <div className="bg-[#05070A] border border-slate-900 p-6 flex flex-col justify-between">
           <div className="space-y-4">
             <SystemInfo label="Neural_Engine" value="LLM_BATCH_V2" />
@@ -144,7 +144,7 @@ const ReviewerDashboard = () => {
   );
 };
 
-// --- COMPONENTS ---
+
 
 const TopMetric = ({ label, value }) => (
   <div className="text-right px-4 border-r border-slate-900 last:border-0">

@@ -48,12 +48,12 @@ const FAQPage = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-500 font-sans selection:bg-blue-500/30">
-      {/* 1. Top Border Accent - Matching Mission Component */}
+
       <div className="h-1 w-full bg-gradient-to-r from-blue-900/20 via-blue-600/40 to-transparent" />
 
       <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
         
-        {/* 2. Identification Header - Matching Mission Style */}
+
         <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
           <div className="flex items-center gap-4">
             <div className="h-1.5 w-1.5 bg-blue-600 rounded-full animate-pulse" />
@@ -66,7 +66,7 @@ const FAQPage = () => {
           </span>
         </div>
 
-        {/* 3. Heading Section */}
+
         <section className="mb-24">
           <h1 className="text-4xl md:text-6xl font-medium text-white tracking-tighter leading-tight mb-8">
             Knowledge <br />
@@ -78,11 +78,11 @@ const FAQPage = () => {
           </p>
         </section>
 
-        {/* 4. FAQ Content Grid */}
+
         <div className="space-y-24">
           {faqGroups.map((group) => (
             <div key={group.id} className="grid grid-cols-1 md:grid-cols-12 gap-8 border-t border-zinc-900 pt-12">
-              {/* Category Identifier */}
+
               <div className="md:col-span-4 group">
                 <span className="block font-mono text-zinc-700 group-hover:text-blue-600 text-[10px] mb-2 transition-colors italic">
                   // Group_{group.id}
@@ -92,7 +92,7 @@ const FAQPage = () => {
                 </h2>
               </div>
 
-              {/* Questions/Answers */}
+
               <div className="md:col-span-8 space-y-16">
                 {group.items.map((item, idx) => (
                   <div key={idx} className="max-w-2xl">
@@ -109,7 +109,7 @@ const FAQPage = () => {
           ))}
         </div>
 
-        {/* 5. Footer System Tag - Matching Mission Style */}
+
         <div className="mt-32 pt-12 border-t border-zinc-900 flex justify-between items-center">
            <div className="px-3 py-1 border border-zinc-800 rounded-full">
             <span className="font-mono text-[8px] text-zinc-600 uppercase tracking-widest">
@@ -121,7 +121,7 @@ const FAQPage = () => {
              <span className="font-mono text-[9px] text-zinc-800 tracking-widest uppercase italic">
                Inclusive_Intel
              </span>
-             {/* Logo matches sidebar/mission branding */}
+
              <div className="w-8 h-8 bg-[#050505] border border-zinc-800 rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                 <span className="text-white font-black text-xl italic leading-none">V</span>
              </div>

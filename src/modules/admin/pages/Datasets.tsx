@@ -9,6 +9,7 @@ const DatasetAdminPage = () => {
   const {
     datasets, getDataset, approveDataset, rejectDataset, 
     unpublishDatasetById, publishDatasetById, deleteDataset, loading,
+    currentStatus, setCurrentStatus, getDatasetsByStatus,
   } = dataStore();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -16,8 +17,12 @@ const DatasetAdminPage = () => {
   const [searchType, setSearchType] = useState("name");
 
   useEffect(() => {
-    getDataset();
-  }, [getDataset]);
+    if (currentStatus === "all") {
+      getDataset();
+    } else {
+      getDatasetsByStatus(currentStatus);
+    }
+  }, [currentStatus, getDataset, getDatasetsByStatus]);
 
   // Optimization: Memoize filtered list to prevent unnecessary re-renders
   const filteredDatasets = useMemo(() => {
@@ -48,6 +53,29 @@ const DatasetAdminPage = () => {
         <button className="bg-zinc-900 border border-zinc-800 px-4 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-white transition-all rounded-sm flex items-center gap-2 self-start md:self-auto">
           <Download size={14} /> Export_Log
         </button>
+      </div>
+
+      {/* --- STATUS TABS --- */}
+      <div className="flex gap-2 flex-wrap shrink-0">
+        {[
+          { id: "all", label: "All_Datasets" },
+          { id: "pending", label: "Pending_Review" },
+          { id: "approved", label: "Approved" },
+          { id: "rejected", label: "Rejected" },
+          { id: "flagged", label: "Flagged" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setCurrentStatus(tab.id as any)}
+            className={`px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-sm transition-all ${
+              currentStatus === tab.id
+                ? "bg-indigo-600 text-white border border-indigo-500"
+                : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* --- FILTER BAR --- */}
