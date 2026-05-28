@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { LabellerSidebar } from "../components/Sidebar";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../auth/useAuthstore";
 import { OnboardingEnforcer } from "../onboarding/Onboarding";
 import { AppLayout } from "../../../shared/components/AppLayout";
+import { useLabelerStore } from "../store/labelerStore";
 
 export const LabellerLayout = ({
   children,
@@ -11,10 +13,17 @@ export const LabellerLayout = ({
   children?: ReactNode;
 }) => {
   const { user } = useAuthStore();
+  const { getLabeller } = useLabelerStore();
   const location = useLocation();
   const role = user ? String(user.role).toLowerCase() : "";
   const onboardingKey = user ? `labellerOnboardingCompleted:${user._id ?? user.email}` : null;
   const onboardingCompleted = onboardingKey ? localStorage.getItem(onboardingKey) === "true" : false;
+
+  useEffect(() => {
+    if (role === "labeler" || role === "labeller") {
+      void getLabeller();
+    }
+  }, [getLabeller, role]);
   
   const shouldForceOnboarding =
     (role === "labeler" || role === "labeller") &&

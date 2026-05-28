@@ -3,8 +3,6 @@ export const DataPolicy = () => (
     <div className="h-1 w-full bg-gradient-to-r from-transparent via-red-900/20 to-transparent" />
 
     <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
-      
-      {/* Security Header */}
       <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
         <div className="flex items-center gap-4">
           <div className="h-1.5 w-1.5 bg-red-600 rounded-full animate-pulse" />
@@ -16,8 +14,6 @@ export const DataPolicy = () => (
           Zero-Tolerance Enforcement Active
         </span>
       </div>
-
-      {/* Hero Section */}
       <section className="mb-24">
         <h1 className="text-4xl md:text-6xl font-medium text-white tracking-tighter leading-tight mb-8">
           Integrity & <br />
@@ -27,11 +23,7 @@ export const DataPolicy = () => (
           VeraLabel.ai operates a <span className="text-white">Hardened Ingestion Pipeline.</span> We maintain absolute authority over the quality and safety of data entering our ecosystem.
         </p>
       </section>
-
-      {/* Security & Anti-Gaming Pillars */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
-        
-        {/* Anti-Malware Pillar */}
         <div className="bg-[#050505] p-12">
           <h3 className="text-red-500 font-mono text-[10px] mb-6 tracking-widest uppercase font-bold">
             // 01. Malware & Payload Neutralization
@@ -46,8 +38,6 @@ export const DataPolicy = () => (
             </p>
           </div>
         </div>
-
-        {/* Anti-Gaming Pillar */}
         <div className="bg-[#050505] p-12">
           <h3 className="text-red-500 font-mono text-[10px] mb-6 tracking-widest uppercase font-bold">
             // 02. Algorithmic Integrity & Anti-Gaming
@@ -62,8 +52,6 @@ export const DataPolicy = () => (
             </p>
           </div>
         </div>
-
-        {/* Identity & Legal Pillar */}
         <div className="bg-[#050505] p-12 border-t border-zinc-900">
           <h3 className="text-zinc-400 font-mono text-[10px] mb-6 tracking-widest uppercase font-bold">
             // 03. Identity Fingerprinting
@@ -73,8 +61,6 @@ export const DataPolicy = () => (
             Identity is linked to financial endpoints (Paystack). A permanent ban extends to the individual's legal identity and banking credentials. Submitting malicious data is treated as a <strong>criminal breach of infrastructure</strong>.
           </p>
         </div>
-
-        {/* Data Ownership Pillar */}
         <div className="bg-[#050505] p-12 border-t border-zinc-900">
           <h3 className="text-zinc-400 font-mono text-[10px] mb-6 tracking-widest uppercase font-bold">
             // 04. Forensics & Audit Trails
@@ -86,8 +72,6 @@ export const DataPolicy = () => (
         </div>
 
       </div>
-
-      {/* Footer Legal Warning */}
       <div className="mt-24 border border-red-900/30 bg-red-950/5 p-8 text-center">
         <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-700 mb-2">
           Legal Notice: 18 U.S.C. § 1030 / Computer Misuse Act Compliance

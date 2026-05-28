@@ -3,8 +3,6 @@ export const Careers = () => (
     <div className="h-1 w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
     <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
-      
-      {/* Header / Identification */}
       <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
         <div className="flex items-center gap-4">
           <div className="h-1.5 w-1.5 bg-blue-600 rounded-full" />
@@ -28,8 +26,6 @@ export const Careers = () => (
           <span className="text-white"> parameters of machine understanding.</span>
         </p>
       </section>
-
-      {/* Career Table - Precise & High-Density */}
       <div className="border-t border-zinc-900">
         {[
           { id: "V-01", role: "Data Annotator", type: "Decentralized", domain: "NLP / Linguistics" },
@@ -58,8 +54,6 @@ export const Careers = () => (
           </div>
         ))}
       </div>
-
-      {/* Submission Section */}
       <div className="mt-32 pt-16 border-t border-zinc-900 text-center">
         <h2 className="text-white font-medium text-xl mb-4 tracking-tight">Unsolicited Inquiries</h2>
         <p className="text-zinc-500 text-sm mb-10 max-w-md mx-auto leading-relaxed">

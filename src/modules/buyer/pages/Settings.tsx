@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuthStore } from '../../auth/useAuthstore';
-import { User, Shield, Bell, Globe, Terminal, Save, RotateCcw } from 'lucide-react';
+import { User, Shield, Bell, Globe, Terminal, Save, RotateCcw, ShieldCheck } from 'lucide-react';
+import { useBuyerStore } from '../store/buyerStore';
 
 const Settings: React.FC = () => {
   const { user } = useAuthStore();
+  const { buyerProfile, getBuyerProfile } = useBuyerStore();
+
+  useEffect(() => {
+    getBuyerProfile();
+  }, [getBuyerProfile]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -12,7 +18,6 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto pb-24">
-      {/* Page Header */}
       <header className="mb-12">
         <div className="flex items-center gap-2 text-indigo-500 mb-4">
           <Terminal size={16} />
@@ -23,8 +28,6 @@ const Settings: React.FC = () => {
       </header>
 
       <form onSubmit={handleSave} className="space-y-12">
-        
-        {/* 1. Profile Section */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 border-t border-zinc-900 pt-10">
           <div>
             <h3 className="text-white font-bold flex items-center gap-2">
@@ -39,8 +42,32 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </section>
-
-        {/* 2. Regional & Settlement Section (New) */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 border-t border-zinc-900 pt-10">
+          <div>
+            <h3 className="text-white font-bold flex items-center gap-2">
+              <ShieldCheck size={18} className="text-indigo-500" /> Company Profile
+            </h3>
+            <p className="text-zinc-500 text-xs mt-2 leading-relaxed">
+              Vetting credentials and verification status. To modify these details, contact administration.
+            </p>
+          </div>
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SettingField label="Company Name" value={buyerProfile?.companyName || "N/A"} disabled />
+              <SettingField label="Verification Status" value={(buyerProfile?.verificationStatus || "unsubmitted").toUpperCase()} disabled />
+              <SettingField label="Website" value={buyerProfile?.website || "N/A"} disabled />
+              <SettingField label="LinkedIn Profile" value={buyerProfile?.linkedin || "N/A"} disabled />
+              <SettingField label="Company Size" value={buyerProfile?.companySize || "N/A"} disabled />
+              <SettingField label="Intended Use Case" value={buyerProfile?.intendedUseCase || "N/A"} disabled />
+            </div>
+            {buyerProfile?.adminNotes && (
+              <div className="p-4 bg-red-950/20 border border-red-900/30 text-red-400 text-xs rounded-sm font-light">
+                <span className="font-mono font-bold uppercase block mb-1">// Administrative Notes</span>
+                {buyerProfile.adminNotes}
+              </div>
+            )}
+          </div>
+        </section>
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 border-t border-zinc-900 pt-10">
           <div>
             <h3 className="text-white font-bold flex items-center gap-2">
@@ -70,8 +97,6 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </section>
-
-        {/* 3. Security Section */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 border-t border-zinc-900 pt-10">
           <div>
             <h3 className="text-white font-bold flex items-center gap-2">
@@ -84,8 +109,6 @@ const Settings: React.FC = () => {
             <SettingField label="New Access Key" type="password" placeholder="••••••••" />
           </div>
         </section>
-
-        {/* 4. Notification Toggles */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 border-t border-zinc-900 pt-10">
           <div>
             <h3 className="text-white font-bold flex items-center gap-2">
@@ -99,8 +122,6 @@ const Settings: React.FC = () => {
             <CheckboxLabel label="Security alerts for unauthorized node access" defaultChecked />
           </div>
         </section>
-
-        {/* Action Bar */}
         <div className="flex flex-col sm:flex-row justify-end gap-4 pt-12 border-t border-zinc-900">
           <button type="button" className="flex items-center justify-center gap-2 px-8 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">
             <RotateCcw size={14} /> Discard_Changes

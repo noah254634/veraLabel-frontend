@@ -41,7 +41,6 @@ export const ExperienceProfiling = ({ onUpdate }: { onUpdate: (data: any) => voi
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* 1. THE TOGGLE CARD */}
       <button 
         onClick={() => { setHasExp(!hasExp); updateParent(!hasExp, selectedTypes, duration); }}
         className={`w-full p-6 rounded-3xl border transition-all flex items-center justify-between group ${
@@ -61,12 +60,8 @@ export const ExperienceProfiling = ({ onUpdate }: { onUpdate: (data: any) => voi
           {hasExp && <CheckCircle2 size={14} className="text-white" />}
         </div>
       </button>
-
-      {/* 2. THE REVEALED FORM (Conditional) */}
       {hasExp && (
         <div className="space-y-8 p-6 bg-white/[0.02] border border-zinc-900 rounded-3xl animate-in slide-in-from-top-4 duration-500">
-          
-          {/* Experience Types Grid */}
           <div className="space-y-3">
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Specialization Vectors</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -86,8 +81,6 @@ export const ExperienceProfiling = ({ onUpdate }: { onUpdate: (data: any) => voi
               ))}
             </div>
           </div>
-
-          {/* Duration Selector */}
           <div className="space-y-3">
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Temporal Mastery (Duration)</label>
             <div className="relative">

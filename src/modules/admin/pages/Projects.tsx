@@ -8,8 +8,6 @@ import {
 const AdminProjectsPage = () => {
   return (
     <div className="w-full animate-in fade-in duration-700">
-      
-      {/* Header: Infrastructure Provisioning */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-500 mb-4">
@@ -27,15 +25,11 @@ const AdminProjectsPage = () => {
           <Plus size={16} /> Provision_New_Project
         </button>
       </header>
-
-      {/* Global Health Aggregator: High-Density Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-12 shadow-2xl">
         <HealthMetric label="Sync_Stable" count={18} color="bg-emerald-500" />
         <HealthMetric label="Node_At_Risk" count={4} color="bg-amber-500" />
         <HealthMetric label="System_Critical" count={2} color="bg-rose-500" />
       </div>
-
-      {/* Control Bar: Darkened Search & Filter */}
       <div className="flex items-center justify-between bg-[#050505] p-2 border border-zinc-900 mb-10">
         <div className="flex items-center gap-3 px-3 flex-1">
           <Search size={16} className="text-zinc-700" />
@@ -50,8 +44,6 @@ const AdminProjectsPage = () => {
           <button className="p-3 bg-black hover:bg-zinc-900 transition-colors text-zinc-500 hover:text-white"><BarChart3 size={16} /></button>
         </div>
       </div>
-
-      {/* Projects Grid: 1px Hairline Borders */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
         <ProjectCard 
           name="Autonomous Navigation v4" 
@@ -107,15 +99,11 @@ const ProjectCard = ({ name, buyer, progress, accuracy, annotators, status }: an
       </div>
       <button className="p-2 text-zinc-800 hover:text-white transition-colors"><MoreHorizontal size={18} /></button>
     </div>
-
-    {/* Metrics Grid: Technical Table look */}
     <div className="grid grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-8 overflow-hidden">
         <MetricTile label="Completion" value={`${progress}%`} />
         <MetricTile label="Accuracy" value={`${accuracy}%`} warning={accuracy < 90} />
         <MetricTile label="Nodes_Active" value={annotators} />
     </div>
-
-    {/* Velocity Bar: Razor Sharp */}
     <div className="space-y-3">
         <div className="flex justify-between text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-600">
             <span>// Project_Velocity</span>

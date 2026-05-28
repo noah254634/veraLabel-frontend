@@ -8,12 +8,9 @@ import {
 const HelpPage = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-500 font-sans selection:bg-blue-500/30">
-      {/* Top Border Accent */}
       <div className="h-1 w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
       <main className="max-w-6xl mx-auto px-6 pt-16 pb-24">
-        
-        {/* --- HEADER --- */}
         <div className="flex items-center justify-between mb-20 border-b border-zinc-900 pb-6">
           <div className="flex items-center gap-4">
             <div className="h-1.5 w-1.5 bg-blue-600 rounded-full" />
@@ -25,8 +22,6 @@ const HelpPage = () => {
             Latency: 12ms / Status: Operational
           </span>
         </div>
-
-        {/* --- HERO SECTION --- */}
         <section className="mb-24">
           <h1 className="text-4xl md:text-6xl font-medium text-white tracking-tighter leading-tight mb-8">
             Technical <br />
@@ -42,8 +37,6 @@ const HelpPage = () => {
             />
           </div>
         </section>
-
-        {/* --- CORE RESOURCE GRID --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-24">
           <ResourceCategory 
             icon={<Terminal size={18} />} 
@@ -61,11 +54,7 @@ const HelpPage = () => {
             desc="Understanding algorithmic arbitration and dataset audit trails."
           />
         </div>
-
-        {/* --- DOCUMENTATION & TICKETS --- */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 border-t border-zinc-900 pt-16">
-          
-          {/* LEFT: RECENT UPDATES */}
           <div className="md:col-span-7 space-y-12">
             <div>
               <h3 className="text-white font-mono text-[10px] uppercase tracking-[0.3em] mb-8">Technical Briefs</h3>
@@ -84,8 +73,6 @@ const HelpPage = () => {
               </div>
             </div>
           </div>
-
-          {/* RIGHT: DIRECT RESOLUTION */}
           <div className="md:col-span-5">
             <div className="sticky top-24 space-y-8">
               <div className="p-8 border border-zinc-800 rounded-sm">

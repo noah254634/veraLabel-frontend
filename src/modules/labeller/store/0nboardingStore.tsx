@@ -26,6 +26,7 @@ type OnboardStore={
     getBronzeQuiz:()=>Promise<string>
     getSilverQuiz:()=>Promise<string>
     getGoldQuiz:()=>Promise<string>
+    completeOnboarding:()=>Promise<void>
 
 }
 export const useOnboardStore=create<OnboardStore>((set)=>({
@@ -38,19 +39,39 @@ export const useOnboardStore=create<OnboardStore>((set)=>({
         try{
             set({loading:true})
             set({error:null})
-            console.log(formData)
             const payload = {
-                ...formData,
-                skillTags: formData.annotationExperience?.experienceTypes || [],
-                expertise: formData.expertise ? formData.expertise.split(",").map((s) => s.trim()).filter((s) => s !== "") : [],
+                profile: {
+                    gender: formData.gender,
+                    dateOfBirth: formData.dateOfBirth,
+                    location: formData.location,
+                    languages: Array.isArray(formData.languages)
+                        ? formData.languages
+                        : formData.languages
+                            ? [formData.languages]
+                            : [],
+                },
+                expertise: {
+                    skills: formData.expertise
+                        ? formData.expertise.split(",").map((s) => s.trim()).filter((s) => s !== "")
+                        : [],
+                    annotationTypes: formData.annotationExperience?.experienceTypes || [],
+                    toolsUsed: formData.annotationExperience?.toolsUsed || [],
+                    yearsOfExperience: formData.annotationExperience?.experienceDuration,
+                    description: formData.annotationExperience?.description,
+                },
+                tier: formData.tier,
+                isOnboarded: formData.isOnboarded,
+                annotationExperience: formData.annotationExperience,
             };
             const response=await onboardService.createLabellerProfile(payload)
             set({loading:false})
             toast.success("Profile created successfully")
             return response
         }catch(err){
+            set({loading:false})
             const erroeMessage=err instanceof Error?err.message:"Something went wrong"
             toast.error(erroeMessage)
+            throw err
         }
     },
     setLabeller:async(labeller)=>{set({labeller})},
@@ -59,7 +80,7 @@ export const useOnboardStore=create<OnboardStore>((set)=>({
     getLabellerTier:async()=>"Trainee",
     getCompletedTasks:async()=>"0",
     assignedTasks:async()=>({} as Task),
-    submitTask:async(task)=>{},
+    submitTask:async()=>{},
     getTraineeSlides:async()=>"",
     getBronzeSlides:async()=>"",
     getSilverSlides:async()=>"",
@@ -68,5 +89,16 @@ export const useOnboardStore=create<OnboardStore>((set)=>({
     getBronzeQuiz:async()=>"",
     getSilverQuiz:async()=>"",
     getGoldQuiz:async()=>"",
+    completeOnboarding:async()=>{
+        try{
+            set({loading:true})
+            await onboardService.completeOnboarding()
+            set({loading:false})
+        }catch(err){
+            set({loading:false})
+            toast.error("Failed to complete onboarding")
+            throw err
+        }
+    }
 
 }))

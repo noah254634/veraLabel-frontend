@@ -27,14 +27,12 @@ export const OnboardingSidebar = ({ view, currentStep }: { view: string, current
   return (
     <aside className="w-full md:w-72 lg:w-80 bg-[#050505]/80 backdrop-blur-2xl p-6 md:p-10 flex flex-row md:flex-col justify-between border-b md:border-b-0 md:border-r border-zinc-900 sticky top-0 z-10">
       <div className="flex flex-row md:flex-col items-center md:items-start gap-6 md:gap-12 w-full">
-        {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <span className="text-white font-black text-lg">V</span>
           </div>
           <span className="hidden sm:block font-bold tracking-widest text-white uppercase text-xs">VeraLabel</span>
         </div>
-        {/* Mobile: always allow sign out while onboarding blocks the app */}
         <button
           type="button"
           onClick={handleLogout}
@@ -43,8 +41,6 @@ export const OnboardingSidebar = ({ view, currentStep }: { view: string, current
           <LogOut size={14} />
           Sign Out
         </button>
-
-        {/* Adaptive Step Indicator */}
         <nav className="flex flex-row md:flex-col flex-1 justify-around md:justify-start md:space-y-8 w-full">
           {steps.map((s, i) => (
             <div key={i} className="flex items-center gap-4 relative">
@@ -55,7 +51,6 @@ export const OnboardingSidebar = ({ view, currentStep }: { view: string, current
               }`}>
                 {s.icon}
               </div>
-              {/* Connector Line (Desktop) */}
               {i !== steps.length - 1 && (
                 <div className="hidden md:block absolute left-[19px] top-10 w-[2px] h-8 bg-zinc-900">
                   <div className={`h-full bg-indigo-600 transition-all duration-700 ${currentStep > s.id ? 'w-full' : 'h-0'}`} />
@@ -65,8 +60,6 @@ export const OnboardingSidebar = ({ view, currentStep }: { view: string, current
           ))}
         </nav>
       </div>
-
-      {/* User Branding (Desktop Only) */}
       <div className="hidden md:block pt-6 border-t border-zinc-900">
         <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Noah Khaemba-pioneer</p>
         <p className="text-[9px] text-indigo-400/60 font-medium uppercase mt-1">Class of 2026</p>

@@ -2,6 +2,9 @@ import type { Task } from "../types/task"
 import { taskService } from "../services/taskService"
 import toast from "react-hot-toast";
 import { create } from "zustand";
+import { api } from "../../../shared/types/api";
+import axios from "axios";
+
 type TaskStore = {
   loading: boolean;
   setLoading: (loading: boolean) => void;
@@ -10,25 +13,16 @@ type TaskStore = {
   tasks: Task[];
   setTasks: (tasks: Task[]) => void;
   getTasks: () => Promise<Task[]>;
-  tasksDone: () => Promise<string>;
-  tasksPending: () => Promise<string>;
-  tasksInProgress: () => Promise<string>;
-  addTask: (task: Task) => Promise<void>;
-  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
-  deleteTask: (id: string,reason:string) => Promise<void>;
+  getMyActiveBatch: () => Promise<void>;
+  deleteTask: (id: string, reason: string) => Promise<void>;
   clearError: () => void;
   resetStore: () => void;
-  setTaskPriority: (id: string, priority: Task["priority"]) => Promise<void>;
-  setTaskStatus: (id: string, status: Task["status"]) => Promise<void>;
-  reviewTask: (id: string, reviewStatus: Task["reviewStatus"]) => Promise<void>;
-  assignTask: (id: string, assignedTo: string) => Promise<void>;
-  unassignTask: (id: string) => Promise<void>;
-  revokeTask: (id: string) => Promise<void>;
-  approveTask: (id: string) => Promise<void>;
-  rejectTask: (id: string) => Promise<void>;
-  
+  fetchTaskPayload: (id: string) => Promise<void>;
+  claimBatch: (datasetId: string) => Promise<void>;
+  submitTask: (taskId: string, annotation?: any) => Promise<void>;
+  activeBatch: any;
 };
-export const useTaskStore = create<TaskStore>((set) => ({
+export const useTaskStore = create<TaskStore>((set, get) => ({
   loading: false,
   setLoading: (loading) => set({ loading }),
   error: null,
@@ -41,7 +35,6 @@ export const useTaskStore = create<TaskStore>((set) => ({
         set({error:null})
         const response = await taskService.getTasks() as unknown as Task[];
         const tasks = response;
-        console.log(tasks)
         set({loading:false, tasks: tasks})
         return tasks
     } catch (err) {
@@ -51,44 +44,148 @@ export const useTaskStore = create<TaskStore>((set) => ({
         return []
     }
   },
-  tasksDone: async () => "0",
-  tasksPending: async () => "0",
-  tasksInProgress: async () => {
+  activeBatch: null,
+  getMyActiveBatch: async () => {
     try {
-        set({loading:true})
-        set({error:null})
-        const response = await taskService.getTasks() as unknown as Task[];
-        const tasks = response || [];
-        set({loading:false, tasks: tasks})
-        return tasks.length.toString()
-    } catch (err) {
-        set({loading:false})
-        const errorMessage = err instanceof Error ? err.message : "Something went wrong";
-        toast.error(errorMessage);
-        return errorMessage
+      set({ loading: true });
+      const response = await api.get('/tasks/my-active-batch');
+      const batch = response.data?.data || response.data;
+      if (batch) {
+        set({ tasks: batch.tasks || [], activeBatch: batch });
+      }
+    } catch {
+      // no active batch
+    } finally {
+      set({ loading: false });
     }
   },
-  addTask: async (task) => {},
-  updateTask: async (id, updates) => {},
-  deleteTask: async (id,reason) => {
-    try{
-        set({loading:true})
-        set({error:null})
-        const response=await taskService.deleteTask(id,reason)
-        set({loading:false})
-    }catch(err){
-        const erroeMessage=err instanceof Error?err.message:"Something went wrong"
-        toast.error(erroeMessage)
+  deleteTask: async (id, reason) => {
+    try {
+      set({ loading: true, error: null });
+      await taskService.deleteTask(id, reason);
+      set({ loading: false });
+    } catch (err) {
+      set({ loading: false });
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(msg);
     }
   },
   clearError: () => set({ error: null }),
   resetStore: () => set({ loading: false, error: null, tasks: [] }),
-  setTaskPriority: async (id, priority) => {},
-  setTaskStatus: async (id, status) => {},
-  reviewTask: async (id, reviewStatus) => {},
-  assignTask: async (id, assignedTo) => {},
-  unassignTask: async (id) => {},
-  revokeTask: async (id) => {},
-  rejectTask: async (id) => {},
-  approveTask: async (id) => {},
+  fetchTaskPayload: async (id) => {
+    try {
+      // Don't set global loading as it might flicker the whole UI
+      const { tasks } = get();
+      const taskIndex = tasks.findIndex(t => t.id === id || (t as any)._id === id);
+      if (taskIndex === -1) return;
+
+      // If we already have the payload (e.g. data or taskObject), skip
+      if (tasks[taskIndex].data?.url || (tasks[taskIndex] as any).taskObject) return;
+
+      const response = await taskService.getTaskById(id);
+      const payload = response?.taskObject ?? response?.task?.taskObject ?? response?.task?.data ?? null;
+
+      const updatedTasks = [...tasks];
+      updatedTasks[taskIndex] = {
+        ...updatedTasks[taskIndex],
+        ...payload, // Merge R2 payload (prompt, responses, etc)
+        taskObject: payload ?? response?.taskObject ?? response?.task ?? null // Keep raw object just in case
+      };
+
+      set({ tasks: updatedTasks });
+    } catch (err) {
+      console.error("Failed to fetch task payload", err);
+    }
+  },
+  claimBatch: async (datasetId) => {
+    try {
+      set({ loading: true, error: null });
+      const response = await api.post('/tasks/claim-batch', { datasetId });
+      const batch = response.data?.data || response.data;
+      
+      if (batch && Array.isArray(batch.tasks)) {
+        // Map the populated tasks from the batch into the store
+        set({ tasks: batch.tasks, activeBatch: batch, loading: false });
+      } else {
+        throw new Error("Invalid batch format received");
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message;
+      set({ loading: false, error: msg });
+      throw new Error(msg);
+    }
+  },
+  submitTask: async (taskId, annotation) => {
+    const { activeBatch, tasks } = get();
+    const batchId = activeBatch?._id || activeBatch?.id;
+
+    if (!batchId) {
+      toast.error("No active batch context found.");
+      return;
+    }
+
+    try {
+      // 1. Generate presigned upload URL
+      const responseUrl = await taskService.generateSubmissionUrl(taskId);
+      const uploadUrl = responseUrl.data?.uploadUrl || responseUrl.uploadUrl;
+
+      if (!uploadUrl) {
+        throw new Error("Failed to generate secure upload gateway.");
+      }
+
+      // 2. Direct upload annotation to R2 (bypasses backend for efficiency)
+      await axios.put(uploadUrl, annotation || {}, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      // 3. Finalize task on backend — retry up to 2 extra times if network/server fails.
+      //    The annotation is already safely in R2, so retrying is safe.
+      let response: any = null;
+      let lastError: any = null;
+      for (let attempt = 0; attempt <= 2; attempt++) {
+        try {
+          response = await taskService.submitTask(taskId, batchId);
+          lastError = null;
+          break; // success — exit retry loop
+        } catch (finalizeErr: any) {
+          lastError = finalizeErr;
+          if (attempt < 2) {
+            // Exponential backoff: 500ms, 1500ms
+            await new Promise((r) => setTimeout(r, 500 * (attempt + 1) * (attempt + 1)));
+          }
+        }
+      }
+
+      if (lastError) {
+        // All retries exhausted — surface a clear message, task will still be pending
+        // but annotation is safe in R2 and can be recovered.
+        throw new Error(
+          `Annotation uploaded, but sync confirmation failed: ${lastError?.response?.data?.message ?? lastError?.message}. Please contact support with Task ID: ${taskId}.`
+        );
+      }
+
+      // Update local task status optimistically
+      const updatedTasks = tasks.map((t) => {
+        const id = t.id || (t as any)._id;
+        return id === taskId ? { ...t, status: 'submitted' as any } : t;
+      });
+
+      // Update active batch progress counters if returned
+      const updatedBatch = { ...activeBatch };
+      const progress = response?.progress ?? response?.data?.progress;
+      if (progress?.completed != null) {
+        updatedBatch.completedTasks = progress.completed;
+      } else {
+        // Increment locally if backend didn't return updated count
+        updatedBatch.completedTasks = (updatedBatch.completedTasks ?? 0) + 1;
+      }
+
+      set({ tasks: updatedTasks, activeBatch: updatedBatch });
+      toast.success("Asset synchronization successful");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message;
+      toast.error(msg);
+      throw err;
+    }
+  }
 }));

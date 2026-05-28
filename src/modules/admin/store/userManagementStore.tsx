@@ -31,6 +31,9 @@ type AdminStore = {
   getUserByCountry: (country: string) => void;
   getUserByCity: (city: string) => void;
   rateUser: (id: string, rate: number) => void;
+  approveBuyer: (buyerId: string) => Promise<any>;
+  rejectBuyer: (buyerId: string, adminNotes: string) => Promise<any>;
+  getBuyerByUserId: (userId: string) => Promise<any>;
 };
 const useStore = create<AdminStore>((set, get) => ({
   error: null,
@@ -44,13 +47,12 @@ const useStore = create<AdminStore>((set, get) => ({
   getUsers: async () => {
     try {
       set({ loading: true });
-      const response = await UserService.fetchUsers();
-      if (!response) return;
-      const users = response;
-      set({ users });
-      return response;
+      const users = await UserService.fetchUsers();
+      set({ users: Array.isArray(users) ? users : [] });
+      return users;
     } catch (error) {
       console.log(error);
+      set({ users: [] });
     } finally {
       set({ loading: false });
     }
@@ -532,6 +534,43 @@ const useStore = create<AdminStore>((set, get) => ({
     set({ users: user });
     set({ loading: false });
   },
+  approveBuyer: async (buyerId: string) => {
+    try {
+      set({ loading: true });
+      const updatedBuyer = await UserService.approveBuyer(buyerId);
+      toast.success("Buyer account approved successfully");
+      return updatedBuyer;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to approve buyer");
+    } finally {
+      set({ loading: false });
+    }
+  },
+  rejectBuyer: async (buyerId: string, adminNotes: string) => {
+    try {
+      set({ loading: true });
+      const updatedBuyer = await UserService.rejectBuyer(buyerId, adminNotes);
+      toast.success("Buyer account rejected successfully");
+      return updatedBuyer;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reject buyer");
+    } finally {
+      set({ loading: false });
+    }
+  },
+  getBuyerByUserId: async (userId: string) => {
+    try {
+      set({ loading: true });
+      const buyers = await UserService.fetchBuyers();
+      const buyer = buyers.find((b: any) => b.userId?._id === userId || b.userId === userId);
+      return buyer;
+    } catch (error: any) {
+      console.error("Failed to load buyer details", error);
+      return null;
+    } finally {
+      set({ loading: false });
+    }
+  }
 }));
 
 export default useStore;

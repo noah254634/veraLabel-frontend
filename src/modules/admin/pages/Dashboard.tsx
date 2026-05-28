@@ -47,8 +47,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="w-full animate-in fade-in duration-700">
-      
-      {/* Header: Commands & Auth Level */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-12">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-500 mb-3">
@@ -69,8 +67,6 @@ const AdminDashboard = () => {
           </button>
         </div>
       </header>
-
-      {/* 1. Primary KPIs: Gap-Px Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-px bg-zinc-900 border border-zinc-900 mb-12 shadow-2xl">
         <StatCard icon={<ShieldCheck size={16} />} label="Avg_Accuracy" value="96.2%" trend="+2.4%" color="emerald" />
         <StatCard icon={<Database size={16} />} label="Asset_Inventory" value={(overview?.datasets.total ?? 0).toString()} trend={`+${(overview?.datasets.pending ?? 0)}`} color="indigo" />
@@ -78,12 +74,8 @@ const AdminDashboard = () => {
         <StatCard icon={<AlertCircle size={16} />} label="Active_Disputes" value="24" trend="-12%" color="rose" isNegative />
         <StatCard icon={<TrendingUp size={16} />} label="Inflow_Today" value={(overview?.users.newToday ?? 0).toString()} trend="STABLE" color="indigo" />
       </div>
-
-      {/* 2. Main Analytics Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-10">
-        
-        {/* Quality Trend: Dark Chart */}
-        <div className="lg:col-span-2 bg-[#050505] border border-zinc-900 p-8 relative overflow-hidden">
+        <div className="lg:col-span-2 min-h-0 bg-[#050505] border border-zinc-900 p-8 relative">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h3 className="text-white font-bold text-lg tracking-tight italic">Quality Score Telemetry (IoU)</h3>
@@ -115,9 +107,7 @@ const AdminDashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Review Queue: Critical Nodes */}
-        <div className="bg-[#050505] border border-zinc-900 p-8">
+        <div className="min-h-0 bg-[#050505] border border-zinc-900 p-8">
           <div className="flex items-center gap-3 mb-8">
             <Activity className="text-rose-500" size={18} />
             <h3 className="text-white font-bold text-lg tracking-tight italic">Review Queue</h3>
@@ -133,12 +123,8 @@ const AdminDashboard = () => {
           </button>
         </div>
       </div>
-
-      {/* 3. Secondary Analytics Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* Revenue Bar Chart */}
-        <div className="lg:col-span-2 bg-[#050505] border border-zinc-900 p-8">
+        <div className="lg:col-span-2 min-h-0 bg-[#050505] border border-zinc-900 p-8">
           <div className="flex items-center gap-3 mb-8">
             <DollarSign className="text-emerald-500" size={18}/>
             <h3 className="text-white font-bold text-lg tracking-tight italic">Financial Settlement (USD)</h3>
@@ -154,8 +140,6 @@ const AdminDashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Live Activity Feed: Monospace Style */}
         <div className="bg-[#050505] border border-zinc-900 p-8 overflow-hidden relative">
             <div className="flex items-center gap-3 mb-8 border-b border-zinc-900 pb-4">
                 <Activity className="text-indigo-500" size={18}/>

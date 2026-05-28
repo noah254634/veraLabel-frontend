@@ -151,7 +151,7 @@ export const NotificationBell: React.FC = () => {
           {notifications.length > 0 && (
             <div className="px-4 py-2 border-t border-zinc-900 text-center">
               <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
-                Real-time only · Not persisted
+                Synced with database
               </span>
             </div>
           )}

@@ -24,8 +24,6 @@ export const StatCard: React.FC<StatProps> = ({
 
   return (
     <div className="group relative bg-[#050505] border border-zinc-900 p-6 rounded-sm hover:bg-black hover:border-zinc-700 transition-all duration-300 overflow-hidden">
-      
-      {/* Top Telemetry Header */}
       <div className="flex justify-between items-start mb-8">
         <div className={`p-2 border transition-colors duration-500 ${accentColors[color]}`}>
           {React.cloneElement(icon as React.ReactElement<any>, { strokeWidth: 2 })}
@@ -42,8 +40,6 @@ export const StatCard: React.FC<StatProps> = ({
           </div>
         )}
       </div>
-
-      {/* Main Metric Data */}
       <div className="relative z-10">
         <p className="text-[10px] font-mono font-bold text-zinc-600 uppercase tracking-[0.2em] mb-1">
           // {label.replace(" ", "_")}
@@ -52,11 +48,7 @@ export const StatCard: React.FC<StatProps> = ({
           {value}
         </h3>
       </div>
-
-      {/* Interactive Bottom Scanline */}
       <div className="absolute bottom-0 left-0 w-full h-[1px] bg-zinc-900 group-hover:bg-indigo-500/50 transition-colors duration-500" />
-      
-      {/* Subtle corner accent on hover */}
       <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-bl from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );

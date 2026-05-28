@@ -137,7 +137,6 @@ const TaskProcessingAnalytics = () => {
 
   return (
     <div className="space-y-6">
-      {/* Real-time Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
@@ -175,8 +174,6 @@ const TaskProcessingAnalytics = () => {
           <p className="text-zinc-600 text-xs mt-1">Processing failures</p>
         </div>
       </div>
-
-      {/* Event Metrics */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
           <p className="text-zinc-500 text-sm font-medium mb-2">Total Events Processed</p>
@@ -189,8 +186,6 @@ const TaskProcessingAnalytics = () => {
           </p>
         </div>
       </div>
-
-      {/* Active Sessions */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
         <div className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -273,8 +268,6 @@ const TaskProcessingAnalytics = () => {
           )}
         </div>
       </div>
-
-      {/* Session Detail Modal */}
       <SessionDetailView
         session={viewDetailSession}
         onClose={() => setViewDetailSessionId(null)}

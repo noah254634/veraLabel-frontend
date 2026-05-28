@@ -13,7 +13,6 @@ import {
 function BuyerSideBar() {
   return (
     <nav className="flex flex-col h-full py-4">
-      {/* Infrastructure Section Label */}
       <div className="px-4 mb-4 flex items-center gap-2 opacity-30">
         <Terminal size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -41,8 +40,6 @@ function BuyerSideBar() {
           icon={<ClipboardList size={18} strokeWidth={1.5} />}
         />
       </div>
-
-      {/* System Divider */}
       <div className="my-8 border-t border-zinc-900 mx-4" />
 
       <div className="px-4 mb-4 flex items-center gap-2 opacity-30">
@@ -65,8 +62,6 @@ function BuyerSideBar() {
           icon={<LogOut size={18} strokeWidth={1.5} />} 
         />
       </div>
-
-      {/* Bottom Identity Node (Optional visual flare) */}
       <div className="mt-auto px-4 pt-10">
         <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-sm">
             <div className="flex items-center gap-3">

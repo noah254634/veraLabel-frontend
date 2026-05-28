@@ -1,5 +1,7 @@
 export interface Task {
-  taskType: any
+  taskType?: string;
+  contentType?: string;
+  labellingMethod?: string;
   taskId: any
   id: string
   projectId: string

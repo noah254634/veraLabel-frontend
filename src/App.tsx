@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import LoginPage from "./modules/auth/Login";
 import AuthLayout from "./modules/auth/authLayout";
 import SignupPage from "./modules/auth/Signup";
+import VerifyPage from "./modules/auth/Verify";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./modules/landingPage/pages/LandingPage";
 import HelpPage from "./modules/landingPage/components/help";
@@ -111,6 +112,7 @@ export const App = () => {
         <Route element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
+          <Route path="verify" element={<VerifyPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
         

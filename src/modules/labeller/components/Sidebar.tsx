@@ -16,8 +16,6 @@ import LogoutButton from "../../auth/logout";
 export const LabellerSidebar = () => {
   return (
     <nav className="flex flex-col h-full py-4 selection:bg-indigo-500/30">
-      
-      {/* --- SECTION 1: LABELLER OPERATIONS --- */}
       <div className="px-4 mb-4 flex items-center gap-2 opacity-30">
         <Terminal size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -43,8 +41,6 @@ export const LabellerSidebar = () => {
           icon={<Zap size={18} strokeWidth={1.5} />} 
         />
       </div>
-
-      {/* --- SECTION 2: EARNINGS & REWARDS --- */}
       <div className="mt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
         <Activity size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -59,8 +55,6 @@ export const LabellerSidebar = () => {
           icon={<Wallet size={18} strokeWidth={1.5} />} 
         />
       </div>
-
-      {/* --- SECTION 3: TRAINING & SETTINGS --- */}
       <div className="mt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
         <GraduationCap size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -80,8 +74,6 @@ export const LabellerSidebar = () => {
           icon={<Settings size={18} strokeWidth={1.5} />} 
         />
       </div>
-
-      {/* --- BOTTOM: SUPPORT & LOGOUT --- */}
       <div className="mt-auto pt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
         <HelpCircle size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -92,8 +84,6 @@ export const LabellerSidebar = () => {
       <div className="px-4 space-y-1">
         <LogoutButton />
       </div>
-
-      {/* Status Indicator */}
       <div className="mt-auto px-4 pt-8">
         <div className="p-3 bg-zinc-950 border border-zinc-900 rounded-sm">
           <div className="flex items-center gap-3">

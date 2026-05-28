@@ -1,417 +1,605 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  ChevronRight, CheckCircle, 
-  ArrowLeft, Activity, Play, Mic2,
-  ThumbsUp, ThumbsDown, Flag, Clock
+  ArrowLeft, CheckCircle, AlertTriangle, 
+  Play, Clock, 
+  Check, X, ThumbsUp, ThumbsDown, User
 } from 'lucide-react';
-import { LinguisticTaskRenderer, ImageTaskRenderer, AudioTaskRenderer, RLHFFeedbackPanel, type LinguisticTask, type ImageTask, type AudioTask, type RLHFFeedback } from '../components';
-import { useSidebar } from '../../../shared/hooks/useSidebar';
-import { detectDeviceCapabilities } from '../../../shared/utils/deviceCapabilities';
+import { api } from '../../../shared/types/api';
+import toast from 'react-hot-toast';
+import { isRlhfTask, resolveContentType } from '../../../shared/utils/taskContext';
+import { RlhfResponseContent } from '../../labeller/pages/modes/RlhfResponseContent';
+import type { ContentType } from '../../../shared/utils/labellingProtocol';
 
-type TaskType = 'LINGUISTIC' | 'IMAGE' | 'AUDIO' | 'MEDICAL';
-type VerdictType = 'APPROVE' | 'REJECT' | 'FLAG' | null;
-type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH';
-
-type Task = LinguisticTask | ImageTask | AudioTask;
-
-interface Project {
-  id: string;
-  name: string;
-  taskType: TaskType;
-  description?: string;
-  stats?: {
-    completed: number;
-    flagged: number;
-    total: number;
+interface TaskDetail {
+  _id: string;
+  taskId: string;
+  taskType: string;
+  contentType?: string;
+  labellingMethod?: string;
+  status: string;
+  priority: number;
+  datasetId?: {
+    _id: string;
+    name: string;
+    description?: string;
   };
-  tasks: Task[];
+  assignedTo?: {
+    _id: string;
+    userId?: {
+      name: string;
+      email: string;
+    };
+  }[];
 }
 
-const createProject = (data: Omit<Project, 'stats'>): Project => ({
-  ...data,
-  stats: {
-    completed: 0,
-    flagged: 0,
-    total: data.tasks.length
-  }
-});
+interface TaskPayload {
+  task: TaskDetail;
+  taskObject: any;
+  submissionObject: any;
+  otherSubmissions?: any[];
+}
 
-const assignedProjects: Project[] = [
-  createProject({
-    id: "PROJ-NB-001",
-    name: "Sheng_Dialect_Audit",
-    taskType: 'LINGUISTIC',
-    description: "Verify AI dialect classification on urban speech samples",
-    tasks: [
-      {
-        id: "T1", signal: "SIG-001", taskType: 'LINGUISTIC',
-        text: "Uyu msee anadai mapeni mingi sana kwa ile risto.",
-        highlight: "mapeni",
-        aiDiagnostic: { match: "Urban_Slang", confidence: 0.82, category: "Finance", riskLevel: "MEDIUM" },
-        note: "Slang for money in urban context.",
-        metadata: { priority: 'HIGH', estimatedTime: 45 }
-      },
-      {
-        id: "T2", signal: "SIG-002", taskType: 'LINGUISTIC',
-        text: "Mbogi ya mtaa inasonga kuelekea market.",
-        highlight: "Mbogi",
-        aiDiagnostic: { match: "Sheng_Group", confidence: 0.65, category: "Social", riskLevel: "HIGH" },
-        note: "Group or gang reference in Sheng.",
-        metadata: { priority: 'MEDIUM', estimatedTime: 60 }
-      },
-      {
-        id: "T3", signal: "SIG-003", taskType: 'LINGUISTIC',
-        text: "Huyu jamaa ana pesa lakini sio mwalimu.",
-        highlight: "pesa",
-        aiDiagnostic: { match: "Standard_Swahili", confidence: 0.95, category: "Finance", riskLevel: "LOW" },
-        note: "Standard word for money.",
-        metadata: { priority: 'LOW', estimatedTime: 30 }
-      },
-      {
-        id: "T4", signal: "SIG-004", taskType: 'LINGUISTIC',
-        text: "Kila siku anakula chakula cha mtaani.",
-        highlight: "chakula",
-        aiDiagnostic: { match: "Street_Food", confidence: 0.78, category: "Noun", riskLevel: "MEDIUM" },
-        note: "Street food reference.",
-        metadata: { priority: 'MEDIUM', estimatedTime: 35 }
-      },
-      {
-        id: "T5", signal: "SIG-005", taskType: 'LINGUISTIC',
-        text: "Rafiki yangu akasoma architecture lakini hajafaulu.",
-        highlight: "akasoma",
-        aiDiagnostic: { match: "Code_Switch", confidence: 0.72, category: "Verb", riskLevel: "HIGH" },
-        note: "English loanword mixed with Swahili conjugation.",
-        metadata: { priority: 'HIGH', estimatedTime: 75 }
-      }
-    ]
-  }),
-  createProject({
-    id: "PROJ-COAST-04",
-    name: "Coastal_Swahili_Validation",
-    taskType: 'LINGUISTIC',
-    description: "Validate coastal dialect features and maritime terminology",
-    tasks: [
-      {
-        id: "T6", signal: "SIG-006", taskType: 'LINGUISTIC',
-        text: "Lulu hii ni ya thamani sana katika mkate wa bahari.",
-        highlight: "thamani",
-        aiDiagnostic: { match: "Coastal_Swahili", confidence: 0.91, category: "Adjective", riskLevel: "LOW" },
-        note: "Standard Coastal Swahili with maritime context.",
-        metadata: { priority: 'LOW', estimatedTime: 30 }
-      },
-      {
-        id: "T7", signal: "SIG-007", taskType: 'LINGUISTIC',
-        text: "Pweza wa bahari unakula samaki na chumvi.",
-        highlight: "Pweza",
-        aiDiagnostic: { match: "Marine_Terms", confidence: 0.87, category: "Noun_Animal", riskLevel: "LOW" },
-        note: "Octopus - coastal marine term with proper context.",
-        metadata: { priority: 'MEDIUM', estimatedTime: 40 }
-      }
-    ]
-  }),
-  createProject({
-    id: "PROJ-IMG-001",
-    name: "Document_Text_Extraction",
-    taskType: 'IMAGE',
-    description: "Verify OCR segmentation and text boundary detection on document images",
-    tasks: [
-      {
-        id: "IMG-T1", signal: "SIG-IMG-001", taskType: 'IMAGE',
-        imageUrl: "https://images.unsplash.com/photo-1557821552-17105176677c?w=800&q=80",
-        regions: [
-          { x: 10, y: 15, width: 80, height: 20, label: "Header_Text" },
-          { x: 5, y: 40, width: 90, height: 35, label: "Body_Content" },
-          { x: 10, y: 80, width: 70, height: 15, label: "Footer_Signature" }
-        ],
-        expectedSegments: ["Header", "Body", "Footer", "Metadata"],
-        aiDiagnostic: { match: "Multi_Region_Detection", confidence: 0.78, category: "OCR", riskLevel: "MEDIUM" },
-        note: "Document has overlapping text regions. Verify boundary accuracy especially in body section.",
-        metadata: { priority: 'HIGH', estimatedTime: 90 }
-      },
-      {
-        id: "IMG-T2", signal: "SIG-IMG-002", taskType: 'IMAGE',
-        imageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80",
-        regions: [
-          { x: 15, y: 20, width: 70, height: 60, label: "Main_Content_Area" },
-          { x: 5, y: 5, width: 90, height: 12, label: "Title_Section" }
-        ],
-        expectedSegments: ["Title", "Content"],
-        aiDiagnostic: { match: "Clean_Document", confidence: 0.92, category: "OCR", riskLevel: "LOW" },
-        note: "Well-formatted document with clear demarcation between sections.",
-        metadata: { priority: 'LOW', estimatedTime: 60 }
-      }
-    ]
-  }),
-  createProject({
-    id: "PROJ-AUDIO-01",
-    name: "Swahili_Phone_Call_Audit",
-    taskType: 'AUDIO',
-    description: "Validate speech-to-text transcriptions from customer service calls",
-    tasks: [
-      {
-        id: "AUDIO-T1", signal: "SIG-AUDIO-001", taskType: 'AUDIO',
-        audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        transcriptSegments: [
-          { start: 0, end: 4.2, text: "Habari, unatalii nini leo?", confidence: 0.94, flagged: false },
-          { start: 4.5, end: 8.1, text: "Nataka kuona bidhaa za elektroniki.", confidence: 0.87, flagged: false },
-          { start: 8.5, end: 12.3, text: "Tunazo models nyingi, karibu kuchagua.", confidence: 0.79, flagged: true },
-          { start: 12.8, end: 16.4, text: "Presyo ni nini kwa ile mobile ya soko?", confidence: 0.72, flagged: true }
-        ],
-        aiDiagnostic: { match: "Customer_Service_Dialog", confidence: 0.83, category: "Speech_Recognition", riskLevel: "MEDIUM" },
-        note: "Two segments have low confidence transcripts. Verify accuracy of technical terms.",
-        metadata: { priority: 'HIGH', estimatedTime: 120, duration: 16.4 }
-      },
-      {
-        id: "AUDIO-T2", signal: "SIG-AUDIO-002", taskType: 'AUDIO',
-        audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-        transcriptSegments: [
-          { start: 0, end: 3.2, text: "Leo tunajifunza kuhusu kisimu.", confidence: 0.96, flagged: false },
-          { start: 3.5, end: 7.1, text: "Kisimu ni lugha iliyotumiwa sana katika Nairobi.", confidence: 0.91, flagged: false },
-          { start: 7.4, end: 11.2, text: "Wanavyozungumza watoto wa mtaa.", confidence: 0.88, flagged: false }
-        ],
-        aiDiagnostic: { match: "Educational_Content", confidence: 0.92, category: "Linguistics", riskLevel: "LOW" },
-        note: "High-confidence transcription of educational content. All segments clear.",
-        metadata: { priority: 'MEDIUM', estimatedTime: 90, duration: 11.2 }
-      }
-    ]
-  })
+const REJECTION_REASONS = [
+  'Poor Quality',
+  'Incorrect Label',
+  'Ambiguous Task',
+  'Language Issue',
+  'Other'
 ];
 
-const getPriorityBadge = (priority?: PriorityLevel) => {
-  switch (priority) {
-    case 'HIGH': return 'bg-rose-500/10 border-rose-500/30 text-rose-400';
-    case 'MEDIUM': return 'bg-amber-500/10 border-amber-500/30 text-amber-400';
-    case 'LOW': return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
-    default: return 'bg-zinc-500/10 border-zinc-500/30 text-zinc-400';
-  }
-};
+export const AuditReviewV2 = () => {
+  const [tasks, setTasks] = useState<TaskDetail[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<TaskDetail | null>(null);
+  
+  // Active review state
+  const [taskPayload, setTaskPayload] = useState<TaskPayload | null>(null);
+  const [fetchingDetail, setFetchingDetail] = useState(false);
+  
+  // Rejection modal state
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectNote, setRejectNote] = useState('');
+  const [submittingAction, setSubmittingAction] = useState(false);
 
-const VerdictPanel: React.FC<{ 
-  onVerdict: (verdict: VerdictType) => void;
-  isLastTask: boolean;
-}> = ({ onVerdict, isLastTask }) => {
-  return (
-    <div className="flex items-center gap-4">
-      <button 
-        onClick={() => onVerdict('REJECT')}
-        className="flex items-center gap-2 px-6 py-3 border border-rose-500/50 text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all"
-      >
-        <ThumbsDown size={14} /> Reject
-      </button>
-
-      <button 
-        onClick={() => onVerdict('FLAG')}
-        className="flex items-center gap-2 px-6 py-3 border border-amber-500/50 text-amber-400 hover:text-amber-300 hover:bg-amber-500/5 rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all"
-      >
-        <Flag size={14} /> Flag
-      </button>
-
-      <button 
-        onClick={() => onVerdict('APPROVE')}
-        className="flex items-center gap-4 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)]"
-      >
-        <ThumbsUp size={14} /> Approve
-        {!isLastTask && <ChevronRight size={16} />}
-      </button>
-    </div>
-  );
-};
-
-const AuditReviewV2 = () => {
-  const { setSidebarOpen } = useSidebar();
-  const [activeProject, setActiveProject] = useState<Project | null>(null);
-  const [taskIndex, setTaskIndex] = useState(0);
-  const [verdicts, setVerdicts] = useState<Record<string, VerdictType>>({});
-
-  useEffect(() => {
-    if (activeProject) {
-      setSidebarOpen(false);
+  // Fetch pending review tasks
+  const fetchPendingQueue = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/reviewer/pending?limit=100');
+      const data = response.data?.data || response.data;
+      const pendingTasks = data.tasks || [];
+      
+      // Sort tasks: high priority first (priority goes from -10 to 10 or similar, so sort descending)
+      pendingTasks.sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0));
+      
+      setTasks(pendingTasks);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to load audit queue.");
+    } finally {
+      setLoading(false);
     }
-  }, [activeProject, setSidebarOpen]);
-
-  useEffect(() => {
-    detectDeviceCapabilities();
-  }, []);
-
-  const currentTask = activeProject ? activeProject.tasks[taskIndex] : null;
-  const isLastTask = activeProject ? taskIndex >= activeProject.tasks.length - 1 : false;
-  const isComplete = !activeProject || taskIndex >= activeProject.tasks.length;
-
-  const handleVerdict = useCallback((verdict: VerdictType) => {
-    if (currentTask) {
-      setVerdicts(prev => ({ ...prev, [currentTask.id]: verdict }));
-      if (!isLastTask) {
-        setTaskIndex(prev => prev + 1);
-      }
-    }
-  }, [currentTask, isLastTask]);
-
-  const handleRLHFFeedback = useCallback((feedback: RLHFFeedback) => {
-    setRlhfFeedback(prev => [...prev, feedback]);
-    console.log('RLHF Feedback recorded:', feedback);
-  }, []);
-
-  const handleProjectSelect = (project: Project) => {
-    setActiveProject(project);
-    setTaskIndex(0);
   };
 
-  if (!activeProject) {
+  useEffect(() => {
+    fetchPendingQueue();
+  }, []);
+
+  // Fetch specific task details (input R2 + result R2)
+  const fetchTaskDetails = async (task: TaskDetail) => {
+    try {
+      setFetchingDetail(true);
+      setTaskPayload(null);
+      const response = await api.get(`/reviewer/task/${task._id}`);
+      const data = response.data?.data || response.data;
+      setTaskPayload(data);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to stream task assets from R2.");
+    } finally {
+      setFetchingDetail(false);
+    }
+  };
+
+  const handleSelectTask = (task: TaskDetail) => {
+    setSelectedTask(task);
+    fetchTaskDetails(task);
+  };
+
+  const handleBackToQueue = () => {
+    setSelectedTask(null);
+    setTaskPayload(null);
+    setShowRejectModal(false);
+    setRejectReason('');
+    setRejectNote('');
+    fetchPendingQueue(); // Reload queue
+  };
+
+  const handleApprove = async () => {
+    if (!selectedTask || submittingAction) return;
+    try {
+      setSubmittingAction(true);
+      await api.put(`/reviewer/approve/${selectedTask._id}`, { comment: 'Approved by reviewer' });
+      toast.success("Submission Approved.");
+      
+      // Move to next task in the queue if possible
+      const currentIndex = tasks.findIndex(t => t._id === selectedTask._id);
+      if (currentIndex !== -1 && currentIndex < tasks.length - 1) {
+        handleSelectTask(tasks[currentIndex + 1]);
+      } else {
+        handleBackToQueue();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.error || "Error approving submission.");
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!selectedTask || !rejectReason || submittingAction) return;
+    if (rejectReason === 'Other' && !rejectNote.trim()) {
+      toast.error("Note is required when 'Other' is selected.");
+      return;
+    }
+
+    try {
+      setSubmittingAction(true);
+      await api.put(`/reviewer/reject/${selectedTask._id}`, {
+        reason: rejectReason,
+        suggestions: rejectNote ? [rejectNote] : []
+      });
+      toast.success("Submission Rejected.");
+      setShowRejectModal(false);
+      setRejectReason('');
+      setRejectNote('');
+
+      // Move to next task in the queue if possible
+      const currentIndex = tasks.findIndex(t => t._id === selectedTask._id);
+      if (currentIndex !== -1 && currentIndex < tasks.length - 1) {
+        handleSelectTask(tasks[currentIndex + 1]);
+      } else {
+        handleBackToQueue();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.error || "Error rejecting submission.");
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
+
+  // Helper priority classes
+  const getPriorityBadge = (p: number) => {
+    if (p > 5) return 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+    if (p > 2) return 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+    return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+  };
+
+  if (!selectedTask) {
     return (
-      <div className="w-full animate-in fade-in duration-700 px-12 py-8">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12">
+      <div className="w-full min-h-screen bg-[#020408] p-8 font-mono text-slate-500">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-zinc-900 pb-8">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-indigo-500 mb-4">
-              <Mic2 size={14} />
-              <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold">Linguistic_Review_Engine</span>
-            </div>
-            <h1 className="text-5xl font-bold text-white tracking-tighter leading-none italic">
-              Assigned Audits
+            <span className="text-[9px] text-indigo-500 uppercase tracking-[0.4em] font-bold">// Operational_Registry</span>
+            <h1 className="text-4xl font-bold text-white tracking-tight leading-none italic">
+              Active Audit Queue
             </h1>
-            <p className="text-zinc-500 font-light text-sm mt-4 max-w-2xl">
-              Review linguistically challenging annotations. Each task has been flagged by our AI quality model for human verification.
+            <p className="text-zinc-500 text-xs max-w-2xl">
+              Verification queue containing submissions pending operational review. Flat order priority queue.
             </p>
           </div>
-
-          <div className="flex items-center gap-4 bg-[#050505] border border-zinc-900 p-3 shadow-2xl rounded-sm">
-            <Activity size={14} className="text-rose-500" />
-            <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase">Active_Projects: {assignedProjects.length}</span>
+          <div className="flex items-center gap-4 bg-zinc-950 border border-zinc-900 p-3 rounded-sm">
+            <Clock size={14} className="text-indigo-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Queue Size: {tasks.length}</span>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {assignedProjects.map(project => (
-            <div
-              key={project.id}
-              className="group relative bg-[#050505] border border-zinc-900 p-8 rounded-sm hover:bg-black transition-all duration-300 flex flex-col h-full overflow-hidden"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-mono font-bold text-rose-500 uppercase tracking-[0.2em]">
-                    // LINGUISTIC_NODE
-                  </span>
-                  <div className={`mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 border rounded-sm text-[8px] font-mono font-bold uppercase tracking-tighter ${getPriorityBadge('MEDIUM')}`}>
-                    <div className="h-1 w-1 rounded-full bg-current animate-pulse" />
-                    In_Progress
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-[40vh] space-y-4">
+            <ActivityIcon className="animate-spin text-indigo-500" />
+            <span className="text-xs uppercase tracking-[0.2em]">Querying pending registry...</span>
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="border border-dashed border-zinc-900 p-16 text-center rounded-sm max-w-md mx-auto mt-12 space-y-6">
+            <CheckCircle className="mx-auto text-zinc-700" size={32} />
+            <h2 className="text-zinc-400 uppercase tracking-widest font-bold text-xs">Registry Clear</h2>
+            <p className="text-[10px] text-zinc-600 leading-relaxed italic">
+              No tasks currently require verification. Telemetry channel is stable.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 max-w-5xl">
+            {tasks.map((task, idx) => (
+              <div 
+                key={task._id} 
+                onClick={() => handleSelectTask(task)}
+                className="flex items-center justify-between p-4 bg-[#05070A] border border-slate-900 hover:border-indigo-500/40 hover:bg-black transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-6">
+                  <div className="text-left">
+                    <span className="text-[8px] text-zinc-700 uppercase font-bold">Index</span>
+                    <p className="text-xs text-zinc-500">#{idx + 1}</p>
+                  </div>
+                  <div className="h-6 w-px bg-zinc-900" />
+                  <div>
+                    <span className="text-[8px] text-zinc-700 uppercase font-bold">Task ID</span>
+                    <p className="text-xs font-bold text-white tracking-tight">{task.taskId || task._id}</p>
+                  </div>
+                  <div className="h-6 w-px bg-zinc-900 hidden md:block" />
+                  <div className="hidden md:block">
+                    <span className="text-[8px] text-zinc-700 uppercase font-bold">Dataset</span>
+                    <p className="text-xs text-zinc-400">{task.datasetId?.name || "Unassociated"}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[8px] font-mono text-zinc-700 uppercase tracking-widest">Tasks</p>
-                  <span className="text-2xl font-bold text-indigo-400 tabular-nums">{project.tasks.length}</span>
+
+                <div className="flex items-center gap-6">
+                  <span className={`px-2 py-0.5 border rounded-sm text-[8px] font-bold uppercase tracking-tighter ${getPriorityBadge(task.priority || 0)}`}>
+                    P: {task.priority || 0}
+                  </span>
+                  <span className="text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 uppercase">
+                    {task.taskType}
+                  </span>
+                  <Play size={12} className="text-zinc-700 group-hover:text-indigo-500 transition-colors" />
                 </div>
               </div>
-
-              <h3 className="text-lg font-bold text-white tracking-tight italic mb-2 group-hover:text-indigo-300 transition-colors">
-                {project.name}
-              </h3>
-              <p className="text-xs text-zinc-500 mb-6 line-clamp-2">{project.description}</p>
-
-              <div className="bg-zinc-950 border border-zinc-900 p-4 mb-8 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-600">
-                  <Clock size={12} />
-                  <span className="text-[9px] font-mono uppercase tracking-widest font-bold">Est. Time:</span>
-                </div>
-                <span className="text-xs font-bold text-zinc-400">~{Math.ceil(project.tasks.reduce((sum, t) => sum + (t.metadata?.estimatedTime || 30), 0) / 60)}m</span>
-              </div>
-
-              <button
-                onClick={() => handleProjectSelect(project)}
-                className="mt-auto w-full flex items-center justify-center gap-3 py-4 px-6 bg-transparent border border-zinc-800 text-zinc-500 hover:text-white hover:border-rose-500/50 hover:bg-rose-500/5 rounded-sm text-[10px] font-bold uppercase tracking-[0.2em] transition-all group/btn"
-              >
-                <Play size={14} className="fill-current opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                Open_Audit
-                <ChevronRight size={14} className="opacity-0 group-hover/btn:opacity-100 transition-all" />
-              </button>
-
-              <div className="absolute bottom-0 left-0 h-[1px] w-full bg-zinc-900 group-hover:bg-rose-500/50 transition-colors" />
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-12 flex justify-between items-center opacity-20">
-          <span className="text-[8px] font-mono uppercase tracking-[0.4em]">Quality_Assurance_Platform</span>
-          <span className="text-[8px] font-mono uppercase tracking-[0.4em]">v4.2.1-Linguistic</span>
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
 
+  // ACTIVE AUDIT WORKBENCH
   return (
     <div className="w-full h-screen bg-[#020408] font-mono flex flex-col animate-in fade-in duration-500">
-      <nav className="shrink-0 p-6 border-b border-zinc-900 flex justify-between items-center bg-zinc-950/60 backdrop-blur-md">
+      <nav className="shrink-0 p-4 border-b border-zinc-900 flex justify-between items-center bg-zinc-950/60 backdrop-blur-md">
         <button
-          onClick={() => { setActiveProject(null); setTaskIndex(0); }}
-          className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-600 hover:text-white hover:border-b hover:border-indigo-500 transition-all pb-1"
+          onClick={handleBackToQueue}
+          className="flex items-center gap-2 text-[10px] font-black uppercase text-zinc-500 hover:text-white transition-all"
         >
-          <ArrowLeft size={14} /> Back_To_Registry
+          <ArrowLeft size={14} /> Back_To_Queue
         </button>
 
         <div className="flex items-center gap-6">
-          <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-            <span className="text-indigo-400 font-black">{activeProject.name}</span>
+          <div className="text-[10px] text-zinc-400 uppercase">
+            Dataset: <span className="text-indigo-400 font-bold">{selectedTask.datasetId?.name || "Unassociated"}</span>
           </div>
           <div className="h-4 w-[1px] bg-zinc-800" />
-          <div className="text-[10px] font-bold text-zinc-300 tabular-nums">
-            {taskIndex + 1} / {activeProject.tasks.length}
+          <div className="text-[10px] font-bold text-zinc-300">
+            Task ID: #{selectedTask.taskId || selectedTask._id}
           </div>
         </div>
 
-        <div className="w-48 h-1 bg-zinc-900 overflow-hidden rounded-full">
-          <div
-            className="h-full bg-rose-500 shadow-[0_0_10px_#f43f5e] transition-all duration-300"
-            style={{ width: `${((taskIndex + 1) / activeProject.tasks.length) * 100}%` }}
-          />
+        <div className="text-[9px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 uppercase">
+          {selectedTask.taskType}
         </div>
       </nav>
-
-      <main className="flex-1 flex flex-col p-12 overflow-y-auto">
-        {currentTask && !isComplete ? (
-          <div key={currentTask.id} className="w-full max-w-5xl space-y-12 animate-in slide-in-from-bottom-4 duration-500">
-            {currentTask.taskType === 'LINGUISTIC' && (
-              <LinguisticTaskRenderer task={currentTask as LinguisticTask} />
-            )}
-            {currentTask.taskType === 'IMAGE' && (
-              <ImageTaskRenderer task={currentTask as ImageTask} />
-            )}
-            {currentTask.taskType === 'AUDIO' && (
-              <AudioTaskRenderer task={currentTask as AudioTask} />
-            )}
-            {verdicts[currentTask.id] && (
-              <RLHFFeedbackPanel
-                taskId={currentTask.id}
-                aiPrediction={currentTask.aiDiagnostic}
-                humanVerdict={verdicts[currentTask.id] as 'APPROVE' | 'REJECT' | 'FLAG'}
-                onSubmit={handleRLHFFeedback}
-              />
-            )}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        <aside className="w-72 border-r border-zinc-900 bg-black/60 p-6 flex flex-col gap-8 shrink-0 overflow-y-auto">
+          <div className="space-y-2">
+            <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-wider">Labeller Operator</span>
+            <div className="p-3 bg-[#05070A] border border-zinc-900 rounded-sm flex items-center gap-3">
+              <User size={14} className="text-indigo-400" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-white truncate">
+                  {selectedTask.assignedTo?.[0]?.userId?.name || "Operator"}
+                </p>
+                <p className="text-[8px] text-zinc-600 truncate">
+                  {selectedTask.assignedTo?.[0]?.userId?.email || "No Email"}
+                </p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center min-h-[500px] text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-              <CheckCircle size={32} className="text-emerald-500" />
+
+          <div className="space-y-2">
+            <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-wider">Dataset Specifications</span>
+            <p className="text-[10px] text-zinc-400 leading-relaxed italic">
+              {selectedTask.datasetId?.description || "No specifications defined for this dataset node."}
+            </p>
+          </div>
+
+          {taskPayload?.task?.priority !== undefined && (
+            <div className="space-y-1">
+              <span className="text-[8px] text-zinc-600 font-bold uppercase">Priority Code</span>
+              <p className="text-xs text-white">Level: {taskPayload.task.priority}</p>
+            </div>
+          )}
+        </aside>
+        <main className="flex-1 bg-[#010101] p-10 overflow-y-auto flex flex-col">
+          {fetchingDetail ? (
+            <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+              <ActivityIcon className="animate-spin text-indigo-500" />
+              <span className="text-[10px] uppercase tracking-widest text-zinc-600">Streaming R2 Assets...</span>
+            </div>
+          ) : taskPayload ? (
+            <div className="flex-1 flex flex-col gap-10 max-w-4xl w-full mx-auto">
+              <div className="space-y-4">
+                <h3 className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
+                  // Input Telemetry (R2)
+                </h3>
+                <div className="bg-[#05070A] border border-zinc-900 p-6 rounded-sm space-y-4">
+                  {resolveContentType(selectedTask) === 'text' && !isRlhfTask(null, selectedTask) && (
+                    <p className="text-sm text-zinc-300 leading-relaxed font-light">
+                      {taskPayload.taskObject?.content || taskPayload.taskObject?.prompt || JSON.stringify(taskPayload.taskObject)}
+                    </p>
+                  )}
+                  {resolveContentType(selectedTask) === 'image' && !isRlhfTask(null, selectedTask) && (
+                    <div className="flex flex-col items-center gap-4">
+                      {taskPayload.taskObject?.imageUrl || taskPayload.taskObject?.image || taskPayload.taskObject?.url ? (
+                        <div className="relative inline-block border border-zinc-800 rounded-sm overflow-hidden bg-black select-none">
+                          <img 
+                            src={taskPayload.taskObject.imageUrl || taskPayload.taskObject.image || taskPayload.taskObject.url} 
+                            alt="Verification Asset" 
+                            className="max-h-[500px] object-contain rounded-sm"
+                          />
+                          {taskPayload.submissionObject?.boundingBoxes && 
+                           Array.isArray(taskPayload.submissionObject.boundingBoxes) && 
+                           taskPayload.submissionObject.boundingBoxes.map((box: any, idx: number) => (
+                            <div
+                              key={box.id || idx}
+                              className="absolute border-2 border-indigo-500 bg-indigo-500/10 pointer-events-none"
+                              style={{
+                                left: `${box.x}%`,
+                                top: `${box.y}%`,
+                                width: `${box.w}%`,
+                                height: `${box.h}%`
+                              }}
+                            >
+                              <span className="absolute -top-5 left-0 text-[8px] font-mono bg-indigo-600 px-1.5 py-0.5 text-white whitespace-nowrap">
+                                {box.label || `Object ${idx + 1}`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-rose-400">No Image URL in metadata.</p>
+                      )}
+                    </div>
+                  )}
+                  {selectedTask.taskType === 'audio' && (
+                    <div className="space-y-4">
+                      {taskPayload.taskObject?.audioUrl ? (
+                        <audio controls src={taskPayload.taskObject.audioUrl} className="w-full" />
+                      ) : (
+                        <p className="text-[10px] text-rose-400">No Audio URL in metadata.</p>
+                      )}
+                      {taskPayload.taskObject?.transcript && (
+                        <p className="text-xs text-zinc-400 italic">Expected Transcript: {taskPayload.taskObject.transcript}</p>
+                      )}
+                    </div>
+                  )}
+                  {isRlhfTask(null, selectedTask) && (
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <span className="text-[8px] text-indigo-400 font-bold uppercase">Prompt</span>
+                        <p className="text-xs text-zinc-300 bg-black p-3 border border-zinc-900">{taskPayload.taskObject?.prompt}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {(
+                          taskPayload.taskObject?.responses ||
+                          [
+                            { content: taskPayload.taskObject?.responseA },
+                            { content: taskPayload.taskObject?.responseB },
+                          ]
+                        )
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((resp: { content?: string }, idx: number) => (
+                            <div key={idx} className="space-y-1">
+                              <span className="text-[8px] text-zinc-600 font-bold uppercase">
+                                Response {idx === 0 ? "A" : "B"}
+                              </span>
+                              <div className="bg-black p-3 border border-zinc-900">
+                                <RlhfResponseContent
+                                  content={resp?.content || ""}
+                                  contentType={resolveContentType(selectedTask) as ContentType}
+                                  label={`Response ${idx === 0 ? "A" : "B"}`}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
+                  // Submitted Disposition (R2 Output)
+                </h3>
+                <div className="bg-[#05070A] border border-zinc-900 p-6 rounded-sm">
+                  {taskPayload.submissionObject ? (
+                    <div className="space-y-4">
+                      {taskPayload.submissionObject.label !== undefined && (
+                        <div>
+                          <span className="text-[8px] text-zinc-600 font-bold uppercase">Label Selected</span>
+                          <p className="text-sm font-bold text-white font-mono">{String(taskPayload.submissionObject.label)}</p>
+                        </div>
+                      )}
+                      {taskPayload.submissionObject.selectedResponse !== undefined && (
+                        <div>
+                          <span className="text-[8px] text-indigo-400 font-bold uppercase">Response Selected</span>
+                          <p className="text-sm font-bold text-white font-mono">Response {taskPayload.submissionObject.selectedResponse}</p>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-[8px] text-zinc-600 font-bold uppercase">Raw Annotation Result</span>
+                        <pre className="text-[10px] text-zinc-500 font-mono bg-black p-3 border border-zinc-900 overflow-x-auto mt-1">
+                          {JSON.stringify(taskPayload.submissionObject, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-zinc-600 text-xs italic">
+                      No external R2 output payload found. Review metadata manually.
+                    </div>
+                  )}
+                </div>
+              </div>
+              {taskPayload.otherSubmissions && taskPayload.otherSubmissions.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-indigo-400 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
+                    // Consensus Comparison (Other Labellers)
+                  </h3>
+                  <div className="space-y-4">
+                    {taskPayload.otherSubmissions.map((otherSub: any) => (
+                      <div key={otherSub._id} className="bg-[#05070A]/60 border border-zinc-900/60 p-4 rounded-sm">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[10px] text-zinc-400 font-bold">
+                            Operator: {otherSub.submittedBy?.name || "Anonymous"} ({otherSub.submittedBy?.email})
+                          </span>
+                          <span className={`text-[8px] px-2 py-0.5 border rounded-sm font-bold uppercase ${
+                            otherSub.status === 'approved' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' :
+                            otherSub.status === 'rejected' ? 'border-rose-500/30 text-rose-400 bg-rose-500/10' :
+                            'border-zinc-800 text-zinc-500 bg-zinc-950'
+                          }`}>
+                            {otherSub.status}
+                          </span>
+                        </div>
+                        {otherSub.content ? (
+                          <div className="space-y-2">
+                            {otherSub.content.label !== undefined && (
+                              <p className="text-xs font-bold text-zinc-300">
+                                Label: <span className="text-white">{String(otherSub.content.label)}</span>
+                              </p>
+                            )}
+                            {otherSub.content.selectedResponse !== undefined && (
+                              <p className="text-xs font-bold text-zinc-300">
+                                Response Selected: <span className="text-white">Response {otherSub.content.selectedResponse}</span>
+                              </p>
+                            )}
+                            <pre className="text-[9px] text-zinc-600 font-mono bg-black/40 p-2 border border-zinc-900/40 overflow-x-auto mt-2">
+                              {JSON.stringify(otherSub.content, null, 2)}
+                            </pre>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-zinc-600 italic">No response content fetched.</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+              <AlertTriangle className="text-rose-500" />
+              <span className="text-xs text-rose-400">Failed to render assets.</span>
+            </div>
+          )}
+        </main>
+      </div>
+      <footer className="shrink-0 p-6 border-t border-zinc-900 bg-zinc-950 flex justify-between items-center relative z-50">
+        <div className="text-[9px] text-zinc-600 uppercase tracking-widest font-mono">
+          Operator // Reviewer
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setShowRejectModal(true)}
+            disabled={submittingAction || fetchingDetail}
+            className="flex items-center gap-2 px-6 py-3 border border-rose-500/50 text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 rounded-sm text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+          >
+            <ThumbsDown size={14} /> Reject
+          </button>
+
+          <button 
+            onClick={handleApprove}
+            disabled={submittingAction || fetchingDetail}
+            className="flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm text-[10px] font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:opacity-50"
+          >
+            <ThumbsUp size={14} /> Approve & Next
+          </button>
+        </div>
+      </footer>
+      {showRejectModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#05070A] border border-slate-900 w-full max-w-md p-8 rounded-sm space-y-6 animate-in zoom-in duration-300">
+            <div className="flex justify-between items-start">
+              <div>
+                <span className="text-[8px] text-rose-500 uppercase tracking-[0.2em] font-bold">// Rejection Protocol</span>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Select Rejection Reason</h3>
+              </div>
+              <button 
+                onClick={() => { setShowRejectModal(false); setRejectReason(''); setRejectNote(''); }}
+                className="text-zinc-600 hover:text-white p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {REJECTION_REASONS.map(reason => (
+                <button
+                  key={reason}
+                  onClick={() => setRejectReason(reason)}
+                  className={`p-3 text-left text-[10px] font-bold uppercase tracking-wider border transition-all rounded-sm flex justify-between items-center ${
+                    rejectReason === reason 
+                      ? 'border-rose-500 bg-rose-500/5 text-rose-400' 
+                      : 'border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                  }`}
+                >
+                  {reason}
+                  {rejectReason === reason && <Check size={12} />}
+                </button>
+              ))}
             </div>
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold text-white tracking-tight">Audit Complete</h2>
-              <p className="text-zinc-500 text-sm">All {activeProject.tasks.length} tasks reviewed successfully.</p>
+              <label className="text-[9px] text-zinc-600 uppercase font-bold block">
+                Additional Notes {rejectReason !== 'Other' && '(Optional)'}
+              </label>
+              <textarea
+                value={rejectNote}
+                onChange={e => setRejectNote(e.target.value)}
+                placeholder={rejectReason === 'Other' ? "Provide notes detailing the rejection (Required)..." : "Provide optional notes for the operator..."}
+                rows={3}
+                className="w-full bg-black border border-zinc-800 focus:border-rose-500 p-3 text-xs text-zinc-300 outline-none rounded-sm font-mono placeholder:text-zinc-700"
+              />
+            </div>
+
+            <div className="flex gap-4">
               <button
-                onClick={() => { setActiveProject(null); setTaskIndex(0); }}
-                className="mt-6 px-8 py-3 border border-zinc-800 text-zinc-600 hover:text-white rounded-sm text-[10px] font-bold uppercase"
+                onClick={() => { setShowRejectModal(false); setRejectReason(''); setRejectNote(''); }}
+                className="flex-1 py-3 border border-zinc-800 text-zinc-600 hover:text-white text-[10px] font-bold uppercase"
               >
-                Return_To_Registry
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                disabled={!rejectReason || (rejectReason === 'Other' && !rejectNote.trim()) || submittingAction}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit Rejection
               </button>
             </div>
           </div>
-        )}
-      </main>
-
-      <footer className="shrink-0 p-8 border-t border-zinc-900 bg-zinc-950/80 backdrop-blur-md flex justify-between items-center gap-6">
-        <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
-          Verdict: {currentTask?.id && verdicts[currentTask.id] ? verdicts[currentTask.id] : 'PENDING'}
         </div>
-        {currentTask && <VerdictPanel onVerdict={handleVerdict} isLastTask={isLastTask} />}
-      </footer>
+      )}
+
     </div>
   );
 };
+
+// Inline helper loader icon
+const ActivityIcon = ({ className, size = 20 }: { className?: string; size?: number }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </svg>
+);
 
 export default AuditReviewV2;

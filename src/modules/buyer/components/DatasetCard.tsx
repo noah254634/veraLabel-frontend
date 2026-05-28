@@ -37,14 +37,11 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   return (
     <>
       <div className="group relative flex flex-col h-full bg-[#050505] border border-zinc-900 transition-all duration-300 hover:border-indigo-500/50 hover:bg-[#080808] overflow-hidden">
-        
-        {/* Progress Bar Header (Decorative) */}
         <div className="h-[2px] w-full bg-zinc-900">
            <div className="h-full w-0 group-hover:w-full bg-indigo-500 transition-all duration-700 ease-out" />
         </div>
 
         <div className="p-6 flex-1">
-          {/* Metadata Row */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex gap-2">
               {tags.slice(0, 1).map((tag) => (
@@ -66,8 +63,6 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           <p className="text-zinc-500 text-xs line-clamp-2 leading-relaxed mb-6 font-light">
             {description}
           </p>
-
-          {/* Technical Specs Grid */}
           <div className="grid grid-cols-2 gap-px bg-zinc-900 border border-zinc-900 mb-6">
             <div className="bg-[#050505] p-2 flex items-center gap-2">
               <BarChart3 size={12} className="text-zinc-700" />
@@ -78,8 +73,6 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
               <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-tighter">{format || 'JSON_v4'}</span>
             </div>
           </div>
-
-          {/* Rating Block */}
           <div className="flex items-center gap-3 pt-4 border-t border-zinc-900/50">
             <div className="flex items-center text-amber-500/50 group-hover:text-amber-500 transition-colors">
               <Star size={10} fill="currentColor" />
@@ -91,8 +84,6 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Footer Settlement Action */}
         <div className="p-6 pt-0 mt-auto">
           <div className="flex items-center justify-between gap-4 border-t border-zinc-900 pt-6">
             <div className="flex flex-col">
@@ -110,8 +101,6 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Portal Portal-fixed Modal */}
       {isCheckoutOpen && createPortal(
         <QuickCheckoutModal 
           isOpen={isCheckoutOpen} 

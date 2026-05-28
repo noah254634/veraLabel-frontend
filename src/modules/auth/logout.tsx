@@ -33,8 +33,8 @@ const LogoutButton = () => {
     >
       <LogOut className="h-5 w-5 text-zinc-400 group-hover:text-red-500 transition-colors" />
       
-      <p className="text-zinc-400 text-sm font-medium group-hover:text-red-500 transition-colors">
-        Log out of session
+      <p className="text-zinc-500 text-[11px] font-mono font-bold uppercase tracking-widest group-hover:text-red-500 transition-colors">
+        Terminate_Session
       </p>
     </div>
   );

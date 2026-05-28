@@ -39,6 +39,7 @@ messaging.onBackgroundMessage((payload) => {
     type: 'FCM_BACKGROUND',
     title: notificationTitle,
     body: notificationBody,
+    notificationId: payload.data?.notificationId,
   });
 });
 

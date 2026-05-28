@@ -2,13 +2,11 @@
  * Detects if a file is a valid audio format by inspecting its Magic Bytes.
  * Supports: MP3 (ID3 & Raw), WAV, FLAC, and AAC (ADTS).
  */
-export async function isAudioFile(file) {
-  // We only need the first 4-10 bytes for most audio signatures
+export async function isAudioFile(file: File) {
   const buffer = await file.slice(0, 10).arrayBuffer();
   const bytes = new Uint8Array(buffer);
   
-  // Helper to convert bytes to a hex string for easy comparison
-  const getHex = (arr) => Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+  const getHex = (arr: Uint8Array) => Array.from(arr).map((b: number) => b.toString(16).padStart(2, '0')).join('');
   const header = getHex(bytes);
 
   // 1. MP3 (Starts with 'ID3' or Frame Sync 0xFFFB/0xFFF3)
@@ -27,7 +25,6 @@ export async function isAudioFile(file) {
     return { isAudio: true, type: 'audio/flac', ext: 'flac' };
   }
 
-  // Fallback to browser-reported MIME type if binary check is inconclusive
   if (file.type.startsWith('audio/')) {
     return { isAudio: true, type: file.type, ext: 'unknown' };
   }

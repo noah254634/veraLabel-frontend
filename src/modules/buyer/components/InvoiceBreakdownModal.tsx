@@ -51,11 +51,9 @@ const InvoiceBreakdownModal: React.FC<InvoiceBreakdownModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl bg-[#0A0A0A] border border-zinc-800 shadow-2xl overflow-hidden animate-in fade-in max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="h-1 w-full bg-gradient-to-r from-indigo-600 via-blue-500 to-transparent sticky top-0 z-10" />
 
         <div className="p-4 sm:p-6 md:p-8">
-          {/* Top Actions */}
           <div className="flex justify-between items-start mb-6 sm:mb-8">
             <div className="space-y-1 flex-1 pr-4">
               <span className="text-[9px] sm:text-[10px] font-mono text-indigo-500 uppercase tracking-[0.2em] sm:tracking-[0.3em] font-bold block">
@@ -72,8 +70,6 @@ const InvoiceBreakdownModal: React.FC<InvoiceBreakdownModalProps> = ({
               <X size={18} className="sm:w-5 sm:h-5" />
             </button>
           </div>
-
-          {/* Metadata Grid - Responsive */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-zinc-900/30 border border-zinc-900/50 rounded-sm">
             <div>
               <p className="text-[8px] sm:text-[9px] text-zinc-500 font-mono uppercase mb-1">Task Type</p>
@@ -92,8 +88,6 @@ const InvoiceBreakdownModal: React.FC<InvoiceBreakdownModalProps> = ({
               <p className="text-xs sm:text-sm font-bold text-white truncate">{formatCurrency(invoice.unitRate)}</p>
             </div>
           </div>
-
-          {/* Cost Breakdown - Scrollable on mobile */}
           <div className="space-y-px bg-zinc-900 border border-zinc-900 mb-4 sm:mb-6 overflow-hidden">
             <CostRow
               label="Base Price"
@@ -134,8 +128,6 @@ const InvoiceBreakdownModal: React.FC<InvoiceBreakdownModalProps> = ({
               isTotal
             />
           </div>
-
-          {/* Terms - Responsive */}
           <div className="bg-blue-500/5 border border-blue-500/20 p-3 sm:p-4 rounded-sm mb-4 sm:mb-6">
             <div className="flex gap-2 sm:gap-3">
               <Check size={14} className="text-blue-400 flex-shrink-0 mt-0.5 sm:mt-1" />
@@ -146,8 +138,6 @@ const InvoiceBreakdownModal: React.FC<InvoiceBreakdownModalProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Actions - Stack on mobile, side by side on desktop */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <button
               onClick={onClose}

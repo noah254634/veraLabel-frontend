@@ -15,7 +15,7 @@ type AuthStore = {
   logout: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  forgotPassword:()=>Promise<string>
+  forgotPassword: (email: string) => Promise<string>;
   checkAuth: () => Promise<void>;
   syncAuth: () => Promise<void>;
 };
@@ -29,22 +29,25 @@ export const useAuthStore = create<AuthStore>((set) => ({
   checkAuth: async () => {
     try {
       set({ loading: true, isRestoringSession: false });
-      const response = await fetch("/api/v1/auth/check-auth", {
+      const response = await fetch("/api/v1/auth/me", {
         credentials: "include",
       });
       if (!response.ok) {
         throw new Error("Not authenticated");
       }
       const data = await response.json();
-      set({ user: data.user, isAuthenticated: true, loading: false });
+      // ResponseHandler wraps payload in { success, message, data, timestamp }
+      const user = data?.data?.user ?? data?.user ?? null;
+      set({ user, isAuthenticated: true, loading: false });
+
     } catch (error) {
       set({ user: null, isAuthenticated: false, loading: false });
     }
   },
 
-  forgotPassword:async():Promise<string>=>{
-    const response=await api.get("/auth/forgotPassword")
-    return response.data
+  forgotPassword: async (email: string): Promise<string> => {
+    const response = await api.post("/auth/forgotPassword", { email });
+    return response.data?.message ?? "Reset email sent";
   },
   setUser: (user) => set({ user, isAuthenticated: true }),
   setLoading: (loading) => set({ loading }),
@@ -59,8 +62,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
     try {
       const res = await api.get("/auth/me");
       if (res.status === 200) {
-        // Fix: Extract user from the response object (which contains message and user)
-        set({ user: res.data.user, isAuthenticated: true });
+        // ResponseHandler shape: { success, message, data: { user }, timestamp }
+        const user = res.data?.data?.user ?? res.data?.user ?? null;
+        set({ user, isAuthenticated: true });
       }
     } catch (error) {
       localStorage.removeItem("isAuthenticated");
@@ -76,8 +80,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ loading: true, error: null, isRestoringSession: false });
       const response = await loginApi(credentials);
       const data = await response.json();
-      const user = data?.user;
-      
+      // ResponseHandler shape: { success, message, data: { user }, timestamp }
+      const user = data?.data?.user ?? data?.user ?? null;
+
       if (!user) {
         throw new Error('User data missing from response');
       }
@@ -97,14 +102,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ loading: true, error: null, isRestoringSession: false });  
       const response = await signupApi(credentials);
       const data = await response.json();
-      const user = data.user;
-      set({ user, isAuthenticated: true, loading: false });
-      localStorage.setItem("isAuthenticated", "true");
-      toast.success("Signup successful");
+      // ResponseHandler shape: { success, message, data: { user }, timestamp }
+      const user = data?.data?.user ?? data?.user ?? null;
+      set({ loading: false });
+      toast.success("Signup successful. Verification code sent to email.");
       return user;
-  }catch (err) {
-      // Don't show error message - signupApi already handled it
-      set({ error: "An unknown error occurred", loading: false });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "An unknown error occurred", loading: false });
+      throw err;
     }
   },
   logout: async() =>{

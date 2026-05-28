@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import { Menu, X, Activity } from "lucide-react";
 import { SidebarProvider } from "../hooks/useSidebar";
 import { NotificationBell } from "./NotificationBell";
+import { useLatency } from "../hooks/useLatency";
+import { LatencyIndicator } from "./LatencyIndicator";
 
 type AppLayoutProps = {
   children: React.ReactNode;
@@ -72,12 +74,7 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden xs:flex items-center gap-2 px-3 py-1 bg-indigo-500/5 border border-indigo-500/10 rounded-sm">
-              <div className="h-1.5 w-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-              <span className="text-[9px] font-mono font-bold text-indigo-400 uppercase tracking-widest">
-                Node_Secure
-              </span>
-            </div>
+            <LatencyIndicator />
             <NotificationBell />
           </div>
         </header>
@@ -99,3 +96,4 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
     </SidebarProvider>
   );
 }
+

@@ -9,7 +9,11 @@ export const taskService={
         if (Array.isArray(payload)) return payload
         return []
     },
-    addTask:async():Promise<void>=>{},
+    getTaskById: async (id: string): Promise<any> => {
+        const response = await api.get(`/tasks/getTask/${id}`)
+        return response.data?.data || response.data
+    },
+    addTask: async (): Promise<void> => {},
     updateTask:async():Promise<void>=>{
         const response=await api.put("/tasks")
         return response.data
@@ -51,5 +55,13 @@ export const taskService={
     approveTask:async(taskId:string):Promise<void>=>{
         const response=await api.put(`/tasks/${taskId}/approve`)
         return response.data
+    },
+    generateSubmissionUrl: async (taskId: string): Promise<any> => {
+        const response = await api.post(`/tasks/generate-submission-url/${taskId}`);
+        return response.data;
+    },
+    submitTask: async (taskId: string, batchId: string): Promise<any> => {
+        const response = await api.put(`/tasks/submit/${taskId}`, { batchId });
+        return response.data;
     },
 }

@@ -8,8 +8,6 @@ import {
 const AdminHelpPage = () => {
   return (
     <div className="w-full animate-in fade-in duration-700">
-      
-      {/* Internal System Status Banner: Hardened UI */}
       <div className="bg-[#050505] border border-emerald-500/20 p-4 mb-10 flex items-center justify-between group">
         <div className="flex items-center gap-3">
           <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
@@ -23,8 +21,6 @@ const AdminHelpPage = () => {
             <span>Enc_Level // AES-256</span>
         </div>
       </div>
-
-      {/* Header: Commands */}
       <header className="mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
         <div className="flex items-center gap-2 text-indigo-500 mb-4">
             <Terminal size={14} />
@@ -35,8 +31,6 @@ const AdminHelpPage = () => {
           Authorized internal procedures for dataset moderation, personnel dispute resolution, and systemic governance.
         </p>
       </header>
-
-      {/* Admin SOP Categories: Gap-Px Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-900 border border-zinc-900 mb-16 shadow-2xl">
         <AdminQuickAction icon={<ShieldAlert size={18} className="text-rose-500" />} title="Dispute_Protocol" code="SOP_01" />
         <AdminQuickAction icon={<UserPlus size={18} className="text-blue-500" />} title="Node_Onboarding" code="SOP_02" />
@@ -45,7 +39,6 @@ const AdminHelpPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Left Column: Interactive SOPs */}
         <div className="lg:col-span-2 space-y-8">
           <div className="flex items-center gap-3 border-b border-zinc-900 pb-4">
             <Activity size={16} className="text-indigo-500" />
@@ -70,8 +63,6 @@ const AdminHelpPage = () => {
             />
           </div>
         </div>
-
-        {/* Right Column: Emergency Utilities */}
         <aside className="space-y-10">
           <section className="bg-black border border-zinc-900 p-8 relative overflow-hidden group">
             <div className="flex items-center gap-2 mb-8 text-indigo-500 relative z-10">

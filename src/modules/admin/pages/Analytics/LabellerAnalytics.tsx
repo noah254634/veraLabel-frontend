@@ -168,19 +168,19 @@ const LabellerAnalytics = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-[#050505] rounded-sm border border-zinc-900 p-6">
             <p className="text-xs text-zinc-600 font-mono uppercase tracking-widest mb-2">Total_Earned</p>
-            <p className="text-3xl font-bold text-emerald-500">KES {(earnings?.totals?.totalEarned || 0).toLocaleString()}</p>
+            <p className="text-3xl font-bold text-emerald-500">${(earnings?.totals?.totalEarned || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div className="bg-[#050505] rounded-sm border border-zinc-900 p-6">
             <p className="text-xs text-zinc-600 font-mono uppercase tracking-widest mb-2">Total_Paid</p>
-            <p className="text-3xl font-bold text-emerald-400">KES {(earnings?.totals?.totalPaid || 0).toLocaleString()}</p>
+            <p className="text-3xl font-bold text-emerald-400">${(earnings?.totals?.totalPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div className="bg-[#050505] rounded-sm border border-zinc-900 p-6">
             <p className="text-xs text-zinc-600 font-mono uppercase tracking-widest mb-2">Pending_Payment</p>
-            <p className="text-3xl font-bold text-yellow-600">KES {(earnings?.totals?.totalPending || 0).toLocaleString()}</p>
+            <p className="text-3xl font-bold text-yellow-600">${(earnings?.totals?.totalPending || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div className="bg-[#050505] rounded-sm border border-zinc-900 p-6">
             <p className="text-xs text-zinc-600 font-mono uppercase tracking-widest mb-2">Avg_Per_Labeller</p>
-            <p className="text-3xl font-bold text-indigo-500">KES {((earnings?.totals?.totalEarned || 0) / (earnings?.totals?.totalLabellers || 1)).toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+            <p className="text-3xl font-bold text-indigo-500">${((earnings?.totals?.totalEarned || 0) / (earnings?.totals?.totalLabellers || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
         </div>
 
@@ -217,7 +217,7 @@ const LabellerAnalytics = () => {
                         <p className="text-xs text-zinc-500">{earner.tier} • {earner.tasksCompleted} tasks</p>
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-emerald-500">KES {(earner.totalEarned || 0).toLocaleString()}</p>
+                    <p className="text-sm font-bold text-emerald-500">${(earner.totalEarned || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                 ))}
               </div>

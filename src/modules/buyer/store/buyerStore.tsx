@@ -1,10 +1,70 @@
 import { toast } from "react-hot-toast";
 import { create } from "zustand";
-import type { Buyer } from "../types/buyer";
 import type { OrderType } from "../types/order";
 import type { Dataset } from "../../../shared/types/dataset";
 import { buyerService } from "../service/buyerService";
-import type{ datasetRequest } from "../types/datasetRequest";
+
+const normalizeDatasets = (response: unknown): Dataset[] => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (response && typeof response === "object") {
+    const payload = response as {
+      datasets?: unknown;
+      data?: unknown;
+    };
+
+    if (Array.isArray(payload.datasets)) {
+      return payload.datasets as Dataset[];
+    }
+
+    if (payload.data && typeof payload.data === "object") {
+      const nested = payload.data as { datasets?: unknown };
+      if (Array.isArray(nested.datasets)) {
+        return nested.datasets as Dataset[];
+      }
+    }
+  }
+
+  return [];
+};
+
+const normalizePayments = (response: unknown): any[] => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (response && typeof response === "object") {
+    const payload = response as {
+      payments?: unknown;
+      data?: unknown;
+    };
+
+    if (Array.isArray(payload.payments)) {
+      return payload.payments as any[];
+    }
+
+    if (payload.data && typeof payload.data === "object") {
+      const nested = payload.data as { payments?: unknown };
+      if (Array.isArray(nested.payments)) {
+        return nested.payments as any[];
+      }
+    }
+  }
+
+  return [];
+};
+
+const unwrapResponseData = (response: unknown): Record<string, unknown> | unknown => {
+  if (response && typeof response === "object" && "data" in response) {
+    const payload = response as { data?: unknown };
+    return payload.data ?? response;
+  }
+
+  return response;
+};
+
 type BuyerStore = {
   datasets:Dataset[]
   buyerDatasetOrders:any[]
@@ -23,16 +83,20 @@ type BuyerStore = {
   generateUploadUrl:(fileType:string)=>Promise<{uploadUrl:string; key:string}>
   uploadFileToS3:(file:File, uploadUrl:string)=>Promise<void>
   confirmUpload:(r2Key:string, datasetId:string, dataType:string)=>Promise<any>
-  datasetRequest:(request:{domain:string; specifications:string; volume:string; format:string; budget:number | string; fileUrl:string; timeline:string; qualityMetrics:string})=>Promise<void>
+  datasetRequest:(request:{name: string; domain:string; specifications:string; volume:string; format:string; budget:number | string; fileUrl:string; timeline:string; qualityMetrics:string; labellingMethod:"rlhf" | "classification" | "annotation" | "transcription"; contentType:"text" | "audio" | "video" | "image" | "code" | "document"; instructionId?: string; buyerAnswers?: any[]; intent?: string; timelineDays?: number})=>Promise<any>
   finalizePayment:(reference:string)=>Promise<any>
   getOrders:()=>Promise<OrderType[]|void>
   getPaymentHistory:()=>Promise<any>
-
+  getProtocols:(domain: string, labellingMethod: string)=>Promise<any[]>
+  buyerProfile: any | null
+  getBuyerProfile: () => Promise<any>
+  submitOnboarding: (details: any) => Promise<any>
 };
-const useBuyerStore = create<BuyerStore>((set,get)=>({
+const useBuyerStore = create<BuyerStore>((set)=>({
   datasets:[],
   buyerDatasetOrders:[],
   buyerDatasetStats: null,
+  buyerProfile: null,
   error:null,
   setError:(error)=>set({error}),
   loading:false,
@@ -42,12 +106,26 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
     set({loading:true})
     try{
       const response=await buyerService.datasetOrders()
+      const payload = unwrapResponseData(response) as {
+        buyerDatasetOrders?: unknown;
+        stats?: unknown;
+        data?: {
+          buyerDatasetOrders?: unknown;
+          stats?: unknown;
+        };
+      };
+      const buyerDatasetOrders = Array.isArray(payload.buyerDatasetOrders)
+        ? payload.buyerDatasetOrders
+        : Array.isArray(payload.data?.buyerDatasetOrders)
+          ? payload.data.buyerDatasetOrders
+          : [];
+      const buyerDatasetStats = payload.stats ?? payload.data?.stats ?? null;
       set({
         loading:false, 
-        buyerDatasetOrders: response.buyerDatasetOrders || [],
-        buyerDatasetStats: response.stats || null
+        buyerDatasetOrders,
+        buyerDatasetStats: buyerDatasetStats as BuyerStore["buyerDatasetStats"]
       })
-      return response.buyerDatasetOrders
+      return buyerDatasetOrders
     }catch(err){
       const errorMessage = err instanceof Error ? err.message : "Failed to load dataset orders";
       console.error(errorMessage);
@@ -69,21 +147,6 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
       set({loading:false})
       throw err
     }
-  },
-  uploadDataset:async(data)=>{
-    set({loading:true})
-    try{
-      const response=await buyerService.uploadFile(data)
-      set({loading:false})
-      console.log(response)
-      return response
-    
-    }catch(err){
-      const errorMessage = err instanceof Error ? err.message : "Upload failed";
-      console.error(errorMessage);
-      toast.error(errorMessage);
-      set({loading:false})
-    } 
   },
   generateUploadUrl:async(fileType)=>{
     set({loading:true})
@@ -132,8 +195,9 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
     set({loading:true})
     try{
       const response=await buyerService.getDatasets()
-      set({loading:false, datasets:response})
-      return response 
+      const datasets = normalizeDatasets(unwrapResponseData(response))
+      set({loading:false, datasets})
+      return datasets 
     }catch(err){
       const errorMessage = err instanceof Error ? err.message : "Failed to load datasets";
       console.error(errorMessage);
@@ -179,12 +243,31 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
       throw err
     }
   },
+  getProtocols: async(domain: string, labellingMethod: string)=>{
+    try{
+      const { api } = await import('../../../shared/types/api');
+      const res = await api.get(`/instructions?domain=${encodeURIComponent(domain)}&labellingMethod=${encodeURIComponent(labellingMethod)}`);
+      if (res.data && res.data.data && Array.isArray(res.data.data.templates)) {
+        return res.data.data.templates;
+      }
+      if (res.data && Array.isArray(res.data.templates)) {
+        return res.data.templates;
+      }
+      if (Array.isArray(res.data)) {
+        return res.data;
+      }
+      return [];
+    }catch(err){
+      return [];
+    }
+  },
   getPaymentHistory:async()=>{
     try{
       set({loading:true})
       const response=await buyerService.getPaymentHistory()
+      const payments = normalizePayments(unwrapResponseData(response))
       set({loading:false})
-      return response
+      return payments
     }catch(err){
       const errorMessage=err instanceof Error?err.message:"Failed to fetch payment history";
       console.error(errorMessage);
@@ -192,7 +275,39 @@ const useBuyerStore = create<BuyerStore>((set,get)=>({
       set({loading:false})
       throw err
     }
-  }
+  },
+  getBuyerProfile: async () => {
+    set({ loading: true });
+    try {
+      const response = await buyerService.getBuyerProfile();
+      const payload = unwrapResponseData(response) as { buyer?: any };
+      const buyerProfile = payload.buyer ?? payload ?? null;
+      set({ loading: false, buyerProfile });
+      return buyerProfile;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to load buyer profile";
+      console.error(errorMessage);
+      set({ loading: false });
+      throw err;
+    }
+  },
+  submitOnboarding: async (details) => {
+    set({ loading: true });
+    try {
+      const response = await buyerService.submitOnboarding(details);
+      const payload = unwrapResponseData(response) as { buyer?: any };
+      const buyerProfile = payload.buyer ?? payload ?? null;
+      set({ loading: false, buyerProfile });
+      toast.success("Profile submitted successfully");
+      return buyerProfile;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to submit onboarding profile";
+      console.error(errorMessage);
+      toast.error(errorMessage);
+      set({ loading: false });
+      throw err;
+    }
+  },
 }));
 
 export { useBuyerStore };

@@ -13,8 +13,10 @@ const SignupPage = () => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      if ((user.role as string) === "buyer") navigate("/buyer", { replace: true });
-      else if ((user.role as string) === "seller") navigate("/labeller", { replace: true });
+      const role = String(user.role).toLowerCase();
+      if (role === "buyer") navigate("/buyer", { replace: true });
+      else if (role === "labeler" || role === "labeller") navigate("/labeller/onboarding", { replace: true });
+      else if (role === "admin") navigate("/admin", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -32,6 +34,7 @@ const SignupPage = () => {
     e.preventDefault();
     try {
       await signup(formData);
+      navigate(`/verify?email=${encodeURIComponent(formData.email)}`, { replace: true });
     } catch (err) {
       console.error("Signup failed:", err);
     }

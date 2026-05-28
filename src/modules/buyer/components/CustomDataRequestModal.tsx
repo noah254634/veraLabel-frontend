@@ -14,25 +14,58 @@ import {
   MessageSquareText,
   Headphones,
   TableProperties,
+  Activity,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import type { Domain } from "../types/datasetRequest";
+import type { Domain, LabellingMethod, ContentType } from "../types/datasetRequest";
+import {
+  protocolMatchesLabellingMethod,
+  inferContentTypeFromDomain,
+  fileMatchesContentType,
+} from "../../../shared/utils/labellingProtocol";
+
+const CONTENT_TYPE_OPTIONS: { id: ContentType; label: string }[] = [
+  { id: "text", label: "Text" },
+  { id: "audio", label: "Audio" },
+  { id: "video", label: "Video" },
+  { id: "image", label: "Image" },
+  { id: "code", label: "Code" },
+  { id: "document", label: "Document" },
+];
+
+const LABELLING_METHOD_OPTIONS: { id: LabellingMethod; label: string; description: string }[] = [
+  { id: "rlhf", label: "RLHF", description: "Preference ranking, dimensional scoring, rationale" },
+  { id: "classification", label: "Classification", description: "Category labels and single-choice decisions" },
+  { id: "annotation", label: "Annotation", description: "Spans, entities, bounding boxes, tags" },
+  { id: "transcription", label: "Transcription", description: "Speech-to-text or timed alignment" },
+];
+
+const TOTAL_STEPS = 8;
 
 const initialFormData = {
+  name: "",
   domain: "",
+  labellingMethod: "" as LabellingMethod | "",
+  contentType: "" as ContentType | "",
   specifications: "",
   volume: "",
   format: "",
   timeline: "",
   qualityMetrics: "",
   uploadedFile: null as File | null,
+  instructionId: "",
 };
 
 // Domain-specific timeline options (in days)
 const DOMAIN_TIMELINES: Record<string, Array<{ label: string; days: number; description: string }>> = {
-  RLHF: [
-    { label: "Expedited", days: 7, description: "72-hour turnaround per 1K samples" },
-    { label: "Standard", days: 14, description: "2-week delivery with multi-reviewer consensus" },
+  Code: [
+    { label: "Expedited", days: 7, description: "Senior reviewers, fast turnaround on code tasks" },
+    { label: "Standard", days: 14, description: "Balanced delivery with multi-reviewer consensus" },
+    { label: "Relaxed", days: 30, description: "30-day delivery, optimized for cost" },
+  ],
+  Legal: [
+    { label: "Expedited", days: 7, description: "Rapid legal review with prioritized handling" },
+    { label: "Standard", days: 14, description: "Balanced delivery with multi-reviewer consensus" },
     { label: "Relaxed", days: 30, description: "30-day delivery, optimized for cost" },
   ],
   NLP: [
@@ -50,6 +83,11 @@ const DOMAIN_TIMELINES: Record<string, Array<{ label: string; days: number; desc
     { label: "Standard", days: 14, description: "Full schema validation, duplicate removal" },
     { label: "Comprehensive", days: 21, description: "Deep analysis, anomaly detection" },
   ],
+  Medical: [
+    { label: "Premium", days: 10, description: "MD-verified annotators, expedited turnaround" },
+    { label: "Standard", days: 21, description: "Standard clinical consensus review" },
+    { label: "Budget", days: 30, description: "Medical student annotators, standard QA" },
+  ],
 };
 
 const CustomDataRequestModal = ({
@@ -59,9 +97,12 @@ const CustomDataRequestModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { datasetRequest, generateUploadUrl, uploadFileToS3, confirmUpload, loading } = useBuyerStore();
+  const { datasetRequest, generateUploadUrl, uploadFileToS3, confirmUpload, loading, getProtocols } = useBuyerStore();
   const [step, setStep] = useState(0);
   const [intent, setIntent] = useState<"labeling" | "sourcing" | null>(null);
+  const [protocols, setProtocols] = useState<any[]>([]);
+  const [selectedProtocol, setSelectedProtocol] = useState<any>(null);
+  const [buyerAnswers, setBuyerAnswers] = useState<any[]>([]);
   const [validationLog, setValidationLog] = useState<
     { msg: string; type: "error" | "success" }[]
   >([]);
@@ -78,6 +119,9 @@ const CustomDataRequestModal = ({
     setFormData(initialFormData);
     setBudget("");
     setSelectedTimeline(null);
+    setProtocols([]);
+    setSelectedProtocol(null);
+    setBuyerAnswers([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -100,6 +144,16 @@ const CustomDataRequestModal = ({
   // Technical Validator: Checks structure before hitting the Worker
   const validateFileStructure = async (file: File) => {
     const log: { msg: string; type: "error" | "success" }[] = [];
+
+    if (formData.contentType && !fileMatchesContentType(file.name, formData.contentType as ContentType)) {
+      log.push({
+        msg: `File extension does not match content type "${formData.contentType}".`,
+        type: "error",
+      });
+      setValidationLog(log);
+      return;
+    }
+
     if (formData.domain === "NLP") {
       const text = await file.slice(0, 1000).text();
       const isJson = text.trim().startsWith("{") || text.trim().startsWith("[");
@@ -123,24 +177,12 @@ const CustomDataRequestModal = ({
           type: "success",
         });
       }
-    } else if (formData.domain === "RLHF") {
+    } else if (formData.domain === "Code" || formData.domain === "Legal") {
       const text = await file.slice(0, 5000).text(); // Sample first ~5KB
       try {
-        // Simple check for JSON/JSONL format
-        const lines = text.split("\n").filter((l) => l.trim());
-        const firstEntry = JSON.parse(
-          lines[0].startsWith("[")
-            ? text.slice(1, text.indexOf("}")) + "}"
-            : lines[0],
-        );
-
-        if (!firstEntry.prompt)
-          throw new Error("Missing mandatory key: 'prompt'");
-        if (!firstEntry.responses && !firstEntry.response)
-          throw new Error("Missing mandatory key: 'responses' or 'response'");
-
+        if (!text.trim()) throw new Error("File appears to be empty");
         log.push({
-          msg: "Structure Validated: RLHF Protocol detected.",
+          msg: `${formData.domain} staged successfully for review.`,
           type: "success",
         });
       } catch (e: any) {
@@ -181,18 +223,43 @@ const CustomDataRequestModal = ({
     if (intent === "labeling" && !formData.uploadedFile) {
       return toast.error("Attach a file before transmission.");
     }
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      return toast.error("Dataset name is required.");
+    }
+    if (trimmedName.length < 8) {
+      return toast.error("Dataset name must be at least 8 characters long to be descriptive.");
+    }
+    const lowerName = trimmedName.toLowerCase();
+    const genericWords = ["xyz", "abc", "test", "dataset", "data", "custom", "my dataset", "untitled", "temp", "placeholder"];
+    if (genericWords.includes(lowerName) || genericWords.some(word => lowerName === word || lowerName.match(new RegExp(`^[\\s_\\-*]*${word}[\\s_\\-*]*\\d*$`)))) {
+      return toast.error("Please enter a specific, descriptive name (e.g. 'German Medical Audio Transcriptions v1.0') instead of a generic title.");
+    }
     if (!budget) {
       return toast.error("Budget is required");
     }
-
+    if (!formData.labellingMethod) {
+      return toast.error("Labelling method is required");
+    }
+    if (!formData.contentType) {
+      return toast.error("Content type is required");
+    }
+    if (formData.labellingMethod === "rlhf" && !selectedProtocol) {
+      return toast.error("RLHF requires a compatible evaluation protocol");
+    }
+    if (selectedProtocol && !protocolMatchesLabellingMethod(selectedProtocol, formData.labellingMethod as LabellingMethod)) {
+      return toast.error("Selected protocol does not match the labelling method");
+    }
 
     try {
       // Map domain to fileType
       const fileTypeMap: Record<string, string> = {
         NLP: "general",
-        RLHF: "rlhf",
+        Code: "general",
+        Legal: "general",
         Audio: "media",
         Tabular: "general",
+        Medical: "media",
       };
       const fileType = fileTypeMap[formData.domain] || "general";
 
@@ -208,7 +275,11 @@ const CustomDataRequestModal = ({
 
       // Step 3: Create dataset request (creates Dataset record and returns ID)
       toast.loading("Creating dataset request...");
+      const timelineOption = selectedTimeline !== null
+        ? DOMAIN_TIMELINES[formData.domain]?.[selectedTimeline]
+        : null;
       const requestResult = await datasetRequest({
+        name: formData.name,
         domain: formData.domain,
         specifications: formData.specifications,
         volume: formData.volume,
@@ -216,7 +287,13 @@ const CustomDataRequestModal = ({
         budget,
         fileUrl: key,
         timeline: formData.timeline,
+        timelineDays: timelineOption?.days,
+        intent: intent || undefined,
         qualityMetrics: formData.qualityMetrics,
+        labellingMethod: formData.labellingMethod as LabellingMethod,
+        contentType: formData.contentType as ContentType,
+        instructionId: selectedProtocol?._id,
+        buyerAnswers: buyerAnswers
       });
 
       // Step 4: Confirm upload and trigger worker with actual dataset ID
@@ -241,16 +318,15 @@ const CustomDataRequestModal = ({
         onClick={handleModalClose}
       />
 
-      <div className="relative bg-[#0A0A0A] w-full max-w-2xl border border-zinc-800 shadow-2xl overflow-hidden animate-in zoom-in-95">
+      <div className="relative bg-[#0A0A0A] w-full max-w-2xl max-h-[90vh] flex flex-col border border-zinc-800 shadow-2xl overflow-hidden animate-in zoom-in-95">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-zinc-900">
           <div
             className="h-full bg-indigo-500 transition-all shadow-[0_0_15px_#6366f1]"
-            style={{ width: `${((step + 1) / 5) * 100}%` }}
+            style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
           />
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 md:p-12">
-          {/* STEP 0: INTENT */}
+        <form onSubmit={handleSubmit} className="p-8 md:p-12 overflow-y-auto flex-1">
           {step === 0 && (
             <div className="space-y-10">
               <header>
@@ -299,58 +375,255 @@ const CustomDataRequestModal = ({
               </div>
             </div>
           )}
-
-          {/* STEP 1: DOMAIN */}
           {step === 1 && (
             <div className="space-y-8">
               <header>
                 <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
-                  <Terminal size={14} /> Phase_01 // Classification
+                  <Terminal size={14} /> Phase_01 // Labelling Method
                 </div>
                 <h2 className="text-3xl font-bold text-white italic">
-                  System Domain
+                  How should this be labelled?
                 </h2>
+                <p className="text-zinc-500 text-xs mt-2">
+                  This defines the annotation workflow. It is separate from what the data is (text, audio, image, etc.).
+                </p>
               </header>
               <div className="grid grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
-                {[
-                  {
-                    id: "NLP",
-                    icon: MessageSquareText,
-                    label: "Natural Language",
-                  },
-                  { id: "RLHF", icon: FileJson, label: "RLHF / Alignment" },
-                  { id: "Audio", icon: Headphones, label: "Audio / Speech" },
-                  {
-                    id: "Tabular",
-                    icon: TableProperties,
-                    label: "Tabular / Finance",
-                  },
-                ].map((d) => (
+                {LABELLING_METHOD_OPTIONS.map((m) => (
                   <button
-                    key={d.id}
+                    key={m.id}
                     type="button"
                     onClick={() => {
-                      setFormData({ ...formData, domain: d.id as Domain });
-                      setSelectedTimeline(null);
+                      setFormData({ ...formData, labellingMethod: m.id });
+                      setSelectedProtocol(null);
+                      setProtocols([]);
                       setStep(2);
                     }}
-                    className={`p-6 text-left group bg-[#050505] hover:bg-zinc-950 transition-all ${formData.domain === d.id ? "border-l-2 border-indigo-500" : ""}`}
+                    className={`p-6 text-left bg-[#050505] hover:bg-zinc-950 transition-all ${formData.labellingMethod === m.id ? "border-l-2 border-indigo-500" : ""}`}
                   >
-                    <d.icon
-                      size={18}
-                      className="text-zinc-600 mb-2 group-hover:text-indigo-400"
-                    />
+                    <span className="block text-xs font-bold text-zinc-200 tracking-widest uppercase">
+                      {m.label}
+                    </span>
+                    <span className="block text-[10px] text-zinc-500 mt-2 font-light">{m.description}</span>
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => setStep(0)} className="text-zinc-600 font-bold text-[10px] uppercase tracking-widest">
+                Back
+              </button>
+            </div>
+          )}
+          {step === 2 && (
+            <div className="space-y-8">
+              <header>
+                <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
+                  <Terminal size={14} /> Phase_02 // Content Modality
+                </div>
+                <h2 className="text-3xl font-bold text-white italic">
+                  What is the primary content?
+                </h2>
+                <p className="text-zinc-500 text-xs mt-2">
+                  RLHF and other methods can apply to any modality — this selects how responses are rendered in the workbench.
+                </p>
+              </header>
+              <div className="grid grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
+                {CONTENT_TYPE_OPTIONS.map((ct) => (
+                  <button
+                    key={ct.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, contentType: ct.id });
+                      setStep(3);
+                    }}
+                    className={`p-6 text-left bg-[#050505] hover:bg-zinc-950 transition-all ${formData.contentType === ct.id ? "border-l-2 border-indigo-500" : ""}`}
+                  >
                     <span className="block text-xs font-bold text-zinc-300 tracking-widest uppercase">
-                      {d.label}
+                      {ct.label}
                     </span>
                   </button>
                 ))}
               </div>
+              <button type="button" onClick={() => setStep(1)} className="text-zinc-600 font-bold text-[10px] uppercase tracking-widest">
+                Back
+              </button>
             </div>
           )}
+          {step === 3 && (
+            <div className="space-y-8">
+              <header>
+                <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
+                  <Terminal size={14} /> Phase_03 // Vertical Domain
+                </div>
+                <h2 className="text-3xl font-bold text-white italic">
+                  System Domain
+                </h2>
+                <p className="text-zinc-500 text-xs mt-2">
+                  Industry or use-case vertical — not the labelling method.
+                </p>
+              </header>
+              {formData.contentType && formData.domain && inferContentTypeFromDomain(formData.domain) !== formData.contentType && (
+                <p className="text-[10px] font-mono text-amber-500/90 border border-amber-900/40 bg-amber-950/20 p-3">
+                  Domain &quot;{formData.domain}&quot; often uses {inferContentTypeFromDomain(formData.domain)} content; you selected {formData.contentType}. That is allowed if your file matches {formData.contentType}.
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
+                {[
+                  { id: "NLP", icon: MessageSquareText, label: "Natural Language" },
+                  { id: "Code", icon: FileJson, label: "Code / Review" },
+                  { id: "Legal", icon: FileJson, label: "Legal / Review" },
+                  { id: "Audio", icon: Headphones, label: "Audio / Speech" },
+                  { id: "Tabular", icon: TableProperties, label: "Tabular / Finance" },
+                  { id: "Medical", icon: Activity, label: "Medical / Imaging" },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={async () => {
+                      if (!formData.labellingMethod) {
+                        return toast.error("Select a labelling method first");
+                      }
+                      setFormData({ ...formData, domain: d.id as Domain });
+                      setSelectedTimeline(null);
+                      setSelectedProtocol(null);
+                      const availableProtocols = await getProtocols(d.id, formData.labellingMethod);
+                      setProtocols(availableProtocols);
+                      setStep(4);
+                    }}
+                    className={`p-6 text-left group bg-[#050505] hover:bg-zinc-950 transition-all ${formData.domain === d.id ? "border-l-2 border-indigo-500" : ""}`}
+                  >
+                    <d.icon size={18} className="text-zinc-600 mb-2 group-hover:text-indigo-400" />
+                    <span className="block text-xs font-bold text-zinc-300 tracking-widest uppercase">{d.label}</span>
+                    {formData.contentType && inferContentTypeFromDomain(d.id) === formData.contentType && (
+                      <span className="block text-[9px] text-indigo-400/80 mt-1 font-mono">Typical for {formData.contentType}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => setStep(2)} className="text-zinc-600 font-bold text-[10px] uppercase tracking-widest">
+                Back
+              </button>
+            </div>
+          )}
+          {step === 4 && (
+            <div className="space-y-8">
+              <header className="mb-8">
+                <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
+                  <Terminal size={14} /> Phase_04 // Evaluation Protocol
+                </div>
+                <h2 className="text-3xl font-bold text-white italic">
+                  Select Protocol
+                </h2>
+                <p className="text-zinc-500 text-xs mt-3">
+                  Choose a predefined set of evaluation rubrics and instructions for labellers.
+                </p>
+              </header>
 
-          {/* STEP 2: DELIVERY TIMELINE & SLA */}
-          {step === 2 && (
+              {protocols.length === 0 ? (
+                <div className="p-8 border border-dashed border-zinc-800 text-center bg-[#050505]">
+                  <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest">
+                    No protocols match {formData.labellingMethod} for {formData.domain}.
+                  </p>
+                  {formData.labellingMethod === "rlhf" ? (
+                    <p className="text-red-400/90 text-[10px] mt-3 font-mono">
+                      RLHF requires a protocol with preference ranking or dimensional scoring. Contact support or choose another method.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-zinc-600 text-[10px] mt-2">You can continue and provide specifications manually.</p>
+                      <button type="button" onClick={() => setStep(5)} className="mt-6 bg-indigo-600 text-white px-6 py-2 font-bold text-[10px] uppercase tracking-widest hover:bg-indigo-500">
+                        Continue without Protocol
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {!selectedProtocol ? (
+                    <div className="grid gap-4">
+                      {protocols.map(p => (
+                        <button key={p._id} type="button" onClick={() => {
+                          if (!protocolMatchesLabellingMethod(p, formData.labellingMethod as LabellingMethod)) {
+                            toast.error("This protocol does not match your labelling method");
+                            return;
+                          }
+                          setSelectedProtocol(p);
+                          setBuyerAnswers(p.buyerQuestions?.map((q: any) => ({ question: q.question, answer: '' })) || []);
+                        }} className="text-left p-6 bg-[#050505] border border-zinc-800 hover:border-indigo-500 transition-all group">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-lg font-bold text-white group-hover:text-indigo-400">{p.name}</h3>
+                            <span className="text-[9px] font-mono bg-zinc-900 px-2 py-1 text-zinc-400 uppercase">v{p.version}</span>
+                          </div>
+                          <p className="text-xs text-zinc-500 mb-4">{p.buyerVisibleSummary}</p>
+                          <div className="flex gap-4 text-[10px] font-mono text-zinc-600 uppercase">
+                            <span>{p.rubrics?.length || 0} Rubrics</span>
+                            <span>{p.goldenExamples?.length || 0} Examples</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center p-4 bg-indigo-950/20 border border-indigo-500/30">
+                        <div>
+                          <h3 className="text-sm font-bold text-indigo-400">Selected: {selectedProtocol.name}</h3>
+                          <p className="text-[10px] font-mono text-indigo-300/70 mt-1">{selectedProtocol.buyerQuestions?.length || 0} configuration questions required</p>
+                        </div>
+                        <button type="button" onClick={() => setSelectedProtocol(null)} className="text-[10px] font-bold text-zinc-500 hover:text-white uppercase tracking-widest">Change</button>
+                      </div>
+
+                      {selectedProtocol.buyerQuestions?.length > 0 && (
+                        <div className="space-y-6 pt-4">
+                          {selectedProtocol.buyerQuestions.map((q: any, i: number) => (
+                            <div key={i} className="space-y-2">
+                              <label className="text-[10px] font-mono text-zinc-400 uppercase">{q.question}</label>
+                              {q.type === 'select' || q.type === 'multiselect' ? (
+                                <select value={buyerAnswers[i]?.answer || ''} onChange={e => {
+                                  const ans = [...buyerAnswers];
+                                  ans[i] = { question: q.question, answer: e.target.value };
+                                  setBuyerAnswers(ans);
+                                }} className="w-full bg-black border border-zinc-800 p-3 text-white text-sm outline-none focus:border-indigo-500">
+                                  <option value="">Select an option...</option>
+                                  {q.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                                </select>
+                              ) : q.type === 'textarea' ? (
+                                <textarea value={buyerAnswers[i]?.answer || ''} onChange={e => {
+                                  const ans = [...buyerAnswers];
+                                  ans[i] = { question: q.question, answer: e.target.value };
+                                  setBuyerAnswers(ans);
+                                }} className="w-full bg-black border border-zinc-800 p-3 text-white text-sm outline-none focus:border-indigo-500" rows={3} />
+                              ) : (
+                                <input type="text" value={buyerAnswers[i]?.answer || ''} onChange={e => {
+                                  const ans = [...buyerAnswers];
+                                  ans[i] = { question: q.question, answer: e.target.value };
+                                  setBuyerAnswers(ans);
+                                }} className="w-full bg-black border border-zinc-800 p-3 text-white text-sm outline-none focus:border-indigo-500" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-4 pt-4 border-t border-zinc-900">
+                        <button type="button" onClick={() => setStep(3)} className="flex-1 text-zinc-600 font-bold text-[10px] uppercase tracking-widest">Back</button>
+                        <button type="button" onClick={() => {
+                          if (!protocolMatchesLabellingMethod(selectedProtocol, formData.labellingMethod as LabellingMethod)) {
+                            return toast.error("Selected protocol does not match your labelling method");
+                          }
+                          if (selectedProtocol.buyerQuestions?.length > 0 && buyerAnswers.some(a => !a.answer)) {
+                            return toast.error("Please answer all protocol questions");
+                          }
+                          setStep(5);
+                        }} className="flex-[2] py-4 bg-white text-black font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 flex justify-center items-center gap-2">
+                          Continue <ChevronRight size={14}/>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {step === 5 && (
             <div className="space-y-8">
               <header className="mb-10">
                 <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
@@ -392,10 +665,12 @@ const CustomDataRequestModal = ({
                   </button>
                 ))}
               </div>
-
-              {/* Quality Metrics for Domain */}
               {formData.domain && (
                 <div className="space-y-2 border-t border-zinc-900 pt-6">
+                  <div className="flex gap-4 text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-4">
+                    <span>Method: {formData.labellingMethod}</span>
+                    <span>Content: {formData.contentType}</span>
+                  </div>
                   <label className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest ml-1">
                     // Quality Acceptance Criteria
                   </label>
@@ -406,8 +681,10 @@ const CustomDataRequestModal = ({
                     }
                     rows={2}
                     placeholder={
-                      formData.domain === "RLHF"
-                        ? "e.g., >95% inter-rater agreement, min 3 reviewers per sample"
+                      formData.domain === "Code"
+                        ? "e.g., syntax correctness, security review, function coverage"
+                        : formData.domain === "Legal"
+                        ? "e.g., clause accuracy, citation consistency, risk spotting"
                         : formData.domain === "NLP"
                         ? "e.g., >90% accuracy, native speakers preferred"
                         : formData.domain === "Audio"
@@ -422,7 +699,7 @@ const CustomDataRequestModal = ({
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(4)}
                   className="flex-1 text-zinc-600 font-bold text-[10px] uppercase tracking-widest"
                 >
                   Back
@@ -430,11 +707,11 @@ const CustomDataRequestModal = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (!selectedTimeline) {
+                    if (selectedTimeline === null) {
                       toast.error("Please select a timeline");
                       return;
                     }
-                    setStep(3);
+                    setStep(6);
                   }}
                   className="flex-[2] py-4 bg-white text-black font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 flex items-center justify-center gap-2"
                 >
@@ -443,13 +720,11 @@ const CustomDataRequestModal = ({
               </div>
             </div>
           )}
-
-          {/* STEP 3: TECHNICALS & LOG */}
-          {step === 3 && (
+          {step === 6 && (
             <div className="space-y-6">
               <header>
                 <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
-                  <Terminal size={14} /> Phase_02 // Technicals
+                  <Terminal size={14} /> Phase_04 // Assets & Specs
                 </div>
                 <h2 className="text-3xl font-bold text-white italic">
                   Technical Brief
@@ -475,8 +750,6 @@ const CustomDataRequestModal = ({
                   </p>
                 </div>
               )}
-
-              {/* TECHNICAL ERROR LOG */}
               {validationLog.length > 0 && (
                 <div className="bg-black border border-zinc-900 p-4 font-mono text-[10px]">
                   {validationLog.map((log, i) => (
@@ -496,6 +769,28 @@ const CustomDataRequestModal = ({
               )}
 
               <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest ml-1">
+                    Dataset_Name / Identity
+                  </label>
+                  <span className="text-[10px] text-zinc-500 ml-1">
+                    Provide a descriptive identifier. Avoid generic titles like &quot;xyz&quot;, &quot;test&quot; or &quot;dataset&quot;. E.g., &quot;German Medical Audio Transcriptions v1.0&quot;
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="e.g., German Medical Audio Transcriptions v1.0"
+                  className="w-full bg-zinc-950 border border-zinc-900 p-4 text-white text-xs outline-none focus:border-indigo-500/50"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest ml-1">
                   // Project Specifications
                 </label>
@@ -507,8 +802,10 @@ const CustomDataRequestModal = ({
                   }
                   rows={3}
                   placeholder={
-                    formData.domain === "RLHF"
-                      ? "Prompt structure, ranking criteria..."
+                    formData.domain === "Code"
+                      ? "Code review rubric, bug detection criteria..."
+                      : formData.domain === "Legal"
+                      ? "Clause review, red-flag detection, citation checks..."
                       : "Data constraints..."
                   }
                   className="w-full bg-zinc-950 border border-zinc-900 p-4 text-white text-xs outline-none focus:border-indigo-500/50"
@@ -518,14 +815,14 @@ const CustomDataRequestModal = ({
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(5)}
                   className="flex-1 text-zinc-600 font-bold text-[10px] uppercase tracking-widest"
                 >
                   Back
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(4)}
+                  onClick={() => setStep(7)}
                   className="flex-[2] py-4 bg-white text-black font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 flex items-center justify-center gap-2"
                 >
                   Logistics <ChevronRight size={14} />
@@ -533,13 +830,11 @@ const CustomDataRequestModal = ({
               </div>
             </div>
           )}
-
-          {/* STEP 4: LOGISTICS */}
-          {step === 4 && (
+          {step === 7 && (
             <div className="space-y-8">
               <header className="mb-10">
                 <div className="flex items-center gap-2 text-indigo-500 mb-2 font-mono text-[9px] uppercase tracking-widest">
-                  <Terminal size={14} /> Phase_04 // Finalization
+                  <Terminal size={14} /> Phase_05 // Finalization
                 </div>
                 <h2 className="text-3xl font-bold text-white italic">
                   System Logistics
@@ -602,7 +897,7 @@ const CustomDataRequestModal = ({
               </button>
               <button
                 type="button"
-                onClick={() => setStep(3)}
+                onClick={() => setStep(6)}
                 className="w-full text-zinc-600 font-bold text-[10px] uppercase tracking-widest"
               >
                 Back to Technicals

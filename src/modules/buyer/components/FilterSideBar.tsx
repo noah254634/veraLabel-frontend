@@ -47,8 +47,6 @@ const FilterSideBar: React.FC<FilterSideBarProps> = ({
           Reset All
         </button>
       </div>
-
-      {/* Categories */}
       <section>
         <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
           Categories
@@ -79,8 +77,6 @@ const FilterSideBar: React.FC<FilterSideBarProps> = ({
           ))}
         </div>
       </section>
-
-      {/* Price Range */}
       <section>
         <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
           Price Range
@@ -106,8 +102,6 @@ const FilterSideBar: React.FC<FilterSideBarProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Minimum Rating */}
       <section>
         <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
           Minimum Rating

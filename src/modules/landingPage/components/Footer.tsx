@@ -5,8 +5,6 @@ const Footer = () => {
     <footer className="bg-black text-gray-400 px-6 py-20 border-t border-white/5">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-12 gap-y-12 gap-x-8 mb-16">
-          
-          {/* Brand Column */}
           <div className="col-span-2 md:col-span-4">
             <Link to="/" className="text-white text-xl font-bold tracking-tight">
               VeraLabel<span className="text-indigo-500">.</span>
@@ -25,8 +23,6 @@ const Footer = () => {
               </div>
             </div>
           </div>
-
-          {/* Links Sections */}
           <div className="col-span-1 md:col-span-2">
             <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-6">Company</h4>
             <ul className="space-y-4 text-sm">
@@ -64,8 +60,6 @@ const Footer = () => {
           </div>
 
         </div>
-
-        {/* Bottom Strip */}
         <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-[11px] font-medium tracking-wider uppercase text-gray-600">
             © {new Date().getFullYear()} VeraLabel Technology Group

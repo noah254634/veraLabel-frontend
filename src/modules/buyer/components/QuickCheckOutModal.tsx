@@ -47,16 +47,11 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      {/* Heavy Backdrop */}
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-xl transition-opacity duration-500" 
         onClick={status === 'processing' ? undefined : onClose}
       />
-
-      {/* Modal: Obsidian Container */}
       <div className="relative bg-[#0A0A0A] w-full max-w-md border border-zinc-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-200">
-        
-        {/* Top Decorative Scanning Line */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-600 to-transparent opacity-50" />
 
         <div className="p-8 sm:p-10">
@@ -84,7 +79,6 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
               </header>
 
               <div className="space-y-6">
-                {/* Technical Summary List */}
                 <div className="bg-black/40 border border-zinc-900 divide-y divide-zinc-900">
                   <ManifestItem label="Asset" value={dataset.title} />
                   <ManifestItem label="Format" value={dataset.format || "N/A"} />
@@ -94,8 +88,6 @@ const QuickCheckoutModal: React.FC<QuickCheckoutModalProps> = ({ isOpen, onClose
                     <span className="text-xl font-bold text-white tabular-nums">{formattedTotal}</span>
                   </div>
                 </div>
-
-                {/* Primary Action */}
                 <div className="space-y-6">
                   <button
                     onClick={handlePaymentRedirect}

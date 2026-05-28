@@ -1,4 +1,5 @@
 export interface OrderType {
+  orderNumber: string;
   reference: string;
   _id: string;
   buyerId: string;

@@ -26,6 +26,7 @@ import {
 import type { User } from "../../../shared/types/user";
 import useStore from "../store/userManagementStore";
 import AdminActionModal from "../components/ReasonModal";
+import { BuyerVettingModal } from "../components/BuyerVettingModal";
 
 const AdminUserModule = () => {
   const {
@@ -48,19 +49,42 @@ const AdminUserModule = () => {
     verifyUser,
     unverifyUser,
     rateUser,
+    getBuyerByUserId,
   } = useStore();
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchType, setSearchType] = useState("username");
   const [searchTerm, setSearchTerm] = useState("");
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [isBuyerModalOpen, setIsBuyerModalOpen] = useState(false);
+  const [buyerDetails, setBuyerDetails] = useState<any | null>(null);
+  const [loadingBuyer, setLoadingBuyer] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
     type: any;
     user: User;
   } | null>(null);
+
   useEffect(() => {
     getUsers();
   }, [getUsers]);
+
+  useEffect(() => {
+    if (selectedUser && selectedUser.role === "buyer") {
+      setLoadingBuyer(true);
+      getBuyerByUserId(selectedUser._id)
+        .then((details) => {
+          setBuyerDetails(details);
+        })
+        .catch(() => {
+          setBuyerDetails(null);
+        })
+        .finally(() => {
+          setLoadingBuyer(false);
+        });
+    } else {
+      setBuyerDetails(null);
+    }
+  }, [selectedUser, getBuyerByUserId]);
 
   useEffect(() => {
     if (!selectedUser) return;
@@ -124,7 +148,6 @@ const AdminUserModule = () => {
   };
   return (
     <div className="relative flex flex-col md:flex-row w-full h-full min-h-0 bg-[#020203] text-zinc-400 overflow-hidden animate-in fade-in duration-500">
-      {/* --- LEFT: CONTEXTUAL PROFILE --- */}
       <aside
         className={`
           fixed inset-0 z-50 w-full bg-[#050505] 
@@ -153,7 +176,6 @@ const AdminUserModule = () => {
             </header>
 
             <div className="space-y-10">
-              {/* Identity Header */}
               <div className="flex items-start gap-8 p-8 bg-black border border-zinc-900 rounded-sm">
                 <div className="h-24 w-24 shrink-0 bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white text-4xl font-bold">
                   {selectedUser.name?.charAt(0)}
@@ -189,15 +211,103 @@ const AdminUserModule = () => {
                   </div>
                 </div>
               </div>
+              {selectedUser.role === "buyer" && (
+                <section className="space-y-4 animate-in fade-in duration-300">
+                  <h3 className="text-[9px] font-mono font-bold uppercase text-indigo-400 tracking-[0.3em]">
+                    // Buyer_Company_Details
+                  </h3>
+                  {loadingBuyer ? (
+                    <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-sm flex items-center justify-center">
+                      <span className="text-[10px] font-mono text-zinc-500 animate-pulse">Loading_Credentials...</span>
+                    </div>
+                  ) : buyerDetails ? (
+                    <div className="bg-zinc-950 border border-zinc-900 rounded-sm divide-y divide-zinc-900">
+                      <div className="p-4 grid grid-cols-2 gap-4">
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">Company Name</p>
+                          <p className="text-xs text-white font-medium truncate">{buyerDetails.companyName || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">Verification Status</p>
+                          <span className={`inline-block px-1.5 py-0.5 text-[8px] font-mono font-bold rounded-sm uppercase ${
+                            buyerDetails.verificationStatus === "approved"
+                              ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                              : buyerDetails.verificationStatus === "rejected"
+                              ? "bg-rose-500/10 border border-rose-500/30 text-rose-400"
+                              : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                          }`}>
+                            {buyerDetails.verificationStatus || "unsubmitted"}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">Website</p>
+                          {buyerDetails.website ? (
+                            <a href={buyerDetails.website.startsWith('http') ? buyerDetails.website : `https://${buyerDetails.website}`} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:underline flex items-center gap-1 truncate block">
+                              {buyerDetails.website}
+                            </a>
+                          ) : (
+                            <p className="text-xs text-zinc-500">N/A</p>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">LinkedIn</p>
+                          {buyerDetails.linkedin ? (
+                            <a href={buyerDetails.linkedin.startsWith('http') ? buyerDetails.linkedin : `https://${buyerDetails.linkedin}`} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:underline flex items-center gap-1 truncate block">
+                              Profile Link
+                            </a>
+                          ) : (
+                            <p className="text-xs text-zinc-500">N/A</p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">Industry</p>
+                          <p className="text-xs text-white">{buyerDetails.industry || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">Company Size</p>
+                          <p className="text-xs text-white">{buyerDetails.companySize || "N/A"}</p>
+                        </div>
+                      </div>
+                      {buyerDetails.intendedUseCase && (
+                        <div className="p-4">
+                          <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">Intended Use Case</p>
+                          <p className="text-xs text-zinc-300 font-light leading-relaxed">{buyerDetails.intendedUseCase}</p>
+                        </div>
+                      )}
+                      {buyerDetails.adminNotes && (
+                        <div className="p-4 bg-red-950/10 text-red-400 text-xs">
+                          <span className="font-mono font-bold uppercase block mb-1 text-[8px] text-red-500/80">// Vetting Notes</span>
+                          {buyerDetails.adminNotes}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-sm text-center">
+                      <p className="text-[10px] font-mono text-zinc-500 uppercase">No_Buyer_Registration_Profile_Found</p>
+                    </div>
+                  )}
 
-              {/*LABELLER TASK CONTROL CENTER */}
+                  <h3 className="text-[9px] font-mono font-bold uppercase text-indigo-400 tracking-[0.3em] pt-4">
+                    // Buyer_Vetting_Orchestration
+                  </h3>
+                  <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-sm">
+                    <p className="text-[10px] text-zinc-500 font-light mb-4">
+                      Vetting validation portal for checking LinkedIn profiles, websites, and business intended use cases.
+                    </p>
+                    <button
+                      onClick={() => setIsBuyerModalOpen(true)}
+                      className="w-full py-4 bg-[#0A0A0A] border border-zinc-900 hover:border-zinc-700 text-indigo-400 hover:text-white transition-all text-[9px] font-mono font-bold uppercase tracking-widest rounded-sm"
+                    >
+                      [Launch_Buyer_Vetting]
+                    </button>
+                  </div>
+                </section>
+              )}
               {selectedUser.role === "labeler" && (
                 <section className="space-y-4">
                   <h3 className="text-[9px] font-mono font-bold uppercase text-amber-500 tracking-[0.3em]">
                     // Labeller_Orchestration
                   </h3>
-
-                  {/* Task Metrics Dashboard */}
                   <div className="grid grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-4 overflow-hidden shadow-2xl">
                     <div className="bg-black p-4">
                       <p className="text-[8px] font-mono text-zinc-600 uppercase mb-1">
@@ -224,8 +334,6 @@ const AdminUserModule = () => {
                       </p>
                     </div>
                   </div>
-
-                  {/* Task Actions */}
                   <div className="grid grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
                     <button
                       className="flex items-center justify-center gap-3 py-4 bg-[#0A0A0A] text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all text-[9px] font-mono font-bold uppercase tracking-widest"
@@ -273,7 +381,6 @@ const AdminUserModule = () => {
                     </div>
 
                     <div className="p-4 bg-zinc-950 border border-zinc-900 flex flex-wrap gap-2">
-                      {/* Capability Tags */}
                       {[
                         "CV_Segmentation",
                         "Audio_Transcribe",
@@ -323,7 +430,6 @@ const AdminUserModule = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
-                  {/* The Payment "Kill Switch" */}
                   <ActionBtn
                     label="Cancel Pending"
                     icon={<ShieldAlert />}
@@ -350,7 +456,6 @@ const AdminUserModule = () => {
                   />
                 </div>
               </section>
-              {/* Action Grid */}
               <div className="grid grid-cols-1 gap-8">
                 <ActionGroup
                   label="Verification_Protocols"
@@ -500,8 +605,6 @@ const AdminUserModule = () => {
           </div>
         )}
       </aside>
-
-      {/* --- RIGHT: THE REGISTRY --- */}
       <main
         className={`flex-1 flex flex-col min-w-0 ${selectedUser ? "hidden md:flex" : "flex"}`}
       >
@@ -553,8 +656,6 @@ const AdminUserModule = () => {
             </div>
           </div>
         </header>
-
-        {/* Table Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-[#0A0A0A] border-b border-zinc-900">
@@ -619,6 +720,27 @@ const AdminUserModule = () => {
         userName={pendingAction.user.name}
       />
     )}
+
+      {selectedUser && selectedUser.role === "buyer" && (
+        <BuyerVettingModal
+          isOpen={isBuyerModalOpen}
+          onClose={() => setIsBuyerModalOpen(false)}
+          userId={selectedUser._id}
+          userName={selectedUser.name}
+          onStatusUpdated={() => {
+            getUsers();
+            if (selectedUser) {
+              getBuyerByUserId(selectedUser._id)
+                .then((details) => {
+                  setBuyerDetails(details);
+                })
+                .catch(() => {
+                  setBuyerDetails(null);
+                });
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

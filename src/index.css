@@ -46,8 +46,8 @@
 }
 
 @keyframes scan {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(500%); }
+  from { top: 0%; }
+  to { top: 100%; }
 }
 
 .animate-scan {
@@ -61,4 +61,13 @@
 
 .animate-pulse-subtle {
   animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
 }

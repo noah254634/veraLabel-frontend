@@ -19,8 +19,6 @@ import LogoutButton from "../../auth/logout";
 export const AdminSidebar = () => {
   return (
     <nav className="flex flex-col h-full py-4 selection:bg-indigo-500/30">
-      
-      {/* --- SECTION 1: SYSTEM CORE --- */}
       <div className="px-4 mb-4 flex items-center gap-2 opacity-30">
         <Terminal size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -40,8 +38,6 @@ export const AdminSidebar = () => {
           icon={<Users size={18} strokeWidth={1.5} />} 
         />
       </div>
-
-      {/* --- SECTION 2: INFRASTRUCTURE --- */}
       <div className="mt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
         <Activity size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -61,8 +57,8 @@ export const AdminSidebar = () => {
           icon={<Layers size={18} strokeWidth={1.5} />} 
         />
         <NavItem 
-          to="/admin/projects" 
-          label="Bespoke_Projects" 
+          to="/admin/protocols" 
+          label="Protocol_Templates" 
           icon={<Database size={18} strokeWidth={1.5} />} 
         />
         <NavItem 
@@ -72,12 +68,10 @@ export const AdminSidebar = () => {
         />
         <NavItem
           to="/admin/notifications"
-          label="Notifications"
+          label="Dispatch_Center"
           icon={<Bell size={18} strokeWidth={1.5} />}
         />
       </div>
-
-      {/* --- SECTION 3: CONFIGURATION --- */}
       <div className="mt-8 px-4 mb-4 flex items-center gap-2 opacity-30">
         <ShieldCheck size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
@@ -88,7 +82,7 @@ export const AdminSidebar = () => {
       <div className="space-y-1">
         <NavItem 
           to="/admin/settings" 
-          label="Global_Settings" 
+          label="System_Settings" 
           icon={<Settings size={18} strokeWidth={1.5} />} 
         />
         <NavItem 
@@ -96,14 +90,10 @@ export const AdminSidebar = () => {
           label="Support_Docs" 
           icon={<HelpCircle size={18} strokeWidth={1.5} />} 
         />
-        
-        {/* Logout typically sits at the bottom */}
         <div className="pt-4 mt-4 border-t border-zinc-900 mx-2">
           <LogoutButton />
         </div>
       </div>
-
-      {/* --- STATUS NODE --- */}
       <div className="mt-auto px-4 pt-10">
         <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-sm">
           <div className="flex items-center gap-3">

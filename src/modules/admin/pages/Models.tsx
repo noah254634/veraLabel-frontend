@@ -7,8 +7,6 @@ import {
 const ModelsPage = () => {
   return (
     <div className="w-full animate-in fade-in duration-700">
-      
-      {/* Header: Compute Telemetry */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-500 mb-4">
@@ -22,8 +20,6 @@ const ModelsPage = () => {
             Orchestrating pre-labeling automation and cross-node consensus models.
           </p>
         </div>
-        
-        {/* Compute Status Node */}
         <div className="flex gap-px bg-zinc-900 border border-zinc-900 shadow-2xl overflow-hidden">
           <div className="bg-[#0A0A0A] flex items-center gap-3 px-6 py-3">
             <Server size={14} className="text-indigo-500" />
@@ -35,15 +31,11 @@ const ModelsPage = () => {
           </div>
         </div>
       </header>
-
-      {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-16 shadow-2xl">
         <ModelStat icon={<Zap size={18} />} label="Inferences_Generated" value="4.2M" color="text-amber-500" />
         <ModelStat icon={<ShieldCheck size={18} />} label="Avg_Model_Confidence" value="89.4%" color="text-emerald-500" />
         <ModelStat icon={<Layers size={18} />} label="Active_Deployments" value="12" color="text-indigo-500" />
       </div>
-
-      {/* Models Catalog: High-Density List */}
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
             <h3 className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-zinc-600">// Deployed_Engines</h3>
@@ -80,8 +72,6 @@ const ModelsPage = () => {
           />
         </div>
       </div>
-
-      {/* Performance Sandbox: Obsidian CTA */}
       <div className="mt-20 bg-[#050505] border border-zinc-900 p-12 relative overflow-hidden group shadow-2xl">
         <div className="absolute top-0 right-0 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity">
           <Database size={240} strokeWidth={1} className="text-indigo-500" />

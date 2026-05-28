@@ -30,8 +30,6 @@ const themes = {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div className={`w-full max-w-md bg-[#050505] border ${currentTheme.border} shadow-2xl overflow-hidden`}>
-        
-        {/* Modal Header */}
         <header className="p-4 border-b border-zinc-900 flex justify-between items-center bg-black">
           <div className="flex items-center gap-3">
             <ShieldAlert size={16} className={currentTheme.color} />
@@ -43,8 +41,6 @@ const themes = {
             <X size={18} />
           </button>
         </header>
-
-        {/* Modal Body */}
         <div className="p-6 space-y-6">
           <div className={`p-4 ${currentTheme.bg} border border-zinc-900`}>
             <p className="text-zinc-400 text-xs leading-relaxed">
@@ -73,8 +69,6 @@ const themes = {
             </p>
           </div>
         </div>
-
-        {/* Modal Footer */}
         <footer className="p-4 bg-black border-t border-zinc-900 flex gap-px">
           <button 
             onClick={onClose}

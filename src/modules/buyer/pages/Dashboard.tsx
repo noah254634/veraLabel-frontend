@@ -21,6 +21,8 @@ import {
   ShieldCheck
 } from "lucide-react";
 import RequestCard from "../components/RequestCard";
+import { OnboardingWizard } from "../components/OnboardingWizard";
+import { VerificationOverlay } from "../components/VerificationOverlay";
 
 const StatCard = ({ label, value, trend, icon, color }: any) => {
   const accentColors = {
@@ -54,9 +56,19 @@ const StatCard = ({ label, value, trend, icon, color }: any) => {
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const { getDatasets, getDatasetOrders, buyerDatasetOrders, buyerDatasetStats } = useBuyerStore();
+  const { 
+    getDatasets, 
+    getDatasetOrders, 
+    buyerDatasetOrders, 
+    buyerDatasetStats,
+    buyerProfile,
+    getBuyerProfile 
+  } = useBuyerStore();
   const { loadingOrderIds, initiatePayment, cancelPayment, reportIssue } = useDashboardStore();
   const [customDataRequestModal, setCustomDataRequestModal] = useState(false);
+  
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [overrideShowWizard, setOverrideShowWizard] = useState(false);
 
   // Use backend stats if available, otherwise calculate from local (which might be limited)
   const stats = useMemo(() => {
@@ -78,22 +90,23 @@ const Dashboard: React.FC = () => {
   const handlePaymentInitiation = async (orderId: string, budget: string) => {
     try {
       const response = await initiatePayment(orderId, budget);
-      if (response?.url) {
+      const paymentUrl = typeof response === "string" ? response : response?.url;
+      if (paymentUrl) {
         // Refresh orders before redirecting to payment
         await getDatasetOrders();
-        window.location.href = response.url;
+        window.location.href = paymentUrl;
       }
     } catch (error) {
       // Error already handled in store
     }
   };
 
-  const calculateDeliveryDate = (timeline: string, createdAt: string): string => {
+  const calculateDeliveryDate = (timeline: string, createdAt: string, timelineDays?: number): string => {
     const timelineMap: Record<string, number> = {
       "Expedited": 2, "Express": 5, "Premium": 7, "Fast": 10,
       "Standard": 14, "Relaxed": 21, "Budget": 30, "Comprehensive": 45
     };
-    const days = timelineMap[timeline] || 14;
+    const days = timelineDays || timelineMap[timeline] || 14;
     const date = new Date(createdAt);
     date.setDate(date.getDate() + days);
     return date.toLocaleDateString();
@@ -123,10 +136,71 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // 1. Load profile state on mount
   useEffect(() => {
-    getDatasets();
-    getDatasetOrders();
-  }, [getDatasets, getDatasetOrders]);
+    const loadProfile = async () => {
+      try {
+        await getBuyerProfile();
+      } catch (err) {
+        console.error("Failed to load buyer profile", err);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+    loadProfile();
+  }, [getBuyerProfile]);
+
+  // 2. Fetch datasets and orders ONLY when approved
+  useEffect(() => {
+    const isApproved = buyerProfile?.verificationStatus === "approved" && buyerProfile?.isActive;
+    if (isApproved) {
+      getDatasets();
+      getDatasetOrders();
+    }
+  }, [buyerProfile, getDatasets, getDatasetOrders]);
+
+  if (profileLoading && !buyerProfile) {
+    return (
+      <div className="flex h-[60vh] w-full items-center justify-center">
+        <Loader2 className="animate-spin text-indigo-500" size={32} />
+      </div>
+    );
+  }
+
+  const isApproved = buyerProfile?.verificationStatus === "approved" && buyerProfile?.isActive;
+  const currentStatus = isApproved 
+    ? "approved" 
+    : (overrideShowWizard ? "unsubmitted" : (buyerProfile?.verificationStatus || "unsubmitted"));
+
+  if (currentStatus === "unsubmitted") {
+    return (
+      <OnboardingWizard
+        onSuccess={() => {
+          setOverrideShowWizard(false);
+          getBuyerProfile();
+        }}
+      />
+    );
+  }
+
+  if (currentStatus === "pending") {
+    return (
+      <VerificationOverlay
+        status="pending"
+        onReset={getBuyerProfile}
+      />
+    );
+  }
+
+  if (currentStatus === "rejected") {
+    return (
+      <VerificationOverlay
+        status="rejected"
+        adminNotes={buyerProfile?.adminNotes}
+        onReset={() => setOverrideShowWizard(true)}
+      />
+    );
+  }
 
   return (
     <div className="w-full animate-in fade-in duration-700">
@@ -138,8 +212,14 @@ const Dashboard: React.FC = () => {
               Operator_Session_Initialized
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter leading-none">
+          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter leading-none flex flex-wrap items-center gap-3">
             Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-600 italic font-light">{user?.name || "Lead_Engineer"}</span>
+            {buyerProfile?.verificationStatus === "approved" && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono font-bold tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 shadow-[0_0_10px_rgba(99,102,241,0.2)] rounded-sm uppercase">
+                <ShieldCheck size={12} className="text-indigo-400 animate-pulse" />
+                Verified_Buyer
+              </span>
+            )}
           </h1>
           <p className="text-zinc-500 mt-4 text-sm font-light leading-relaxed">
             Infrastructure overview for continental asset acquisition and real-time telemetry updates.

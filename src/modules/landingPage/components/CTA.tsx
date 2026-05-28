@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 const CTA = () => {
   return (
     <section className="relative bg-black py-24 px-6 overflow-hidden border-t border-white/5">
-      {/* Visual Accents */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
       <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
 

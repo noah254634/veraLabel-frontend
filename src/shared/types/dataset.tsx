@@ -12,8 +12,11 @@ export interface Dataset{
     isPrivate:boolean;
     rating?: number;
     status?: string;
+    labellingMethod?: "rlhf" | "classification" | "annotation" | "transcription";
+    contentType?: "text" | "audio" | "video" | "image" | "code" | "document";
     category:string;
     datasetFormat:string;
+    pricePerBatch?: number;
     reviews:string[];
     
     // Add more fields as needed

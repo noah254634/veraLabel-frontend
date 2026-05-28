@@ -23,7 +23,7 @@ interface RequestCardProps {
   onReport: (orderId: string) => void;
   isProcessing: boolean;
   getProgressPercentage: (itemsCompleted: number, volume: string) => number;
-  calculateDeliveryDate: (timeline: string, createdAt: string) => string;
+  calculateDeliveryDate: (timeline: string, createdAt: string, timelineDays?: number) => string;
 }
 
 const RequestCard: React.FC<RequestCardProps> = ({
@@ -70,8 +70,6 @@ const RequestCard: React.FC<RequestCardProps> = ({
     <>
       <div className="bg-[#050505] border-l-2 border-r border-t border-b border-zinc-900 hover:border-zinc-700 transition-all group relative overflow-hidden"
            style={{ borderLeftColor: statusAccent[order.status] || '#27272a' }}>
-      
-      {/* Background Glow for active states */}
       {(isIngesting || isLabeling) && (
         <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full -mr-16 -mt-16 animate-pulse ${isIngesting ? 'bg-indigo-500/5' : 'bg-emerald-500/5'}`} />
       )}
@@ -113,7 +111,7 @@ const RequestCard: React.FC<RequestCardProps> = ({
               {isLabeling ? "ACTIVE" : order.status.toUpperCase()}
             </span>
             <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">
-              SYS_REF: {order._id.substring(order._id.length - 6).toUpperCase()}
+              {order.orderNumber || `ORD-${order._id.slice(-6).toUpperCase()}`}
             </span>
           </div>
         </div>
@@ -125,14 +123,19 @@ const RequestCard: React.FC<RequestCardProps> = ({
         <div className="grid grid-cols-4 gap-4 mb-6">
           <StatBox label="Target" value={order.volume} icon={<Layers size={10} />} />
           <StatBox label="Detected" value={actualRows > 0 ? `${actualRows} rows` : "---"} icon={<Zap size={10} />} color={actualRows > 0 ? "text-indigo-400" : "text-zinc-600"} />
-          <StatBox label="Budget" value={order.budget} icon={<DollarSign size={10} />} />
-          <StatBox label="Timeline" value={order.timeline || "N/A"} icon={<Clock size={10} />} />
+          <StatBox 
+            label="Settlement" 
+            value={order.invoice ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(order.invoice.totalCost) : (typeof order.budget === 'number' ? `$${order.budget}` : order.budget)} 
+            icon={<DollarSign size={10} />} 
+          />
+          <StatBox 
+            label="Timeline" 
+            value={order.timeline ? `${order.timeline} (Est. ${calculateDeliveryDate(order.timeline, order.createdAt, order.timelineDays)})` : "N/A"} 
+            icon={<Clock size={10} />} 
+          />
         </div>
-        
-        {/* Dual-Phase Progress Monitor */}
         {order.status !== "pending" && order.status !== "awaiting_payment" && (
           <div className="space-y-4 mb-6 bg-zinc-900/20 p-3 border border-zinc-900/50 rounded-sm">
-            {/* Phase 1: Infrastructure Sync */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-end">
                 <p className={`text-[7px] font-mono uppercase tracking-[0.2em] ${isIngesting ? 'text-indigo-400' : 'text-zinc-600'}`}>
@@ -152,8 +155,6 @@ const RequestCard: React.FC<RequestCardProps> = ({
                 )}
               </div>
             </div>
-
-            {/* Phase 2: Human Intelligence (Labeling) */}
             <div className={`space-y-1.5 transition-opacity duration-500 ${isIngesting ? 'opacity-30' : 'opacity-100'}`}>
               <div className="flex justify-between items-end">
                 <p className={`text-[7px] font-mono uppercase tracking-[0.2em] ${isLabeling ? 'text-emerald-400' : isComplete ? 'text-emerald-500' : 'text-zinc-600'}`}>
@@ -173,8 +174,6 @@ const RequestCard: React.FC<RequestCardProps> = ({
                 )}
               </div>
             </div>
-
-            {/* Telemetry Footer */}
             <div className="flex justify-between pt-1 border-t border-zinc-900/50 mt-2">
               <p className="text-[7px] text-zinc-600 font-mono italic">
                 // Log: {isIngesting ? 'Distributing_Shards...' : isLabeling ? 'Labeller_Node_Active' : 'Data_Package_Ready'}
@@ -197,8 +196,6 @@ const RequestCard: React.FC<RequestCardProps> = ({
             </p>
           </div>
         )}
-
-        {/* Action Bar */}
         <div className="flex items-center justify-between pt-4 border-t border-zinc-900/50">
           <div className="flex gap-2">
             {(order.status === "pending" || order.status === "awaiting_payment") && !order.isPaid && (
@@ -208,7 +205,7 @@ const RequestCard: React.FC<RequestCardProps> = ({
                 className="h-8 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-900 text-white font-bold text-[9px] uppercase tracking-widest transition-all inline-flex items-center gap-2 rounded-sm"
               >
                 {isProcessing ? <Loader2 className="animate-spin" size={10} /> : <DollarSign size={10} />}
-                Pay_Invoice
+                Pay_Invoice {order.invoice ? `(${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(order.invoice.totalCost)})` : ''}
               </button>
             )}
 
@@ -250,15 +247,14 @@ const RequestCard: React.FC<RequestCardProps> = ({
         </div>
       </div>
     </div>
-
-      {/* Invoice Breakdown Modal */}
       <InvoiceBreakdownModal
         isOpen={showInvoiceModal}
         invoice={order.invoice || null}
         onClose={() => setShowInvoiceModal(false)}
         onConfirm={() => {
           setShowInvoiceModal(false);
-          onPay(order._id, order.budget);
+          const paymentAmount = order.invoice ? order.invoice.totalCost.toString() : order.budget.toString();
+          onPay(order._id, paymentAmount);
         }}
         isProcessing={isProcessing}
       />

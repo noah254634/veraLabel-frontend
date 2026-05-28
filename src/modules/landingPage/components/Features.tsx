@@ -45,7 +45,6 @@ const Features = () => {
   return (
     <section className="bg-black text-white py-24 px-6 lg:py-32">
       <div className="max-w-7xl mx-auto">
-        {/* Header Content */}
         <div className="mb-20 space-y-4">
           <h2 className="text-sm font-medium tracking-[0.3em] uppercase text-indigo-500">
             Infrastructure
@@ -54,8 +53,6 @@ const Features = () => {
             Precision tools for the <span className="text-gray-500">modern AI lifecycle.</span>
           </p>
         </div>
-
-        {/* Features Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/10 border border-white/10 overflow-hidden rounded-2xl">
           {features.map((feature, index) => (
             <div 

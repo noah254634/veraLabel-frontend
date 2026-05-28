@@ -26,6 +26,12 @@ type DatasetStore = {
   getDatasetByCategory: (category: string) => Promise<Dataset[] | null>;
   getDatasetByUser: (datasetOwner: string) => Promise<Dataset[] | null>;
   getDatasetById: (id: string) => Promise<Dataset | null>;
+  updateDatasetPrice: (id: string, price: number) => Promise<void>;
+  updateDatasetBatchPrice: (id: string, pricePerBatch: number) => Promise<void>;
+  updateDatasetStatus: (id: string, status: string) => Promise<void>;
+  updateDatasetPriority: (id: string, priority: string) => Promise<void>;
+  updateDatasetMaxLabellers: (id: string, maxLabellers: number) => Promise<void>;
+  revokeDatasetBatches: (datasetId: string) => Promise<{ revoked: number; tasksReset: number } | null>;
 };
 export const dataStore = create<DatasetStore>((set, get) => ({
   error: null,
@@ -327,6 +333,103 @@ export const dataStore = create<DatasetStore>((set, get) => ({
         error instanceof Error ? error.message : "Something went wrong";
       toast.error(errorMessage);
       set({ error: errorMessage });
+      return null;
+    } finally {
+      set({ loading: false });
+    }
+  },
+  updateDatasetPrice: async (id: string, price: number) => {
+    try {
+      set({ loading: true });
+      await datasetService.updateDatasetPrice(id, price);
+      set({
+        datasets: get().datasets.map((d) =>
+          (d._id === id || d.datasetId === id) ? { ...d, price } : d
+        ),
+      });
+      toast.success("Price updated successfully");
+    } catch (error) {
+      toast.error("Failed to update price");
+    } finally {
+      set({ loading: false });
+    }
+  },
+  updateDatasetBatchPrice: async (id: string, pricePerBatch: number) => {
+    try {
+      set({ loading: true });
+      await datasetService.updateDatasetBatchPrice(id, pricePerBatch);
+      set({
+        datasets: get().datasets.map((d) =>
+          (d._id === id || d.datasetId === id) ? { ...d, pricePerBatch } : d
+        ),
+      });
+      toast.success("Batch price updated successfully");
+    } catch (error) {
+      toast.error("Failed to update batch price");
+    } finally {
+      set({ loading: false });
+    }
+  },
+  updateDatasetStatus: async (id: string, status: string) => {
+    try {
+      set({ loading: true });
+      await datasetService.updateDatasetStatus(id, status);
+      set({
+        datasets: get().datasets.map((d) =>
+          (d._id === id || d.datasetId === id) ? { ...d, status } : d
+        ),
+      });
+      toast.success(`Status updated to ${status}`);
+    } catch (error) {
+      toast.error("Failed to update status");
+    } finally {
+      set({ loading: false });
+    }
+  },
+  updateDatasetPriority: async (id: string, priority: string) => {
+    try {
+      set({ loading: true });
+      await datasetService.updateDatasetPriority(id, priority);
+      set({
+        datasets: get().datasets.map((d) =>
+          (d._id === id || d.datasetId === id) ? { ...d, priority } : d
+        ),
+      });
+      toast.success(`Priority updated to ${priority}`);
+    } catch (error) {
+      toast.error("Failed to update priority");
+    } finally {
+      set({ loading: false });
+    }
+  },
+  updateDatasetMaxLabellers: async (id: string, maxLabellers: number) => {
+    try {
+      set({ loading: true });
+      await datasetService.updateDatasetMaxLabellers(id, maxLabellers);
+      set({
+        datasets: get().datasets.map((d) =>
+          (d._id === id || d.datasetId === id) ? { ...d, maxLabellers } : d
+        ),
+      });
+      toast.success(`Max labellers updated to ${maxLabellers}`);
+    } catch (error) {
+      toast.error("Failed to update max labellers");
+    } finally {
+      set({ loading: false });
+    }
+  },
+  revokeDatasetBatches: async (datasetId: string) => {
+    try {
+      set({ loading: true });
+      const result = await datasetService.revokeDatasetBatches(datasetId);
+      toast.success(
+        `Revoked ${result.revoked} batch(es) — ${result.tasksReset} task(s) returned to pool`,
+        { duration: 5000 }
+      );
+      return result;
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || "Failed to revoke batches";
+      toast.error(msg);
       return null;
     } finally {
       set({ loading: false });

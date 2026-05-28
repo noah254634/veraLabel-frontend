@@ -47,8 +47,6 @@ const AdminProjects = () => {
             <div className="bg-[#050505] p-4 border-b border-zinc-900">
               <ControlBar />
             </div>
-            
-            {/* Grid with hairline borders to prevent floating cards */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-px bg-zinc-900 border-b border-zinc-900">
               {projects.map(project => (
                 <div key={project.id} className="bg-black">

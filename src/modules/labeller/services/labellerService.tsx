@@ -1,20 +1,33 @@
 import { api } from "../../../shared/types/api"
 import type{ LabellerProfile } from "../types/types";
-import type{Tier} from "../types/types";
-import type{ Task } from "../types/task";
 export const labellerService={
-    createLabellerProfile:async():Promise<void>=>{},
-    getLabeller:async():Promise<void>=>{},
-    getLabellerOnboardingStatus:async():Promise<void>=>{},
-    assignedTasks:async():Promise<void>=>{},
-    submitTask:async():Promise<void>=>{},
-    getTraineeSlides:async():Promise<void>=>{},
-    getBronzeSlides:async():Promise<void>=>{},
-    getSilverSlides:async():Promise<void>=>{},
-    getGoldSlides:async():Promise<void>=>{},
-    getTraineeQuiz:async():Promise<void>=>{},
-    getBronzeQuiz:async():Promise<void>=>{},
-    getSilverQuiz:async():Promise<void>=>{},
-    getGoldQuiz:async():Promise<void>=>{},
+    createLabellerProfile: async (payload: LabellerProfile | any): Promise<any> => {
+        const response = await api.post("/onboarding/createLabellerProfile", payload)
+        return response.data.data
+    },
+    getLabeller: async (): Promise<any> => {
+        const response = await api.get("/onboarding/getLabellerProfile")
+        return response.data.data
+    },
+    getLabellerOnboardingStatus: async (): Promise<any> => {
+        const response = await api.get("/onboarding/getLabellerProfile")
+        return Boolean(response.data?.data?.isOnboarded)
+    },
+    assignedTasks: async (): Promise<any> => {
+        const response = await api.get("/labeller/tasks/assigned")
+        return response.data.data
+    },
+    submitTask: async (taskId: string, batchId: string): Promise<any> => {
+        const response = await api.put(`/tasks/submit/${taskId}`, { batchId })
+        return response.data.data
+    },
+    getTraineeSlides: async (): Promise<any> => {},
+    getBronzeSlides: async (): Promise<any> => {},
+    getSilverSlides: async (): Promise<any> => {},
+    getGoldSlides: async (): Promise<any> => {},
+    getTraineeQuiz: async (): Promise<any> => {},
+    getBronzeQuiz: async (): Promise<any> => {},
+    getSilverQuiz: async (): Promise<any> => {},
+    getGoldQuiz: async ():Promise<any> => {},
 
 }

@@ -23,11 +23,16 @@ const Order: React.FC = () => {
     const fetchPayments = async () => {
       const response = await getPaymentHistory();
       if (response) {
-        // Map payment data to OrderType by converting amount to totalPrice
-        const normalizedOrders = response.map((payment: any) => ({
-          ...payment,
-          totalPrice: payment.amount
-        }));
+        // Filter out cancelled/superseded attempts to avoid showing duplicates in the UI
+        const normalizedOrders = response
+          .filter((payment: any) => payment.status !== 'cancelled')
+          .map((payment: any) => ({
+            ...payment,
+            // Derive a clean Order Number from the ID for UI consistency
+            orderNumber: payment.order?.orderNumber || `ORD-${payment._id.slice(-6).toUpperCase()}`,
+            totalPrice: payment.amount,
+            status: payment.status === 'completed' ? 'approved' : payment.status
+          }));
         setOrders(normalizedOrders);
       }
     };
@@ -36,7 +41,6 @@ const Order: React.FC = () => {
 
   return (
     <div className="w-full animate-in fade-in duration-700">
-      {/* 1. Aligned Header: Hits the top of the AppLayout p-10 area */}
       <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-l-2 border-indigo-500 pl-6 md:pl-8">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-500 mb-3">
@@ -57,13 +61,11 @@ const Order: React.FC = () => {
           Node_Status: <span className="text-emerald-500 ml-2">Operational</span>
         </div>
       </header>
-
-      {/* 2. Desktop Table: Hairline border grid style */}
       <div className="hidden md:block bg-[#050505] border border-zinc-900 shadow-2xl overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead className="bg-[#0A0A0A] border-b border-zinc-900">
             <tr>
-              <th className="px-6 py-5 text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest italic">// Reference</th>
+              <th className="px-6 py-5 text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest italic">// Order #</th>
               <th className="px-6 py-5 text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest italic">// Timestamp</th>
               <th className="px-6 py-5 text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest italic">// Status</th>
               <th className="px-6 py-5 text-[9px] font-mono font-bold text-zinc-600 uppercase tracking-widest italic text-right">// Settlement</th>
@@ -76,7 +78,7 @@ const Order: React.FC = () => {
                 <td className="px-6 py-5">
                   <div className="flex items-center gap-3">
                     <FileText size={14} className="text-zinc-800 group-hover:text-indigo-500 transition-colors" />
-                    <span className="font-mono text-xs text-zinc-300 group-hover:text-white">{order.reference}</span>
+                    <span className="font-mono text-xs text-zinc-300 group-hover:text-white">{order.orderNumber}</span>
                   </div>
                 </td>
                 <td className="px-6 py-5 text-[11px] text-zinc-500 font-light tabular-nums">
@@ -90,7 +92,7 @@ const Order: React.FC = () => {
                 </td>
                 <td className="px-6 py-5 text-right">
                   <button onClick={() => handleOpenDetails(order)} className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 hover:text-white flex items-center gap-2 ml-auto group/btn">
-                    Details <ChevronRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
+                    View Receipt <ChevronRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
                   </button>
                 </td>
               </tr>
@@ -98,15 +100,13 @@ const Order: React.FC = () => {
           </tbody>
         </table>
       </div>
-
-      {/* 3. Mobile View: High-density cards */}
       <div className="md:hidden space-y-px bg-zinc-900 border border-zinc-900">
         {orders.map((order) => (
           <div key={order._id} className="bg-[#050505] p-6 space-y-4 active:bg-zinc-950 transition-colors">
             <div className="flex justify-between items-start">
               <div className="space-y-1">
-                <span className="block text-[8px] font-mono text-zinc-700 uppercase tracking-[0.2em]">Reference_ID</span>
-                <span className="font-mono text-xs text-zinc-200">{order.reference}</span>
+                <span className="block text-[8px] font-mono text-zinc-700 uppercase tracking-[0.2em]">Order_Number</span>
+                <span className="font-mono text-xs text-zinc-200">{order.orderNumber}</span>
               </div>
               <StatusBadge status={order.status} />
             </div>
@@ -115,22 +115,18 @@ const Order: React.FC = () => {
                 <span className="block text-[8px] font-mono text-zinc-700 uppercase tracking-[0.2em]">Settlement</span>
                 <span className="text-lg font-bold text-white tracking-tighter">${order.totalPrice.toLocaleString()}</span>
               </div>
-              <button onClick={() => handleOpenDetails(order)} className="p-3 bg-zinc-900 text-zinc-400 rounded-sm">
-                <ChevronRight size={16} />
+              <button onClick={() => handleOpenDetails(order)} className="p-3 bg-zinc-900 text-[10px] font-mono text-zinc-400 rounded-sm">
+                RECEIPT
               </button>
             </div>
           </div>
         ))}
       </div>
-
-      {/* 4. Definitive Scroll End */}
       <footer className="mt-20 pb-12 pt-8 border-t border-zinc-900 flex justify-between items-center opacity-20">
         <span className="text-[9px] font-mono uppercase tracking-[0.3em]">End_Of_Ledger</span>
         <div className="h-px flex-1 mx-8 bg-zinc-900" />
         <span className="text-[9px] font-mono uppercase tracking-[0.3em] text-indigo-500">Authorized_Access_Only</span>
       </footer>
-
-      {/* Detail Overlay */}
       {selectedOrder && <OrderDetailCard order={selectedOrder} onClose={handleCloseDetails} />}
     </div>
   );
