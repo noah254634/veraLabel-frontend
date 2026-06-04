@@ -13,7 +13,7 @@ import BuyerRoutes from "./modules/buyer/routes";
 import LabellerRoutes from "./modules/labeller/routes";
 import { useEffect } from "react";
 import { useAuthStore } from "./modules/auth/useAuthstore";
-import "./app.css";
+import "./App.css";
 import { useFCM } from "./shared/hooks/useFCM";
 import PaymentVerify from "./modules/buyer/PaymentVerify";
 import { detectDeviceCapabilities } from "./shared/utils/deviceCapabilities";
