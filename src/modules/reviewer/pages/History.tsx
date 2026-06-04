@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  Activity, CheckCircle, XCircle, Clock, Database, RefreshCw, AlertTriangle
+  Activity, CheckCircle, XCircle, Clock, RefreshCw
 } from 'lucide-react';
 import { api } from '../../../shared/types/api';
 import toast from 'react-hot-toast';

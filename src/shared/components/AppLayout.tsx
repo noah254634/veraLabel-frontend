@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
+
 import React, { useState } from "react";
-import { Menu, X, Activity } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { SidebarProvider } from "../hooks/useSidebar";
 import { NotificationBell } from "./NotificationBell";
-import { useLatency } from "../hooks/useLatency";
+
 import { LatencyIndicator } from "./LatencyIndicator";
 
 type AppLayoutProps = {
