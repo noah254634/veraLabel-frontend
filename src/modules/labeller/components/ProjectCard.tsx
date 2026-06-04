@@ -1,6 +1,6 @@
 import React from 'react';
 import { PrimaryButton } from "./PrimaryButton";
-import { Terminal, Database, ChevronRight, Zap, Target } from "lucide-react";
+import { Database, ChevronRight } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
 interface ProjectProps {

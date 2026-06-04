@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import toast from "react-hot-toast";
 import { taskProgressService } from "../services/taskProgressService";
 import type { TaskProgressState } from "../types/taskProgressTypes";
 

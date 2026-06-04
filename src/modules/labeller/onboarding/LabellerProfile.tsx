@@ -1,14 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-  User,
   MapPin,
-  Briefcase,
-  GraduationCap,
-  ChevronRight,
-  Calendar,
-  Globe,
-  Zap,
-  Fingerprint
+  ChevronRight
 } from "lucide-react";
 import type { LabellerProfile } from "../types/types";
 import { ExperienceProfiling } from "./ExpereinceProfile";
@@ -160,7 +153,6 @@ export const LabellerProfileForm = ({
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-h-[50vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-indigo-600/30">
             <div className="bg-[#0a0a0c] border border-white/5 rounded-[32px] p-2">
                 <ExperienceProfiling
-                  initialData={profile.annotationExperience}
                   onUpdate={(data) =>
                     setProfile((prev) => ({ ...prev, annotationExperience: data }))
                   }
@@ -178,7 +170,7 @@ export const LabellerProfileForm = ({
                   onChange={(e) =>
                     setProfile({ ...profile, expertise: e.target.value })
                   }
-                  value={profile.expertise || ""}
+                  value={typeof profile.expertise === "string" ? profile.expertise : ""}
                 />
               </div>
             )}

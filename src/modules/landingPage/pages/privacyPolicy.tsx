@@ -1,5 +1,4 @@
-import React from 'react';
-import { ShieldCheck, Eye, Lock, Globe, Fingerprint, Zap } from 'lucide-react';
+import { ShieldCheck, Lock, Globe, Fingerprint, Zap } from 'lucide-react';
 
 export const PrivacyPolicy = () => {
   return (

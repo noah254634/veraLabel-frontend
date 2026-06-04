@@ -18,6 +18,7 @@ export interface Dataset{
     datasetFormat:string;
     pricePerBatch?: number;
     reviews:string[];
+    paidAt?: string;
     
     // Add more fields as needed
 };

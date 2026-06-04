@@ -10,7 +10,7 @@ import { ProgressBar } from '../components/ProgressBar';
 export const WalletPage = () => {
   const { 
     balance, totalEarned, pendingPayment, 
-    transactions, loading, fetchEarnings, requestPayout 
+    transactions, fetchEarnings, requestPayout 
   } = useWalletStore();
 
   useEffect(() => {

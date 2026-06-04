@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Hash, Calendar, DollarSign, Fingerprint, Database, CheckCircle2, Terminal } from 'lucide-react';
+import { X, Hash, Calendar, DollarSign, Fingerprint, CheckCircle2, Terminal } from 'lucide-react';
 import type { OrderType } from '../types/order';
 
 interface OrderDetailProps {
@@ -8,10 +8,6 @@ interface OrderDetailProps {
 }
 
 const OrderDetailCard: React.FC<OrderDetailProps> = ({ order, onClose }) => {
-  const maskId = (id: string) => {
-  if (!id) return "";
-  return `${id.substring(0, 4)}...${id.substring(id.length - 4)}`.toUpperCase();
-};
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="relative w-full max-w-lg bg-[#0A0A0A] border border-zinc-800 shadow-2xl overflow-hidden">

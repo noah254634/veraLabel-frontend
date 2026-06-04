@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, ShieldAlert, X, Terminal, Globe, Linkedin, Building2, Users2, HelpCircle, Loader2 } from "lucide-react";
+import { ShieldAlert, X, Terminal, Globe, Linkedin, Users2, Loader2 } from "lucide-react";
 import useStore from "../store/userManagementStore";
 
 interface BuyerVettingModalProps {

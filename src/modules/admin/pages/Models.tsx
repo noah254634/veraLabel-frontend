@@ -1,6 +1,5 @@
-import React from 'react';
 import { 
-  Cpu, Activity, Zap, Layers, Play, Trash2, Box, Terminal, 
+  Activity, Zap, Layers, Play, Trash2, Box, Terminal, 
   ExternalLink, Server, ShieldCheck, Database, Sliders
 } from 'lucide-react';
 

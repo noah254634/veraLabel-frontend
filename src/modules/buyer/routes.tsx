@@ -1,4 +1,3 @@
-import React from 'react'
 import {Route, Routes} from "react-router-dom"
 import BuyerLayout from '../buyer/layout/BuyerLayout'
 import Order from './pages/Order'

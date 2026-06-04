@@ -1,7 +1,7 @@
 import React from 'react';
 import { PrimaryButton } from './PrimaryButton';
 import { ProgressBar } from './ProgressBar';
-import { Lock, ShieldCheck, Terminal, ChevronRight, Zap } from 'lucide-react';
+import { Lock, ShieldCheck, ChevronRight, Zap } from 'lucide-react';
 
 interface QualificationProps {
   title: string;

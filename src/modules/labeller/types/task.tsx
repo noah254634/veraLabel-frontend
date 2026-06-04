@@ -8,12 +8,18 @@ export interface Task {
   datasetId: string
   r2_url: string
 
-  status: "pending" | "assigned" | "in_progress" | "completed"
+  status: "pending" | "assigned" | "in_progress" | "completed" | "submitted" | "verified" | "flagged"
+
+  taskObject?: any;
+  responses?: any;
+  response?: any;
 
   data: {
     type: "image" | "video" | "text" | "audio"
     url: string
     metadata?: Record<string, any>
+    responses?: any;
+    response?: any;
   }
 
   instruction: string

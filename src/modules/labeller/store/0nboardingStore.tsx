@@ -51,8 +51,8 @@ export const useOnboardStore=create<OnboardStore>((set)=>({
                             : [],
                 },
                 expertise: {
-                    skills: formData.expertise
-                        ? formData.expertise.split(",").map((s) => s.trim()).filter((s) => s !== "")
+                    skills: typeof formData.expertise === "string"
+                        ? formData.expertise.split(",").map((s: string) => s.trim()).filter((s: string) => s !== "")
                         : [],
                     annotationTypes: formData.annotationExperience?.experienceTypes || [],
                     toolsUsed: formData.annotationExperience?.toolsUsed || [],

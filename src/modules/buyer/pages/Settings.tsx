@@ -155,7 +155,7 @@ const CheckboxLabel = ({ label, defaultChecked }: any) => (
         className="peer h-5 w-5 bg-zinc-950 border border-zinc-800 checked:bg-indigo-600 checked:border-indigo-600 transition-all appearance-none rounded-sm" 
       />
       <div className="absolute text-white scale-0 peer-checked:scale-100 transition-transform left-1 pointer-events-none">
-        <svg size={12} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>
       </div>
     </div>
     <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors uppercase tracking-tight">{label}</span>

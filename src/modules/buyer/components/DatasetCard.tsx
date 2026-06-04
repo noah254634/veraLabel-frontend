@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { ShieldCheck, Star, ArrowRight, BarChart3, FileJson, Terminal } from 'lucide-react';
+import { ShieldCheck, Star, ArrowRight, BarChart3, FileJson } from 'lucide-react';
 import QuickCheckoutModal from './QuickCheckOutModal';
 
 interface DatasetCardProps {

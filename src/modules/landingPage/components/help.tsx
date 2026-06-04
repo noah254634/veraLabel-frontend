@@ -1,8 +1,8 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { 
-  Search, BookOpen, Terminal, LifeBuoy, 
-  FileText, ArrowUpRight, Clock, ShieldCheck, 
-  Cpu, Globe, Mail
+  Search, BookOpen, Terminal, 
+  ArrowUpRight, ShieldCheck, 
+  Globe, Mail
 } from 'lucide-react';
 
 const HelpPage = () => {
@@ -110,7 +110,7 @@ const HelpPage = () => {
 
 // --- PRIVATE COMPONENTS ---
 
-const ResourceCategory = ({ icon, title, desc }) => (
+const ResourceCategory = ({ icon, title, desc }: { icon: ReactNode; title: string; desc: string }) => (
   <div className="bg-[#050505] p-10 hover:bg-zinc-900/40 transition-all group">
     <div className="text-zinc-600 group-hover:text-blue-500 transition-colors mb-6">
       {icon}
@@ -120,7 +120,7 @@ const ResourceCategory = ({ icon, title, desc }) => (
   </div>
 );
 
-const ArticleLink = ({ title, category }) => (
+const ArticleLink = ({ title, category }: { title: string; category: string }) => (
   <div className="bg-[#050505] flex items-center justify-between p-5 hover:bg-blue-900/5 cursor-pointer group transition-all">
     <div className="flex items-center gap-6">
       <span className="text-[9px] font-mono text-zinc-700 uppercase tracking-widest w-16">{category}</span>
@@ -130,7 +130,7 @@ const ArticleLink = ({ title, category }) => (
   </div>
 );
 
-const StatusCard = ({ label, status }) => (
+const StatusCard = ({ label, status }: { label: string; status: string }) => (
   <div className="p-4 border border-zinc-900 flex items-center justify-between">
     <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">{label}</span>
     <div className="flex items-center gap-2">

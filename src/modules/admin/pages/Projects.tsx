@@ -1,8 +1,6 @@
-import React from 'react';
 import { 
-  MoreHorizontal, BarChart3, Clock, Terminal, 
-  Activity, Filter, Plus, Search, ArrowUpRight,
-  Database, ShieldCheck, AlertCircle
+  MoreHorizontal, BarChart3, Terminal, 
+  Filter, Plus, Search, ArrowUpRight
 } from 'lucide-react';
 
 const AdminProjectsPage = () => {

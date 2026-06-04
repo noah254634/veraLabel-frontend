@@ -344,7 +344,7 @@ export const dataStore = create<DatasetStore>((set, get) => ({
       await datasetService.updateDatasetPrice(id, price);
       set({
         datasets: get().datasets.map((d) =>
-          (d._id === id || d.datasetId === id) ? { ...d, price } : d
+          (d._id === id || d.datasetId === id) ? { ...d, price: String(price) } : d
         ),
       });
       toast.success("Price updated successfully");

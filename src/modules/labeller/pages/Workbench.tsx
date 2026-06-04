@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   Terminal, Zap, Info, ChevronRight, X,
-  Maximize2, MousePointer2, Type, Image as ImageIcon,
-  SkipForward, AlertTriangle, Activity, CheckCircle2,
+  MousePointer2, Type, Image as ImageIcon,
+  Activity, CheckCircle2,
   Database, ShieldCheck, Clock, Flag, XCircle
 } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';

@@ -1,17 +1,9 @@
-import React from "react";
 import { NavItem } from "../../../shared/components/navigation/NavItem";
 import {
   Activity,
   Zap,
-  ShieldAlert,
-  Search,
   CheckCircle,
-  Clock,
-  Settings,
-  HelpCircle,
-  Terminal,
-  Fingerprint,
-  RotateCcw
+  Fingerprint
 } from 'lucide-react';
 import LogoutButton from "../../auth/logout";
 

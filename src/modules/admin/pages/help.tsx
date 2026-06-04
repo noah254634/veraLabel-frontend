@@ -1,8 +1,6 @@
-import React from 'react';
 import { 
-  ShieldAlert, Terminal, LifeBuoy, BookOpen, 
-  UserPlus, FileWarning, Cpu, HardDrive, 
-  ArrowRight, ClipboardList, Lock, Zap, Activity
+  ShieldAlert, Terminal, UserPlus, Cpu, 
+  ArrowRight, Lock, Zap, Activity
 } from 'lucide-react';
 
 const AdminHelpPage = () => {

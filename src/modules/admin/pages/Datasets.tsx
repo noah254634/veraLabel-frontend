@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Database, CheckCircle, XCircle, Star, ShieldAlert, Globe, Lock, Search, 
-  Download, Trash2, Terminal, ChevronRight, Layers, FileText, Activity, User, ExternalLink, RotateCcw, RefreshCw
+  Download, Trash2, Terminal, ChevronRight, Activity, User, ExternalLink, RotateCcw, RefreshCw
 } from "lucide-react";
 import { dataStore } from "../store/datasetManagementStore";
 
@@ -405,7 +405,7 @@ const DatasetAdminPage = () => {
                   <button 
                     onClick={() => publishDatasetById(selectedDataset.datasetId ?? String(selectedDataset._id))} 
                     disabled={
-                      !(selectedDataset.price > 0) || 
+                      !(parseFloat(selectedDataset.price) > 0) || 
                       !((selectedDataset as any).status === "approved" || (selectedDataset as any).status === "completed") ||
                       !((selectedDataset as any).rows > 0 || (selectedDataset as any).volume) ||
                       ((selectedDataset as any).rowsCompleted < (selectedDataset as any).rows) ||
@@ -414,7 +414,7 @@ const DatasetAdminPage = () => {
                     className="w-full py-3 bg-indigo-600 disabled:bg-zinc-900 disabled:text-zinc-700 disabled:border-zinc-800 border border-transparent text-white text-[10px] font-bold uppercase flex items-center justify-center gap-2 hover:bg-indigo-500 transition-all"
                   >
                     <Globe size={14} /> {
-                      (!(selectedDataset.price > 0) || !((selectedDataset as any).status === "approved" || (selectedDataset as any).status === "completed")) 
+                      (!(parseFloat(selectedDataset.price) > 0) || !((selectedDataset as any).status === "approved" || (selectedDataset as any).status === "completed")) 
                       ? "Market_Injection_Locked" 
                       : ((selectedDataset as any).type === 'custom' && !selectedDataset.paidAt)
                       ? "Payment_Awaiting"

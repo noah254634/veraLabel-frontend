@@ -2,11 +2,9 @@ import React from "react";
 import { useBuyerStore } from "../store/buyerStore";
 import type { OrderType } from "../types/order";
 import {
-  Clock,
   CheckCircle2,
   ChevronRight,
   FileText,
-  AlertCircle,
   Terminal,
 } from "lucide-react";
 import OrderDetailCard from "../components/OrderDetailCar";

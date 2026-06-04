@@ -189,7 +189,7 @@ export const InstructionManager = () => {
                     requireRationale: true,
                     minLength: 20,
                     allowTie: true
-                  },
+                  } as any,
                   rubrics: [] as any[],
                   goldenExamples: [] as any[],
                   edgeCases: [] as any[],
@@ -326,7 +326,7 @@ export const InstructionManager = () => {
                               requireRationale: false,
                               minLength: 0,
                               allowTie: false
-                            }
+                            } as any
                           }));
                         } else {
                           setFormData(prev => ({
@@ -337,7 +337,7 @@ export const InstructionManager = () => {
                               requireRationale: true,
                               minLength: 20,
                               allowTie: true
-                            }
+                            } as any
                           }));
                         }
                       }}
@@ -557,7 +557,7 @@ export const InstructionManager = () => {
                                 requireRationale: false,
                                 minLength: 0,
                                 allowTie: false
-                              }
+                              } as any
                             });
                           }}
                           className="accent-indigo-500 w-4 h-4"
@@ -578,7 +578,7 @@ export const InstructionManager = () => {
                                 requireRationale: true,
                                 minLength: 20,
                                 allowTie: true
-                              }
+                              } as any
                             });
                           }}
                           className="accent-indigo-500 w-4 h-4"

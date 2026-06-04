@@ -3,7 +3,6 @@ import React, { useEffect, useState, useMemo } from "react";
 import CustomDataRequestModal from "../components/CustomDataRequestModal";
 import { useBuyerStore } from "../store/buyerStore";
 import { useDashboardStore } from "../store/dashboardStore";
-import { toast } from "react-hot-toast";
 import {
   TrendingUp,
   CheckCircle2,
@@ -15,9 +14,6 @@ import {
   ChevronRight,
   Activity,
   Loader2,
-  Download,
-  AlertCircle,
-  X,
   ShieldCheck
 } from "lucide-react";
 import RequestCard from "../components/RequestCard";
@@ -35,7 +31,7 @@ const StatCard = ({ label, value, trend, icon, color }: any) => {
     <div className="bg-[#050505] border border-zinc-900 p-6 rounded-sm group hover:border-zinc-700 transition-all relative overflow-hidden">
       <div className="flex justify-between items-start mb-6">
         <div className={`p-2 rounded-sm border ${accentColors[color as keyof typeof accentColors]}`}>
-          {React.cloneElement(icon as React.ReactElement, { size: 18 })}
+          {React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 18 })}
         </div>
         <div className="flex items-center gap-1 text-emerald-500 font-mono text-[10px] font-bold tracking-tighter">
           <TrendingUp size={10} /> {trend}

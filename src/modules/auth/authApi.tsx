@@ -57,6 +57,7 @@ export const signupApi = async (credentials: SignupCredentials) => {
       // Log server error for debugging but don't expose to user
       const errorMessage =
         errorData?.message || errorData?.error || response.statusText;
+      console.error("Signup failed details:", errorMessage);
       const genericErrorMessage = "Could not create account. Please check your details and try again.";
       toast.error(`Signup failed: ${genericErrorMessage}`, { duration: 3000 });
       throw new Error(genericErrorMessage);

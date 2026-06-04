@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useBuyerStore } from "../store/buyerStore";
-import { Terminal, Globe, Linkedin, Building2, Users2, ShieldQuestion, Loader2, Sparkles } from "lucide-react";
+import { Terminal, Globe, Linkedin, Building2, Users2, Loader2, Sparkles } from "lucide-react";
 
 interface OnboardingWizardProps {
   onSuccess: () => void;

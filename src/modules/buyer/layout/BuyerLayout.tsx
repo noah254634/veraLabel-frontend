@@ -1,4 +1,3 @@
-import React from 'react'
 import { AppLayout } from '../../../shared/components/AppLayout'
 import { Outlet } from 'react-router-dom'
 import BuyerSideBar from '../components/buyerSideBar'

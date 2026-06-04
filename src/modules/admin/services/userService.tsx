@@ -36,7 +36,7 @@ export const UserService = {
   updateUser: async () => {},
   addUser: async () => {},
 
-  verifyUser: async (id: string, reason: string) => {
+  verifyUser: async (id: string, reason: string): Promise<any> => {
     const response = await api.put(`admin/users/${id}/verify`, { reason });
     return unwrap(response);
   },

@@ -1,8 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { 
-  Settings, Percent, Scale, ShieldCheck, 
-  Zap, Database, Save, RotateCcw, Info,
-  Globe, Lock, Wallet, Terminal, Activity,
+  Scale, Save, RotateCcw, Lock, Wallet, Terminal, Activity,
   ChevronRight, Brain, Server, Share2, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { datasetService } from '../services/datasetService';

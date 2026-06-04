@@ -22,17 +22,17 @@ export const useCartStore = create<cartStore>((set, get) => ({
         items: [],
         totalAmount: 0,
     },
-    addToCart: async (item: CartItem) => {
+    addToCart: async (_item: CartItem) => {
         try {
         }catch(err){}finally{}
     },
-    removeFromCart: async (productId: string) => {
+    removeFromCart: async (_productId: string) => {
         try {
         }catch(err){}finally{
 
         }
         },
-        updateQuantity: async (productId: string, quantity: number) => {
+        updateQuantity: async (_productId: string, _quantity: number) => {
             try {
             }catch(err){}finally{
 

@@ -8,7 +8,6 @@ import AdminUserModule from "./pages/Users"
 import ModelsPage from "./pages/Models"
 import AnalyticsHub from "./pages/Analytics/AnalyticsHub"
 import { InstructionManager } from "./pages/InstructionManager"
-import useAdminStore from "./store/userManagementStore"
 import NotificationTester from "../../NotificationTester"
 export const AdminRoutes = (
   <Route path="admin" element={<AdminLayout />}>
@@ -19,7 +18,7 @@ export const AdminRoutes = (
     <Route path="datasets" element={<DatasetAdminPage />} />
     <Route path="settings" element={<SettingsPage />} />
     <Route path="help" element={<HelpPage />} />
-    <Route path="users" element={<AdminUserModule useAdminStore={useAdminStore} />} />
+    <Route path="users" element={<AdminUserModule />} />
     <Route path="models" element={<ModelsPage />} />
     <Route path="notifications" element={<NotificationTester />} />
   </Route>

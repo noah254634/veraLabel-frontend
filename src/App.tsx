@@ -26,9 +26,13 @@ import { About } from "./modules/landingPage/FooterComponents/About";
 import { PrivacyPolicy } from "./modules/landingPage/pages/privacyPolicy";
 // @ts-ignore
 import { DataPolicy } from "./modules/landingPage/FooterComponents/DataPolicy";
+// @ts-ignore
 import { Contact } from "./modules/landingPage/FooterComponents/Contact";
+// @ts-ignore
 import { Terms } from "./modules/landingPage/FooterComponents/terms.js";
+// @ts-ignore
 import FAQPage from "./modules/landingPage/FooterComponents/FAQ.js";
+// @ts-ignore
 import ForgotPassword from "./modules/auth/ForgotPassword.js";
 import ReviewerRoutes from "./modules/reviewer/routes/reviewerRoutes";
 export const App = () => {

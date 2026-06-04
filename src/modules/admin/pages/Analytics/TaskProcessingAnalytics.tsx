@@ -3,7 +3,6 @@ import { Activity, Zap, AlertCircle, CheckCircle, Clock, TrendingUp } from "luci
 import { taskProgressStore } from "../../store/taskProgressStore";
 import { taskProgressService } from "../../services/taskProgressService";
 import SessionDetailView from "../../components/SessionDetailView";
-import type { TaskSession } from "../../types/taskProgressTypes";
 
 const TaskProcessingAnalytics = () => {
   const {

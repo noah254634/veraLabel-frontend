@@ -1,8 +1,5 @@
-import React, { use } from "react";
 import { useAuthStore } from "./useAuthstore";
 import toast from "react-hot-toast";
-import { NavItem } from "../../shared/components/navigation/NavItem";
-import { FaSignOutAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 const LogoutButton = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Activity, Cpu, Fingerprint, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Cpu, Fingerprint, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 export interface TranscriptSegment {
   start: number; // seconds

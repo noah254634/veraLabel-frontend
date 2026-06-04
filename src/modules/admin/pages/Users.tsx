@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  Users,
   Search,
-  UserMinus,
   UserPlus,
   Ban,
   MapPin,
@@ -16,22 +14,18 @@ import {
   UserX,
   Terminal,
   Activity,
-  Filter,
-  MoreHorizontal,
-  Globe,
   ShieldX,
   Zap,
-  type LucideProps,
 } from "lucide-react";
 import type { User } from "../../../shared/types/user";
 import useStore from "../store/userManagementStore";
+// @ts-ignore
 import AdminActionModal from "../components/ReasonModal";
 import { BuyerVettingModal } from "../components/BuyerVettingModal";
 
 const AdminUserModule = () => {
   const {
     users,
-    loading,
     getUsers,
     getUserByEmail,
     getUserByUsername,
@@ -790,7 +784,7 @@ const ActionBtn = ({ label, icon, onClick, variant }: ActionBtnProps) => {
       onClick={onClick}
       className={`flex items-center justify-center gap-3 py-4 px-4 text-[9px] font-mono font-bold uppercase tracking-[0.15em] transition-all ${themes[variant]}`}
     >
-      {React.cloneElement(icon, { size: 14 })} {label}
+      {React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 14 })} {label}
     </button>
   );
 };

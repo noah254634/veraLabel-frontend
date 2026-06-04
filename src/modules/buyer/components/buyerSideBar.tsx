@@ -1,4 +1,3 @@
-import { FaSignOutAlt } from "react-icons/fa";
 import { NavItem } from "../../../shared/components/navigation/NavItem";
 import {
   LayoutDashboard,

@@ -1,4 +1,3 @@
-import React from "react";
 import { NavItem } from "../../../shared/components/navigation/NavItem";
 import {
   LayoutDashboard,

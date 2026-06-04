@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ShieldCheck, AlertTriangle, CheckCircle2, List, X, Zap, Star, BookOpen } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, CheckCircle2, List, X, Zap, Star } from 'lucide-react';
 
 
 

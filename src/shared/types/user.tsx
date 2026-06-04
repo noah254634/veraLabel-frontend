@@ -1,4 +1,4 @@
-type Role = 'Admin' | 'Labeler' | 'Reviewer' | 'buyer' | 'seller' | 'labeller';
+type Role = 'Admin' | 'Labeler' | 'Reviewer' | 'buyer' | 'seller' | 'labeller' | 'admin' | 'reviewer' | 'labeler';
 export interface User {
     rating: number;
     isVerified: boolean;

@@ -55,7 +55,7 @@ const RevenueAnalytics = () => {
               <YAxis axisLine={false} tickLine={false} tick={{fill: '#52525b', fontSize: 10, fontFamily: 'monospace'}} />
               <Tooltip 
                 contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #27272a', borderRadius: '2px', fontSize: '10px', fontFamily: 'monospace' }} 
-                formatter={(value: any, name: string) => [`$ ${value.toLocaleString()}`, name === 'revenue' ? 'Gross Revenue' : 'Platform Fee']} 
+                formatter={(value: any, name?: string) => [`$ ${value.toLocaleString()}`, name === 'revenue' ? 'Gross Revenue' : 'Platform Fee']} 
               />
               <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorRev)" />
               <Area type="monotone" dataKey="platformFee" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorFee)" />

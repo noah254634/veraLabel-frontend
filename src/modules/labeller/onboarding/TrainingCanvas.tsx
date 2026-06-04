@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Target, RefreshCw, MousePointer2, Cpu, FileText, Layout, CheckCircle2, ShieldAlert, Loader2 } from 'lucide-react';
 import { PrimaryButton } from '../components/PrimaryButton';
 

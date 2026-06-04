@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  CheckCircle2,
   Clock,
   DollarSign,
   Download,
@@ -11,7 +10,6 @@ import {
   ChevronRight,
   Database,
   Layers,
-  Calendar,
   Zap
 } from "lucide-react";
 import InvoiceBreakdownModal from "./InvoiceBreakdownModal";
@@ -32,7 +30,6 @@ const RequestCard: React.FC<RequestCardProps> = ({
   onCancel,
   onReport,
   isProcessing,
-  getProgressPercentage,
   calculateDeliveryDate
 }) => {
   const [showInvoiceModal, setShowInvoiceModal] = React.useState(false);

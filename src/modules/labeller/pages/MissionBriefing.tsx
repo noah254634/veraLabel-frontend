@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Terminal, Shield, Zap, Target,
+  Terminal, Zap, Target,
   ChevronRight, Activity, Database,
   ArrowLeft, Clock, ShieldCheck, Lock,
   Layers, Cpu, TrendingUp

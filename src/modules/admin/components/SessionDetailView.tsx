@@ -1,5 +1,5 @@
-import { X, FileText, AlertCircle, CheckCircle, Clock, TrendingUp } from "lucide-react";
-import type { TaskSession, EventMetrics } from "../../types/taskProgressTypes";
+import { X, FileText, AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
+import type { TaskSession } from "../types/taskProgressTypes";
 
 interface SessionDetailViewProps {
   session: TaskSession | null;

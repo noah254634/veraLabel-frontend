@@ -57,7 +57,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }
   },
 
-  requestPayout: async (amount, method) => {
+  requestPayout: async (_amount, _method) => {
     try {
       set({ loading: true });
       // This endpoint would be implemented next
