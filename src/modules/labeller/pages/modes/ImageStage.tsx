@@ -30,6 +30,7 @@ interface ImageStageProps {
     domain?: string;
   };
   onBoxesChange?: (boxes: BoundingBox[]) => void;
+  shortcutsDisabled?: boolean;
 }
 
 type Tool = 'pointer' | 'bbox';
@@ -42,7 +43,9 @@ const LABEL_COLORS = [
   'rgba(168,85,247,0.7)',
 ];
 
-export const ImageStage = ({ task, onBoxesChange }: ImageStageProps) => {
+const cloneBoxes = (list: BoundingBox[]) => list.map((box) => ({ ...box }));
+
+export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: ImageStageProps) => {
   const [loaded, setLoaded] = useState(false);
   const [activeTool, setActiveTool] = useState<Tool>('pointer');
   const [boxes, setBoxes] = useState<BoundingBox[]>([]);
@@ -56,6 +59,186 @@ export const ImageStage = ({ task, onBoxesChange }: ImageStageProps) => {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
+  const historyRef = useRef<BoundingBox[][]>([]);
+
+  const [resizing, setResizing] = useState<{
+    boxId: string;
+    handle: 'tl' | 'tr' | 'bl' | 'br' | 'move';
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    origW: number;
+    origH: number;
+  } | null>(null);
+
+  const pushHistory = useCallback((snapshot: BoundingBox[]) => {
+    historyRef.current = [...historyRef.current, cloneBoxes(snapshot)].slice(-50);
+  }, []);
+
+  const clearSelectionAndInteraction = useCallback(() => {
+    setSelectedBoxId(null);
+    setDrawing(null);
+    setCurrentRect(null);
+    setResizing(null);
+    setIsPanning(false);
+  }, []);
+
+  const resetViewport = useCallback(() => {
+    setZoom(100);
+    setPan({ x: 0, y: 0 });
+    setIsPanning(false);
+  }, []);
+
+  const zoomIn = useCallback(() => {
+    setZoom((current) => Math.min(400, current + 25));
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setZoom((current) => {
+      const next = Math.max(100, current - 25);
+      if (next === 100) setPan({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((current) => !current);
+  }, []);
+
+  const undoLastAction = useCallback(() => {
+    const previous = historyRef.current.pop();
+    if (!previous) return;
+
+    setBoxes(cloneBoxes(previous));
+    clearSelectionAndInteraction();
+  }, [clearSelectionAndInteraction]);
+
+  const deleteBoxById = useCallback((id: string) => {
+    setBoxes((prev) => {
+      pushHistory(prev);
+      return prev.filter((box) => box.id !== id);
+    });
+
+    if (selectedBoxId === id) {
+      setSelectedBoxId(null);
+    }
+  }, [pushHistory, selectedBoxId]);
+
+  const clearAllBoxes = useCallback(() => {
+    setBoxes((prev) => {
+      if (prev.length === 0) return prev;
+      pushHistory(prev);
+      return [];
+    });
+    clearSelectionAndInteraction();
+  }, [clearSelectionAndInteraction, pushHistory]);
+
+  const handleBoxInteractionStart = useCallback((e: React.MouseEvent, boxId: string, handle: 'tl' | 'tr' | 'bl' | 'br' | 'move') => {
+    e.stopPropagation();
+    e.preventDefault();
+    setSelectedBoxId(boxId);
+    
+    if (activeTool !== 'pointer') return;
+
+    const box = boxes.find(b => b.id === boxId);
+    if (!box) return;
+
+    pushHistory(boxes);
+
+    setResizing({
+      boxId,
+      handle,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: box.x,
+      origY: box.y,
+      origW: box.w,
+      origH: box.h
+    });
+  }, [boxes, activeTool, pushHistory]);
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const img = imgRef.current;
+      if (!img) return;
+      
+      const rect = img.getBoundingClientRect();
+      const dx = e.clientX - resizing.startX;
+      const dy = e.clientY - resizing.startY;
+      
+      const pctDx = (dx / rect.width) * 100;
+      const pctDy = (dy / rect.height) * 100;
+
+      setBoxes((prev) =>
+        prev.map((b) => {
+          if (b.id !== resizing.boxId) return b;
+
+          let { x, y, w, h } = b;
+
+          if (resizing.handle === 'move') {
+            x = Math.max(0, Math.min(100 - resizing.origW, resizing.origX + pctDx));
+            y = Math.max(0, Math.min(100 - resizing.origH, resizing.origY + pctDy));
+          } else {
+            const L = resizing.origX;
+            const T = resizing.origY;
+            const R = resizing.origX + resizing.origW;
+            const B = resizing.origY + resizing.origH;
+
+            if (resizing.handle === 'tl') {
+              const proposedX = resizing.origX + pctDx;
+              const proposedY = resizing.origY + pctDy;
+              x = Math.max(0, Math.min(R - 2, proposedX));
+              y = Math.max(0, Math.min(B - 2, proposedY));
+              w = R - x;
+              h = B - y;
+            } else if (resizing.handle === 'tr') {
+              const proposedR = R + pctDx;
+              const proposedY = resizing.origY + pctDy;
+              const r = Math.max(L + 2, Math.min(100, proposedR));
+              y = Math.max(0, Math.min(B - 2, proposedY));
+              x = L;
+              w = r - L;
+              h = B - y;
+            } else if (resizing.handle === 'bl') {
+              const proposedX = resizing.origX + pctDx;
+              const proposedB = B + pctDy;
+              x = Math.max(0, Math.min(R - 2, proposedX));
+              const bVal = Math.max(T + 2, Math.min(100, proposedB));
+              y = T;
+              w = R - x;
+              h = bVal - T;
+            } else if (resizing.handle === 'br') {
+              const proposedR = R + pctDx;
+              const proposedB = B + pctDy;
+              const r = Math.max(L + 2, Math.min(100, proposedR));
+              const bVal = Math.max(T + 2, Math.min(100, proposedB));
+              x = L;
+              y = T;
+              w = r - L;
+              h = bVal - T;
+            }
+          }
+
+          return { ...b, x, y, w, h };
+        })
+      );
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing]);
 
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -180,25 +363,154 @@ export const ImageStage = ({ task, onBoxesChange }: ImageStageProps) => {
         ...currentRect,
         label: activeLabel,
       };
-      setBoxes((prev) => [...prev, newBox]);
+      setBoxes((prev) => {
+        pushHistory(prev);
+        return [...prev, newBox];
+      });
       setSelectedBoxId(newBox.id);
     }
     setDrawing(null);
     setCurrentRect(null);
-  }, [drawing, currentRect, activeLabel, isPanning]);
-
-  const deleteBox = (id: string) => {
-    setBoxes((prev) => prev.filter((b) => b.id !== id));
-  };
+  }, [drawing, currentRect, activeLabel, isPanning, pushHistory]);
 
   const handleSelectCategory = (label: string) => {
     setActiveLabel(label);
     if (selectedBoxId) {
-      setBoxes((prev) =>
-        prev.map((b) => (b.id === selectedBoxId ? { ...b, label } : b))
-      );
+      setBoxes((prev) => {
+        const selectedBox = prev.find((box) => box.id === selectedBoxId);
+        if (!selectedBox || selectedBox.label === label) return prev;
+        pushHistory(prev);
+        return prev.map((box) => (box.id === selectedBoxId ? { ...box, label } : box));
+      });
     }
   };
+
+  const selectCategoryByIndex = useCallback((index: number) => {
+    const label = categories[index];
+    if (!label) return;
+    handleSelectCategory(label);
+  }, [categories]);
+
+  useEffect(() => {
+    historyRef.current = [];
+    clearSelectionAndInteraction();
+    setBoxes([]);
+    setZoom(100);
+    setPan({ x: 0, y: 0 });
+  }, [imageUrl, clearSelectionAndInteraction]);
+
+  useEffect(() => {
+    if (shortcutsDisabled) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      ) {
+        return;
+      }
+
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key.toLowerCase() === 'z') {
+          event.preventDefault();
+          undoLastAction();
+          return;
+        }
+
+        if (event.shiftKey && event.key.toLowerCase() === 'backspace') {
+          event.preventDefault();
+          clearAllBoxes();
+          return;
+        }
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (drawing || currentRect || resizing || isPanning) {
+          clearSelectionAndInteraction();
+        } else {
+          setSelectedBoxId(null);
+        }
+        return;
+      }
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        if (selectedBoxId) {
+          event.preventDefault();
+          deleteBoxById(selectedBoxId);
+        }
+        return;
+      }
+
+      const normalizedKey = event.key.toLowerCase();
+
+      if (normalizedKey === 'b') {
+        event.preventDefault();
+        setActiveTool('bbox');
+        return;
+      }
+
+      if (normalizedKey === 'p') {
+        event.preventDefault();
+        setActiveTool('pointer');
+        return;
+      }
+
+      if (normalizedKey === 'f') {
+        event.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+
+      if (normalizedKey === '0') {
+        event.preventDefault();
+        resetViewport();
+        return;
+      }
+
+      if (normalizedKey === '=' || normalizedKey === '+') {
+        event.preventDefault();
+        zoomIn();
+        return;
+      }
+
+      if (normalizedKey === '-') {
+        event.preventDefault();
+        zoomOut();
+        return;
+      }
+
+      if (/^[1-9]$/.test(normalizedKey)) {
+        const index = Number(normalizedKey) - 1;
+        if (categories[index]) {
+          event.preventDefault();
+          selectCategoryByIndex(index);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [
+    categories,
+    clearAllBoxes,
+    clearSelectionAndInteraction,
+    currentRect,
+    deleteBoxById,
+    drawing,
+    isPanning,
+    resetViewport,
+    resizing,
+    selectCategoryByIndex,
+    selectedBoxId,
+    shortcutsDisabled,
+    toggleFullscreen,
+    undoLastAction,
+    zoomIn,
+    zoomOut,
+  ]);
 
   return (
     <div className={`relative flex flex-col bg-[#050505] ${isFullscreen ? 'fixed inset-0 z-[400]' : 'h-full w-full'}`}>
@@ -316,7 +628,7 @@ export const ImageStage = ({ task, onBoxesChange }: ImageStageProps) => {
           </div>
         ) : (
           <div 
-            className={`relative transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0 blur-xl'}`}
+            className={`relative transition-opacity duration-150 ${loaded ? 'opacity-100' : 'opacity-0'}`}
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`,
               transformOrigin: 'center center',
@@ -348,6 +660,11 @@ export const ImageStage = ({ task, onBoxesChange }: ImageStageProps) => {
                     e.stopPropagation();
                     setSelectedBoxId(box.id);
                   }}
+                  onMouseDown={(e) => {
+                    if (activeTool === 'pointer') {
+                      handleBoxInteractionStart(e, box.id, 'move');
+                    }
+                  }}
                   className={`absolute border-2 group cursor-pointer transition-shadow ${
                     isSelected ? 'ring-2 ring-white ring-offset-1 ring-offset-black shadow-[0_0_15px_rgba(99,102,241,0.5)]' : ''
                   }`}
@@ -370,13 +687,35 @@ export const ImageStage = ({ task, onBoxesChange }: ImageStageProps) => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteBox(box.id);
+                      deleteBoxById(box.id);
                       if (selectedBoxId === box.id) setSelectedBoxId(null);
                     }}
                     className="absolute -top-5 right-0 opacity-0 group-hover:opacity-100 text-[9px] font-mono px-1.5 py-0.5 bg-rose-600 text-white transition-opacity"
                   >
                     ✕
                   </button>
+
+                  {isSelected && activeTool === 'pointer' && (
+                    <>
+                      {/* Corner Resize Handles */}
+                      <div
+                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'tl')}
+                        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nwse-resize z-30 pointer-events-auto"
+                      />
+                      <div
+                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'tr')}
+                        className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nesw-resize z-30 pointer-events-auto"
+                      />
+                      <div
+                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'bl')}
+                        className="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nesw-resize z-30 pointer-events-auto"
+                      />
+                      <div
+                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'br')}
+                        className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nwse-resize z-30 pointer-events-auto"
+                      />
+                    </>
+                  )}
                 </div>
               );
             })}

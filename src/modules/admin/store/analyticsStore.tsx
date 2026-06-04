@@ -12,6 +12,9 @@ interface AnalyticsState {
   
   // Dataset State
   datasetData: any | null;
+
+  // Buyer State
+  buyerData: any | null;
   
   loading: boolean;
   error: string | null;
@@ -22,6 +25,7 @@ interface AnalyticsState {
   // New Methods
   fetchRevenueAnalytics: () => Promise<void>;
   fetchDatasetAnalytics: () => Promise<void>;
+  fetchBuyerAnalytics: () => Promise<void>;
   
   // Utility
   setError: (error: string | null) => void;
@@ -33,6 +37,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
   overview: null,
   revenueData: null,
   datasetData: null,
+  buyerData: null,
   loading: false,
   error: null,
 
@@ -72,6 +77,20 @@ export const useAnalyticsStore = create<AnalyticsState>((set) => ({
       set({ datasetData: data });
     } catch (error: any) {
       const message = error.response?.data?.error || "Failed to sync dataset analytics";
+      set({ error: message });
+      toast.error(message);
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchBuyerAnalytics: async () => {
+    try {
+      set({ loading: true, error: null });
+      const data = await analyticsService.getBuyerAnalytics();
+      set({ buyerData: data });
+    } catch (error: any) {
+      const message = error.response?.data?.error || "Failed to sync buyer analytics";
       set({ error: message });
       toast.error(message);
     } finally {

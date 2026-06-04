@@ -6,7 +6,7 @@ export const isRlhfProtocol = (template: {
 }) => {
   const sc = template?.scoringConfig || {};
   const taskTypes = sc.taskTypes || [];
-  return taskTypes.length > 0 || Boolean(sc.requireRationale);
+  return taskTypes.includes("Preference Ranking (A vs B)");
 };
 
 export const protocolMatchesLabellingMethod = (

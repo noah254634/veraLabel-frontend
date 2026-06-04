@@ -58,13 +58,10 @@ const RequestCard: React.FC<RequestCardProps> = ({
   const volume = parseInt(order.volume) || 1;
   const displayTotal = actualRows > 0 ? actualRows : volume;
   
-  const isIngesting = order.status === 'in_progress';
-  const isLabeling = order.status === 'completed' && (order.itemsCompleted || 0) < displayTotal && displayTotal > 0;
-  const isComplete = order.status === 'completed' && (order.itemsCompleted || 0) >= displayTotal;
-
-  const progress = isIngesting 
-    ? (order.processingProgress || 0)
-    : Math.min(((order.itemsCompleted || 0) / displayTotal) * 100, 100);
+  const isIngesting = order.status === 'pending';
+  const isAwaitingPayment = order.status === 'awaiting_payment';
+  const isLabeling = order.status === 'in_progress';
+  const isComplete = order.status === 'completed';
 
   return (
     <>
@@ -134,7 +131,8 @@ const RequestCard: React.FC<RequestCardProps> = ({
             icon={<Clock size={10} />} 
           />
         </div>
-        {order.status !== "pending" && order.status !== "awaiting_payment" && (
+
+        {['pending', 'awaiting_payment', 'in_progress', 'completed'].includes(order.status) && (
           <div className="space-y-4 mb-6 bg-zinc-900/20 p-3 border border-zinc-900/50 rounded-sm">
             <div className="space-y-1.5">
               <div className="flex justify-between items-end">
@@ -155,19 +153,19 @@ const RequestCard: React.FC<RequestCardProps> = ({
                 )}
               </div>
             </div>
-            <div className={`space-y-1.5 transition-opacity duration-500 ${isIngesting ? 'opacity-30' : 'opacity-100'}`}>
+            <div className={`space-y-1.5 transition-opacity duration-500 ${(isIngesting || isAwaitingPayment) ? 'opacity-20' : 'opacity-100'}`}>
               <div className="flex justify-between items-end">
                 <p className={`text-[7px] font-mono uppercase tracking-[0.2em] ${isLabeling ? 'text-emerald-400' : isComplete ? 'text-emerald-500' : 'text-zinc-600'}`}>
                   Phase_02: Human_Labeling_Protocol
                 </p>
                 <p className={`text-[8px] font-mono font-bold ${isLabeling ? 'text-white' : isComplete ? 'text-emerald-500' : 'text-zinc-700'}`}>
-                  {isComplete ? 'FULFILLED' : `${Math.min(((order.itemsCompleted || 0) / displayTotal) * 100, 100).toFixed(1)}%`}
+                  {isComplete ? 'FULFILLED' : (isIngesting || isAwaitingPayment) ? 'LOCKED // AWAITING SETTLEMENT' : `${Math.min(((order.itemsCompleted || 0) / displayTotal) * 100, 100).toFixed(1)}%`}
                 </p>
               </div>
               <div className="relative h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden">
                 <div 
                   className={`h-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.2)] ${isComplete ? 'bg-emerald-500' : 'bg-emerald-600'}`}
-                  style={{ width: `${Math.min(((order.itemsCompleted || 0) / displayTotal) * 100, 100)}%` }}
+                  style={{ width: `${(isLabeling || isComplete) ? Math.min(((order.itemsCompleted || 0) / displayTotal) * 100, 100) : 0}%` }}
                 />
                 {isLabeling && (
                   <div className="absolute top-0 left-0 h-full w-32 bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent animate-scan" />
@@ -176,7 +174,7 @@ const RequestCard: React.FC<RequestCardProps> = ({
             </div>
             <div className="flex justify-between pt-1 border-t border-zinc-900/50 mt-2">
               <p className="text-[7px] text-zinc-600 font-mono italic">
-                // Log: {isIngesting ? 'Distributing_Shards...' : isLabeling ? 'Labeller_Node_Active' : 'Data_Package_Ready'}
+                // Log: {isIngesting ? 'Distributing_Shards...' : isAwaitingPayment ? 'Awaiting_Payment_Settlement' : isLabeling ? 'Labeller_Node_Active' : 'Data_Package_Ready'}
               </p>
               <p className="text-[7px] text-zinc-500 font-bold uppercase tracking-tight">
                 {order.itemsCompleted || 0} / {displayTotal} UNITS_SYNCHRONIZED
@@ -184,7 +182,6 @@ const RequestCard: React.FC<RequestCardProps> = ({
             </div>
           </div>
         )}
-
         {order.qualityMetrics && (
           <div className="bg-zinc-900/30 p-2.5 rounded-sm mb-6 border border-zinc-900/50">
             <div className="flex items-center gap-2 mb-1.5">

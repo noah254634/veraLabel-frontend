@@ -159,6 +159,21 @@ const Dashboard: React.FC = () => {
     }
   }, [buyerProfile, getDatasets, getDatasetOrders]);
 
+  // 3. Poll dataset orders if there are any active pending ingestions
+  useEffect(() => {
+    const isApproved = buyerProfile?.verificationStatus === "approved" && buyerProfile?.isActive;
+    if (!isApproved) return;
+
+    const hasPendingOrders = buyerDatasetOrders?.some(order => order.status === "pending");
+    if (!hasPendingOrders) return;
+
+    const pollInterval = setInterval(() => {
+      getDatasetOrders();
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [buyerProfile, buyerDatasetOrders, getDatasetOrders]);
+
   if (profileLoading && !buyerProfile) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center">

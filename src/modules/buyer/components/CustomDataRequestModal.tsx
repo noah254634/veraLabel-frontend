@@ -97,7 +97,7 @@ const CustomDataRequestModal = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
-  const { datasetRequest, generateUploadUrl, uploadFileToS3, confirmUpload, loading, getProtocols } = useBuyerStore();
+  const { datasetRequest, generateUploadUrl, uploadFileToS3, confirmUpload, loading, getProtocols, buyerProfile } = useBuyerStore();
   const [step, setStep] = useState(0);
   const [intent, setIntent] = useState<"labeling" | "sourcing" | null>(null);
   const [protocols, setProtocols] = useState<any[]>([]);
@@ -111,6 +111,11 @@ const CustomDataRequestModal = ({
   const [formData, setFormData] = useState(initialFormData);
   const [budget, setBudget] = useState("");
   const [selectedTimeline, setSelectedTimeline] = useState<number | null>(null);
+  const [submissionStep, setSubmissionStep] = useState<"idle" | "generating_url" | "uploading_file" | "creating_request" | "initiating_split" | "splitting_dataset">("idle");
+  const [createdDatasetId, setCreatedDatasetId] = useState<string | null>(null);
+  const [telemetryLogs, setTelemetryLogs] = useState<{ time: string; type: string; message: string }[]>([]);
+  const [telemetryProgress, setTelemetryProgress] = useState<number>(0);
+  const [telemetryStatus, setTelemetryStatus] = useState<"active" | "completed" | "failed">("active");
 
   const resetModalState = () => {
     setStep(0);
@@ -122,6 +127,11 @@ const CustomDataRequestModal = ({
     setProtocols([]);
     setSelectedProtocol(null);
     setBuyerAnswers([]);
+    setSubmissionStep("idle");
+    setCreatedDatasetId(null);
+    setTelemetryLogs([]);
+    setTelemetryProgress(0);
+    setTelemetryStatus("active");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -139,9 +149,145 @@ const CustomDataRequestModal = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (submissionStep !== "splitting_dataset" || !createdDatasetId) return;
+
+    const projectId = buyerProfile?._id || "unknown";
+    const datasetId = createdDatasetId;
+
+    setTelemetryLogs([
+      {
+        time: new Date().toLocaleTimeString(),
+        type: "system",
+        message: "Establishing secure link to splitting telemetry..."
+      }
+    ]);
+    setTelemetryProgress(0);
+    setTelemetryStatus("active");
+
+    const sseUrl = `/api/v1/tasks/progress/${projectId}/${datasetId}/stream`;
+    const eventSource = new EventSource(sseUrl, { withCredentials: true });
+
+    const appendLog = (type: string, message: string) => {
+      setTelemetryLogs(prev => [
+        ...prev,
+        {
+          time: new Date().toLocaleTimeString(),
+          type,
+          message
+        }
+      ]);
+    };
+
+    let fallbackInterval: any = null;
+    const startFallbackPolling = () => {
+      if (fallbackInterval) return;
+      appendLog("system", "SSE connection degraded. Initializing HTTP telemetry polling...");
+      
+      fallbackInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/v1/tasks/progress/${projectId}/${datasetId}`);
+          if (!response.ok) throw new Error("Status poll failed");
+          const resJson = await response.json();
+          const summary = resJson.data || resJson;
+          
+          if (summary) {
+            if (summary.lastProgressUpdate) {
+              const targetVol = parseInt(formData.volume) || 1;
+              const percent = Math.min(Math.round((summary.lastProgressUpdate / targetVol) * 100), 100);
+              setTelemetryProgress(percent);
+            }
+            
+            if (summary.errors && Array.isArray(summary.errors)) {
+              summary.errors.forEach((err: any) => {
+                appendLog("error", `[Failure] ${err.message}`);
+              });
+            }
+
+            if (summary.status === "completed" || summary.status === "failed") {
+              setTelemetryStatus(summary.status);
+              appendLog("system", `Telemetry session finalized with status: ${summary.status.toUpperCase()}`);
+              clearInterval(fallbackInterval);
+            }
+          }
+        } catch (err: any) {
+          console.error("Telemetry fallback error:", err);
+        }
+      }, 2000);
+    };
+
+    const connTimeout = setTimeout(() => {
+      if (eventSource.readyState !== EventSource.OPEN) {
+        eventSource.close();
+        startFallbackPolling();
+      }
+    }, 3500);
+
+    eventSource.onopen = () => {
+      clearTimeout(connTimeout);
+      appendLog("system", "Secure telemetry stream established. Monitoring splitter node...");
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (!data) return;
+
+        switch (data.type) {
+          case "connected":
+            appendLog("system", "Worker handshaking successful.");
+            break;
+          case "progress":
+            appendLog("progress", data.message);
+            if (data.metadata?.count) {
+              const targetVol = parseInt(formData.volume) || 1;
+              const percent = Math.min(Math.round((data.metadata.count / targetVol) * 100), 100);
+              setTelemetryProgress(percent);
+            }
+            break;
+          case "checkpoint":
+            appendLog("checkpoint", `[Checkpoint] ${data.label} (Elapsed: ${data.metrics?.elapsedMs || 0}ms)`);
+            break;
+          case "error":
+            appendLog("error", `[Failure] (${data.severity || 'error'}) ${data.message}`);
+            break;
+          case "session_complete":
+            setTelemetryStatus(data.status);
+            if (data.status === "completed") {
+              setTelemetryProgress(100);
+              appendLog("complete", "All dataset shards registered. Invoice calculated.");
+            } else {
+              appendLog("error", "Worker process crashed. Refer to failure metrics.");
+            }
+            eventSource.close();
+            break;
+          case "complete":
+            setTelemetryProgress(100);
+            appendLog("complete", `Data ingestion complete: ${data.summary?.totalCount || 'All'} elements parsed successfully.`);
+            break;
+        }
+      } catch (err) {
+        console.error("Error parsing telemetry stream message:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.warn("EventSource encountered connection error. Triggering fallback...", err);
+      eventSource.close();
+      clearTimeout(connTimeout);
+      startFallbackPolling();
+    };
+
+    return () => {
+      eventSource.close();
+      clearTimeout(connTimeout);
+      if (fallbackInterval) clearInterval(fallbackInterval);
+    };
+  }, [submissionStep, createdDatasetId, buyerProfile]);
+
   if (!isOpen) return null;
 
-  // Technical Validator: Checks structure before hitting the Worker
+  // Validate file structure
   const validateFileStructure = async (file: File) => {
     const log: { msg: string; type: "error" | "success" }[] = [];
 
@@ -188,13 +334,36 @@ const CustomDataRequestModal = ({
       } catch (e: any) {
         log.push({ msg: `Technical Error: ${e.message}`, type: "error" });
       }
-    } else if (formData.domain === "Audio") {
-      const result = await isAudioFile(file);
-      if (!result.isAudio) {
-        log.push({ msg: `Technical Error: ${result.reason}`, type: "error" });
-      } else {
+    } else if (formData.domain === "Audio" || formData.domain === "Medical") {
+      // Check for ZIP magic bytes (PK header) to avoid false-rejecting zipped media.
+      const zipBuffer = await file.slice(0, 4).arrayBuffer();
+      const zipBytes = new Uint8Array(zipBuffer);
+      const isZip =
+        zipBytes[0] === 0x50 &&
+        zipBytes[1] === 0x4b &&
+        zipBytes[2] === 0x03 &&
+        zipBytes[3] === 0x04;
+
+      if (isZip) {
         log.push({
-          msg: `Audio Verified: ${result.type} protocol detected.`,
+          msg: `Archive detected: ZIP package will be extracted by the processing worker. Ensure it contains only ${formData.domain === "Audio" ? "audio" : "image/video"} files.`,
+          type: "success",
+        });
+      } else if (formData.domain === "Audio") {
+        // Single audio file upload — validate magic bytes
+        const result = await isAudioFile(file);
+        if (!result.isAudio) {
+          log.push({ msg: `Technical Error: ${result.reason}`, type: "error" });
+        } else {
+          log.push({
+            msg: `Audio Verified: ${result.type} protocol detected.`,
+            type: "success",
+          });
+        }
+      } else {
+        // Medical single file — accept and let the backend validate further
+        log.push({
+          msg: `Medical file staged for processing.`,
           type: "success",
         });
       }
@@ -252,28 +421,43 @@ const CustomDataRequestModal = ({
     }
 
     try {
-      // Map domain to fileType
-      const fileTypeMap: Record<string, string> = {
-        NLP: "general",
-        Code: "general",
-        Legal: "general",
-        Audio: "media",
-        Tabular: "general",
-        Medical: "media",
-      };
-      const fileType = fileTypeMap[formData.domain] || "general";
+      // Determine worker route
+      let workerRoute = "text";
+      let uploadMime = "application/octet-stream"; // actual MIME for the R2 presigned PUT
 
-      // Step 1: Generate presigned upload URL
+      if (formData.labellingMethod === "rlhf") {
+        workerRoute = "rlhf";
+        uploadMime = "application/json";
+      } else if (formData.domain === "Audio" || formData.domain === "Medical") {
+        const isZip = formData.uploadedFile
+          ? await (async () => {
+              const buf = await formData.uploadedFile!.slice(0, 4).arrayBuffer();
+              const b = new Uint8Array(buf);
+              return b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04;
+            })()
+          : false;
+        workerRoute = isZip ? (formData.domain === "Audio" ? "audio" : "media") : "text";
+        uploadMime = isZip ? "application/zip" : (formData.uploadedFile?.type || "audio/mpeg");
+      } else {
+        // Text/code/document/NLP domains
+        workerRoute = "text";
+        uploadMime = formData.uploadedFile?.type || "application/json";
+      }
+
+      // Generate presigned upload URL
+      setSubmissionStep("generating_url");
       toast.loading("Generating upload URL...");
-      const { uploadUrl, key } = await generateUploadUrl(fileType);
+      const { uploadUrl, key } = await generateUploadUrl(uploadMime);
 
-      // Step 2: Upload file directly to S3/R2
+      // Upload file directly to cloud storage
       if (formData.uploadedFile) {
+        setSubmissionStep("uploading_file");
         toast.loading("Uploading file to cloud storage...");
         await uploadFileToS3(formData.uploadedFile, uploadUrl);
       }
 
-      // Step 3: Create dataset request (creates Dataset record and returns ID)
+      // Create dataset request
+      setSubmissionStep("creating_request");
       toast.loading("Creating dataset request...");
       const timelineOption = selectedTimeline !== null
         ? DOMAIN_TIMELINES[formData.domain]?.[selectedTimeline]
@@ -296,20 +480,30 @@ const CustomDataRequestModal = ({
         buyerAnswers: buyerAnswers
       });
 
-      // Step 4: Confirm upload and trigger worker with actual dataset ID
+      // Confirm upload and trigger worker
+      setSubmissionStep("initiating_split");
       toast.loading("Confirming upload with backend...");
       // Backend returns { response: { datasetId, datasetRequest } }
       const datasetId = requestResult?.response?.datasetId || requestResult?.datasetId || key;
-      await confirmUpload(key, datasetId, fileType);
+      setCreatedDatasetId(datasetId);
+      await confirmUpload(key, datasetId, workerRoute);
 
-      toast.success("Dataset request created successfully!");
-      handleModalClose();
+      toast.success("Dataset request registered! Processing splitting stream...");
+      setSubmissionStep("splitting_dataset");
     } catch (err) {
+      setSubmissionStep("idle");
       const errorMessage = err instanceof Error ? err.message : "Request failed";
       toast.error(errorMessage);
-
     }
   };
+
+  const SUBMISSION_STEPS = [
+    { id: "generating_url", label: "Generating secure presigned upload URL" },
+    { id: "uploading_file", label: "Uploading dataset archive to Cloudflare R2" },
+    { id: "creating_request", label: "Registering dataset metadata on Node.js server" },
+    { id: "initiating_split", label: "Initiating high-performance splitting worker" },
+    { id: "splitting_dataset", label: "Splitting, indexing, and generating batches" }
+  ];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -319,14 +513,16 @@ const CustomDataRequestModal = ({
       />
 
       <div className="relative bg-[#0A0A0A] w-full max-w-2xl max-h-[90vh] flex flex-col border border-zinc-800 shadow-2xl overflow-hidden animate-in zoom-in-95">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-zinc-900">
-          <div
-            className="h-full bg-indigo-500 transition-all shadow-[0_0_15px_#6366f1]"
-            style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
-          />
-        </div>
+        {submissionStep === "idle" ? (
+          <>
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-zinc-900">
+              <div
+                className="h-full bg-indigo-500 transition-all shadow-[0_0_15px_#6366f1]"
+                style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
+              />
+            </div>
 
-        <form onSubmit={handleSubmit} className="p-8 md:p-12 overflow-y-auto flex-1">
+            <form onSubmit={handleSubmit} className="p-8 md:p-12 overflow-y-auto flex-1">
           {step === 0 && (
             <div className="space-y-10">
               <header>
@@ -672,7 +868,7 @@ const CustomDataRequestModal = ({
                     <span>Content: {formData.contentType}</span>
                   </div>
                   <label className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest ml-1">
-                    // Quality Acceptance Criteria
+
                   </label>
                   <textarea
                     value={formData.qualityMetrics}
@@ -792,7 +988,7 @@ const CustomDataRequestModal = ({
 
               <div className="space-y-2">
                 <label className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest ml-1">
-                  // Project Specifications
+
                 </label>
                 <textarea
                   name="specifications"
@@ -905,6 +1101,174 @@ const CustomDataRequestModal = ({
             </div>
           )}
         </form>
+          </>
+        ) : submissionStep !== "splitting_dataset" ? (
+          <div className="p-8 md:p-12 flex flex-col items-center justify-center space-y-8 min-h-[450px]">
+            <div className="relative flex items-center justify-center">
+              <div className="w-16 h-16 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+              <Cpu className="absolute text-indigo-500 animate-pulse" size={24} />
+            </div>
+            
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-white italic tracking-wide">
+                Transmission in Progress...
+              </h3>
+              <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                Do not close this window or refresh the page
+              </p>
+            </div>
+
+            <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 p-6 space-y-4 rounded-sm font-mono text-xs">
+              {SUBMISSION_STEPS.map((s, idx) => {
+                const currentIdx = SUBMISSION_STEPS.findIndex(x => x.id === submissionStep);
+                const isCompleted = idx < currentIdx;
+                const isCurrent = idx === currentIdx;
+                const isPending = idx > currentIdx;
+
+                return (
+                  <div key={s.id} className="flex items-center gap-3">
+                    {isCompleted && (
+                      <div className="w-4 h-4 rounded-full bg-emerald-500/10 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-[10px] font-bold">
+                        ✓
+                      </div>
+                    )}
+                    {isCurrent && (
+                      <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" size={14} />
+                    )}
+                    {isPending && (
+                      <div className="w-4 h-4 rounded-full border border-zinc-800 flex items-center justify-center text-zinc-700 text-[8px]">
+                        •
+                      </div>
+                    )}
+                    <span className={isCompleted ? "text-zinc-500 line-through" : isCurrent ? "text-indigo-400 font-bold animate-pulse" : "text-zinc-600"}>
+                      {s.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="p-8 md:p-12 flex flex-col space-y-8 min-h-[500px]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center justify-center">
+                  {telemetryStatus === "active" ? (
+                    <div className="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                  ) : telemetryStatus === "completed" ? (
+                    <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center">
+                      <ShieldCheck className="text-emerald-400" size={18} />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center">
+                      <AlertCircle className="text-red-400" size={18} />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white italic tracking-wide">
+                    {telemetryStatus === "active"
+                      ? "Decompressing & Splitting..."
+                      : telemetryStatus === "completed"
+                      ? "Splitting Complete!"
+                      : "Splitting Failed"}
+                  </h3>
+                  <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">
+                    Telemetry Stream // ID: {createdDatasetId?.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="text-right">
+                <span className="text-xl font-bold font-mono text-white tabular-nums">
+                  {telemetryProgress}%
+                </span>
+                <p className="text-[8px] font-mono text-zinc-500 uppercase">SYNCHRONIZED</p>
+              </div>
+            </div>
+
+            {/* Ingestion Steps Checklist */}
+            <div className="w-full bg-zinc-950 border border-zinc-900 p-5 space-y-3 font-mono text-xs rounded-sm">
+              {SUBMISSION_STEPS.map((s, idx) => {
+                const isCompleted = idx < 4;
+                const isCurrent = idx === 4 && telemetryStatus === "active";
+                const isFinalComplete = telemetryStatus === "completed" && idx === 4;
+                const isFinalFailed = telemetryStatus === "failed" && idx === 4;
+
+                return (
+                  <div key={s.id} className="flex items-center gap-3">
+                    {(isCompleted || isFinalComplete) ? (
+                      <div className="w-4 h-4 rounded-full bg-emerald-500/10 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-[10px] font-bold">
+                        ✓
+                      </div>
+                    ) : isFinalFailed ? (
+                      <div className="w-4 h-4 rounded-full bg-red-500/10 border border-red-500/50 flex items-center justify-center text-red-400 text-[10px] font-bold">
+                        ✕
+                      </div>
+                    ) : isCurrent ? (
+                      <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" size={14} />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-zinc-800 flex items-center justify-center text-zinc-700 text-[8px]">
+                        •
+                      </div>
+                    )}
+                    <span className={(isCompleted || isFinalComplete) ? "text-zinc-500 line-through" : isCurrent ? "text-indigo-400 font-bold animate-pulse" : isFinalFailed ? "text-red-400" : "text-zinc-600"}>
+                      {s.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Telemetry Console (Developer Terminal) */}
+            <div className="flex-1 flex flex-col min-h-[160px] bg-black border border-zinc-900 font-mono text-[10px] text-zinc-400 p-4 relative overflow-hidden rounded-sm">
+              <div className="absolute top-0 left-0 w-full h-5 bg-zinc-950 border-b border-zinc-900 px-3 flex items-center justify-between text-[9px] text-zinc-500">
+                <span>TERMINAL_OUTPUT // TELEMETRY</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  LIVE_FEED
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto mt-4 pt-2 space-y-1 select-all pr-2 max-h-[180px] custom-scrollbar">
+                {telemetryLogs.map((log, idx) => {
+                  let color = "text-zinc-500";
+                  if (log.type === "system") color = "text-indigo-400";
+                  if (log.type === "checkpoint") color = "text-amber-500/90";
+                  if (log.type === "error") color = "text-red-500 font-bold";
+                  if (log.type === "complete") color = "text-emerald-400 font-bold";
+
+                  return (
+                    <div key={idx} className="flex gap-2 leading-relaxed">
+                      <span className="text-zinc-700 select-none">[{log.time}]</span>
+                      <span className={color}>{log.message}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={handleModalClose}
+                className="flex-1 py-4 bg-zinc-950 border border-zinc-900 hover:border-zinc-700 text-zinc-400 hover:text-white font-bold text-[10px] uppercase tracking-widest transition-all rounded-sm"
+              >
+                Run in Background
+              </button>
+              
+              {telemetryStatus === "completed" && (
+                <button
+                  type="button"
+                  onClick={handleModalClose}
+                  className="flex-1 py-4 bg-white text-black font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all rounded-sm"
+                >
+                  Proceed to Payment
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

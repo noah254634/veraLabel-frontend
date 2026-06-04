@@ -36,7 +36,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     try {
       set({ loading: true });
       const response = await api.get('/labeller/earnings');
-      const data = response.data;
+      const data = response.data?.data || response.data;
       
       set({
         balance: data.currentBalance || 0,

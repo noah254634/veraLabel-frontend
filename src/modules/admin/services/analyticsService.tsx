@@ -76,4 +76,9 @@ export const analyticsService = {
     const response = await api.get("/analytics/datasets")
     return response.data.data
   },
+
+  getBuyerAnalytics: async (): Promise<any> => {
+    const response = await api.get("/analytics/buyers")
+    return response.data.data
+  },
 }

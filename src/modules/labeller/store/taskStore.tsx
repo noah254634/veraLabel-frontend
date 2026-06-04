@@ -20,6 +20,7 @@ type TaskStore = {
   fetchTaskPayload: (id: string) => Promise<void>;
   claimBatch: (datasetId: string) => Promise<void>;
   submitTask: (taskId: string, annotation?: any) => Promise<void>;
+  flagTask: (taskId: string, reason: string, detail: string) => Promise<void>;
   activeBatch: any;
 };
 export const useTaskStore = create<TaskStore>((set, get) => ({
@@ -49,12 +50,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       set({ loading: true });
       const response = await api.get('/tasks/my-active-batch');
-      const batch = response.data?.data || response.data;
+      const batch = response.data && 'data' in response.data ? response.data.data : response.data;
       if (batch) {
         set({ tasks: batch.tasks || [], activeBatch: batch });
+      } else {
+        set({ tasks: [], activeBatch: null });
       }
     } catch {
-      // no active batch
+      set({ tasks: [], activeBatch: null });
     } finally {
       set({ loading: false });
     }
@@ -101,7 +104,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       set({ loading: true, error: null });
       const response = await api.post('/tasks/claim-batch', { datasetId });
-      const batch = response.data?.data || response.data;
+      const batch = response.data && 'data' in response.data ? response.data.data : response.data;
       
       if (batch && Array.isArray(batch.tasks)) {
         // Map the populated tasks from the batch into the store
@@ -167,7 +170,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       // Update local task status optimistically
       const updatedTasks = tasks.map((t) => {
         const id = t.id || (t as any)._id;
-        return id === taskId ? { ...t, status: 'submitted' as any } : t;
+        return String(id) === String(taskId) ? { ...t, status: 'submitted' as any } : t;
       });
 
       // Update active batch progress counters if returned
@@ -182,6 +185,47 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
       set({ tasks: updatedTasks, activeBatch: updatedBatch });
       toast.success("Asset synchronization successful");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message;
+      toast.error(msg);
+      throw err;
+    }
+  },
+  flagTask: async (taskId, reason, detail) => {
+    const { activeBatch, tasks } = get();
+    const batchId = activeBatch?._id || activeBatch?.id;
+
+    if (!batchId) {
+      toast.error("No active batch context found.");
+      return;
+    }
+
+    try {
+      const response = await api.put(`/tasks/submit/${taskId}`, {
+        batchId,
+        isFlagged: true,
+        flagReason: reason,
+        flagDetail: detail
+      });
+
+      // Update local task status optimistically
+      const updatedTasks = tasks.map((t) => {
+        const id = t.id || (t as any)._id;
+        return String(id) === String(taskId) ? { ...t, status: 'flagged' as any } : t;
+      });
+
+      // Update active batch progress counters if returned
+      const updatedBatch = { ...activeBatch };
+      const progress = response.data?.progress ?? response.data?.data?.progress;
+      if (progress?.completed != null) {
+        updatedBatch.completedTasks = progress.completed;
+      } else {
+        // Increment locally if backend didn't return updated count
+        updatedBatch.completedTasks = (updatedBatch.completedTasks ?? 0) + 1;
+      }
+
+      set({ tasks: updatedTasks, activeBatch: updatedBatch });
+      toast.success("Task flagged successfully");
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message;
       toast.error(msg);

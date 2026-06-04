@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { CheckCircle2, DollarSign, Target, Trophy, Terminal, Activity, Zap, ChevronRight } from "lucide-react";
 import { ProgressBar } from "../components/ProgressBar";
 import { QualificationCard } from "../components/QualificationCard";
@@ -10,8 +11,12 @@ const DAILY_GOAL = 20; // $20 daily earnings goal
 
 export const LabellerDashboard = () => {
   const { user } = useAuthStore();
-  const { labeller } = useLabelerStore();
+  const { labeller, getLabeller } = useLabelerStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getLabeller();
+  }, [getLabeller]);
 
   const expertise = typeof labeller?.expertise === "object" && labeller.expertise !== null
     ? labeller.expertise

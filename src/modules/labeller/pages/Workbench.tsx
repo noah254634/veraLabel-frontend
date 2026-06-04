@@ -19,7 +19,7 @@ import { api } from '../../../shared/types/api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-// ─── Flag corruption modal ───────────────────────────────────────────────────
+// Flag corruption modal
 const FLAG_REASONS = [
   "Prompt is in the wrong language",
   "Prompt contains harmful or unsafe content",
@@ -118,21 +118,39 @@ const FlagModal = ({
   );
 };
 
-// ─── Live timer hook ─────────────────────────────────────────────────────────
+// Live timer hook
 const SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4-hour rolling session
 
-const useLiveTimer = () => {
+const useLiveTimer = (expiresAt?: string | Date) => {
   const startRef = useRef<number>(Date.now());
-  const [remaining, setRemaining] = useState(SESSION_DURATION_MS);
+
+  const [remaining, setRemaining] = useState(() => {
+    if (expiresAt) {
+      return Math.max(0, new Date(expiresAt).getTime() - Date.now());
+    }
+    return SESSION_DURATION_MS;
+  });
+
+  useEffect(() => {
+    if (expiresAt) {
+      setRemaining(Math.max(0, new Date(expiresAt).getTime() - Date.now()));
+    }
+  }, [expiresAt]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startRef.current;
-      const rem = Math.max(0, SESSION_DURATION_MS - elapsed);
-      setRemaining(rem);
+      if (expiresAt) {
+        const targetTime = new Date(expiresAt).getTime();
+        const rem = Math.max(0, targetTime - Date.now());
+        setRemaining(rem);
+      } else {
+        const elapsed = Date.now() - startRef.current;
+        const rem = Math.max(0, SESSION_DURATION_MS - elapsed);
+        setRemaining(rem);
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [expiresAt]);
 
   const h = Math.floor(remaining / 3600000);
   const m = Math.floor((remaining % 3600000) / 60000);
@@ -146,7 +164,7 @@ const useLiveTimer = () => {
   };
 };
 
-// ─── Main Workbench ──────────────────────────────────────────────────────────
+// Main Workbench
 export const CustomWorkbench = () => {
   const {
     getMyActiveBatch,
@@ -154,6 +172,7 @@ export const CustomWorkbench = () => {
     loading,
     fetchTaskPayload,
     submitTask,
+    flagTask,
     activeBatch
   } = useTaskStore();
   const { labeller } = useLabelerStore();
@@ -165,7 +184,6 @@ export const CustomWorkbench = () => {
   const [protocol, setProtocol] = useState<any>(null);
   const [showBriefing, setShowBriefing] = useState(false);
   const [briefingDismissed, setBriefingDismissed] = useState(false);
-  const [checkedDirectives, setCheckedDirectives] = useState<Record<number, boolean>>({});
   const [selectedRubrics, setSelectedRubrics] = useState<Record<string, boolean>>({});
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [rationale, setRationale] = useState<string>('');
@@ -173,11 +191,30 @@ export const CustomWorkbench = () => {
   const [showFlagModal, setShowFlagModal] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
   const [antiPatternsCollapsed, setAntiPatternsCollapsed] = useState(false);
-  // Bug #5 / #3 fix: capture classification label and bounding boxes from sub-stages
+
   const [classificationLabel, setClassificationLabel] = useState<string | null>(null);
   const [boundingBoxes, setBoundingBoxes] = useState<any[]>([]);
+  // Audio stage state
+  const [transcriptionText, setTranscriptionText] = useState<string>('');
 
-  const timer = useLiveTimer();
+  const timer = useLiveTimer(activeBatch?.expiresAt);
+
+  // Preload next task's image
+  const nextTask = tasks?.[activeTaskIndex + 1];
+  const nextImageUrl = nextTask && resolveContentType(nextTask, activeBatch) === 'image'
+    ? nextTask.data?.url ||
+    (typeof nextTask.taskObject === 'object' && nextTask.taskObject !== null
+      ? nextTask.taskObject.url || nextTask.taskObject.data?.url
+      : undefined) ||
+    (nextTask as any).r2_url
+    : undefined;
+
+  useEffect(() => {
+    if (nextImageUrl) {
+      const img = new Image();
+      img.src = nextImageUrl;
+    }
+  }, [nextImageUrl]);
 
   useEffect(() => {
     getMyActiveBatch();
@@ -186,7 +223,7 @@ export const CustomWorkbench = () => {
   useEffect(() => {
     if (tasks && tasks.length > 0) {
       const firstPendingIndex = tasks.findIndex(
-        t => t.status !== 'submitted' && t.status !== 'verified'
+        t => t.status !== 'submitted' && t.status !== 'verified' && t.status !== 'flagged'
       );
       if (firstPendingIndex !== -1) {
         setActiveTaskIndex(firstPendingIndex);
@@ -201,21 +238,21 @@ export const CustomWorkbench = () => {
   const taskPayload = (currentTask as any)?.taskObject && typeof (currentTask as any).taskObject === "object"
     ? (currentTask as any).taskObject
     : currentTask;
-  const imageAllowedLabels =
+  // imageAllowedLabels: real class labels from task payload only.
+  // rubric tags (r.tag) are scoring criteria, NOT annotation categories — do NOT use them here.
+  const imageAllowedLabels: string[] =
     (taskPayload as any)?.categories ||
     (taskPayload as any)?.labels ||
     (taskPayload as any)?.options ||
     (currentTask as any)?.categories ||
     (currentTask as any)?.labels ||
     (currentTask as any)?.options ||
-    protocol?.rubrics?.map((r: any) => r.tag) ||
     [];
 
   useEffect(() => {
     if (currentTask) {
       const id = currentTask.id || (currentTask as any)._id;
       fetchTaskPayload(id);
-      setCheckedDirectives({});
       setSelectedRubrics({});
       setSelection(null);
       setRatings({});
@@ -224,6 +261,7 @@ export const CustomWorkbench = () => {
       // Reset stage-specific annotation state on task change
       setClassificationLabel(null);
       setBoundingBoxes([]);
+      setTranscriptionText('');
     }
   }, [currentTask, fetchTaskPayload]);
 
@@ -244,13 +282,14 @@ export const CustomWorkbench = () => {
       .catch(() => {
         const method = resolveLabellingMethod(activeBatch);
         const domain =
-          method === "rlhf"
+          (activeBatch as any)?.domain ||
+          (method === "rlhf"
             ? "RLHF"
             : contentType === "audio"
               ? "Audio"
               : contentType === "image" || contentType === "video"
                 ? "Image"
-                : "NLP";
+                : "NLP");
 
         if (!domain) return;
 
@@ -277,30 +316,28 @@ export const CustomWorkbench = () => {
               setShowBriefing(true);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       });
   }, [activeBatch]);
 
   const hasTasks = tasks.length > 0;
   const isLastTask = hasTasks && activeTaskIndex >= tasks.length - 1;
-  const isBatchCompleted = activeBatch && activeBatch.completedTasks >= activeBatch.totalTasks;
-
-  const handleSkip = () => {
-    if (!hasTasks || isLastTask) return;
-    setSelection(null);
-    setActiveTaskIndex((prev) => prev + 1);
-  };
+  const totalTasks = activeBatch?.totalTasks || 0;
+  const completedTasks = tasks.filter(t => t.status === 'submitted' || t.status === 'verified' || t.status === 'flagged').length;
+  const batchProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const isBatchCompleted = activeBatch && completedTasks >= totalTasks;
+  const pricePerBatch = activeBatch?.pricePerBatch || 0;
+  const taskReward = pricePerBatch > 0 && totalTasks > 0 ? (pricePerBatch / totalTasks) : 0.42;
 
   const handleSubmit = async () => {
-    const directivesList = protocol?.finalDirectives || [];
-    const allDirectivesChecked = directivesList.length > 0
-      ? directivesList.every((_: any, index: number) => !!checkedDirectives[index])
-      : true;
+    if (isSubmitting || currentTask?.status === 'submitted') {
+      return;
+    }
 
     const scoringConfig = protocol?.scoringConfig;
-    const isPreferenceRequired = scoringConfig?.taskTypes?.includes('Preference Ranking (A vs B)');
-    const isScoringRequired = scoringConfig?.taskTypes?.includes('Dimensional Scoring (1-5)');
-    const isRationaleRequired = scoringConfig?.requireRationale;
+    const isPreferenceRequired = showRlhfStage && scoringConfig?.taskTypes?.includes('Preference Ranking (A vs B)');
+    const isScoringRequired = showRlhfStage && scoringConfig?.taskTypes?.includes('Dimensional Scoring (1-5)');
+    const isRationaleRequired = showRlhfStage && scoringConfig?.requireRationale;
     const minLength = scoringConfig?.minLength || 20;
     const tieRequiresJustification = scoringConfig?.tieRequiresJustification !== false;
 
@@ -333,11 +370,6 @@ export const CustomWorkbench = () => {
       return;
     }
 
-    if (!allDirectivesChecked) {
-      toast.error("MISSION_PROTOCOL: You must verify and check all guidelines directives.");
-      return;
-    }
-
     const requiresImageAnnotation = !showRlhfStage && (contentType === "image" || contentType === "video");
     if (requiresImageAnnotation) {
       const validation = validateImageAnnotation(boundingBoxes, imageAllowedLabels);
@@ -346,7 +378,19 @@ export const CustomWorkbench = () => {
         return;
       }
     }
-    
+
+    // Audio: transcription must meet minimum length; classification must have a label
+    if (!showRlhfStage && contentType === 'audio') {
+      if (labellingMethod === 'transcription' && transcriptionText.trim().length < 10) {
+        toast.error('MISSION_PROTOCOL: Transcription must be at least 10 characters.');
+        return;
+      }
+      if (labellingMethod === 'classification' && !classificationLabel) {
+        toast.error('MISSION_PROTOCOL: You must select a classification label before submitting.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const taskId = currentTask.id || (currentTask as any)._id;
@@ -356,11 +400,16 @@ export const CustomWorkbench = () => {
         ratings: isScoringRequired ? ratings : {},
         rationale: isRationaleRequired ? rationale : "",
         rubrics: selectedRubrics,
-        directives: checkedDirectives,
-        // Bug #5: include classification label from TextStage
+        directives: {},
+        // Bug #5: include classification label from TextStage / AudioStage
         classificationLabel: classificationLabel || null,
         // Bug #3: include bounding boxes from ImageStage
         boundingBoxes: boundingBoxes.length > 0 ? boundingBoxes : null,
+        // Audio annotation fields
+        transcription: contentType === 'audio' && labellingMethod === 'transcription'
+          ? transcriptionText.trim()
+          : null,
+        contentType: contentType || null,
         submittedAt: new Date().toISOString()
       };
       await submitTask(taskId, annotation);
@@ -375,19 +424,43 @@ export const CustomWorkbench = () => {
     }
   };
 
+  useEffect(() => {
+    const handleGlobalSubmitKey = (event: KeyboardEvent) => {
+      if (showFlagModal || isFlagging) return;
+
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      ) {
+        return;
+      }
+
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalSubmitKey);
+    return () => window.removeEventListener('keydown', handleGlobalSubmitKey);
+  }, [handleSubmit, isFlagging, showFlagModal]);
+
   const handleFlagSubmit = async (reason: string, detail: string) => {
     setIsFlagging(true);
+    const taskId = currentTask?.id || (currentTask as any)?._id;
+    
+    // Optimistic UI updates: dismiss modal and move to next task immediately
+    setShowFlagModal(false);
+    if (!isLastTask) {
+      setActiveTaskIndex(prev => prev + 1);
+      setSelection(null);
+    }
+    
     try {
-      const taskId = currentTask?.id || (currentTask as any)?._id;
-      await api.post(`/tasks/${taskId}/flag`, { reason, detail });
-      toast.success("Task flagged — moving to next task.");
-      setShowFlagModal(false);
-      if (!isLastTask) {
-        setActiveTaskIndex(prev => prev + 1);
-        setSelection(null);
-      }
+      await flagTask(taskId, reason, detail);
     } catch {
-      toast.error("Failed to flag task — please try again.");
+      // errors already shown via store toasts
     } finally {
       setIsFlagging(false);
     }
@@ -407,44 +480,44 @@ export const CustomWorkbench = () => {
     return (
       <div className="h-screen w-full bg-[#020203] flex flex-col items-center justify-center font-mono overflow-hidden">
         <div className="w-64 space-y-8 relative">
-           <div className="flex justify-between items-end mb-2">
-              <span className="text-[10px] text-indigo-500 font-bold tracking-widest uppercase italic">
-                {syncStage === 0 && "Handshaking_Node..."}
-                {syncStage === 1 && "Fetching_Assets..."}
-                {syncStage === 2 && "Syncing_Metadata..."}
-                {syncStage === 3 && "Finalizing_Terminal..."}
-              </span>
-              <span className="text-[10px] text-zinc-700">{syncStage * 25 + 25}%</span>
-           </div>
-           <div className="h-[2px] w-full bg-zinc-900 overflow-hidden">
-              <div 
-                className="h-full bg-indigo-500 transition-all duration-700 ease-out" 
-                style={{ width: `${syncStage * 25 + 25}%` }}
-              />
-           </div>
-           <div className="space-y-1 opacity-40">
-              <p className="text-[8px] text-zinc-500 tracking-tighter">{">> "} Veralabel_OS_v4.2.1-Prod</p>
-              <p className="text-[8px] text-zinc-500 tracking-tighter">{">> "} SSL_SESSION_ESTABLISHED</p>
-              {syncStage >= 1 && <p className="text-[8px] text-zinc-400 tracking-tighter">{">> "} DATA_STREAM_OPEN (BATCH_RSV)</p>}
-           </div>
-           <Activity className="absolute -top-16 left-1/2 -translate-x-1/2 text-indigo-500/20 animate-pulse" size={48} />
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-[10px] text-indigo-500 font-bold tracking-widest uppercase italic">
+              {syncStage === 0 && "Handshaking_Node..."}
+              {syncStage === 1 && "Fetching_Assets..."}
+              {syncStage === 2 && "Syncing_Metadata..."}
+              {syncStage === 3 && "Finalizing_Terminal..."}
+            </span>
+            <span className="text-[10px] text-zinc-700">{syncStage * 25 + 25}%</span>
+          </div>
+          <div className="h-[2px] w-full bg-zinc-900 overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 transition-all duration-700 ease-out"
+              style={{ width: `${syncStage * 25 + 25}%` }}
+            />
+          </div>
+          <div className="space-y-1 opacity-40">
+            <p className="text-[8px] text-zinc-500 tracking-tighter">{">> "} Veralabel_OS_v4.2.1-Prod</p>
+            <p className="text-[8px] text-zinc-500 tracking-tighter">{">> "} SSL_SESSION_ESTABLISHED</p>
+            {syncStage >= 1 && <p className="text-[8px] text-zinc-400 tracking-tighter">{">> "} DATA_STREAM_OPEN (BATCH_RSV)</p>}
+          </div>
+          <Activity className="absolute -top-16 left-1/2 -translate-x-1/2 text-indigo-500/20 animate-pulse" size={48} />
         </div>
       </div>
     );
   }
 
-  // MISSION COMPLETE VIEW
+
   if (isBatchCompleted) {
     return (
       <div className="h-screen w-full bg-[#020203] flex flex-col items-center justify-center font-mono p-8 text-center animate-in fade-in zoom-in duration-1000">
         <div className="max-w-md w-full p-12 bg-black border border-zinc-900 shadow-2xl shadow-indigo-500/5 space-y-8 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-          
+
           <div className="relative z-10 space-y-6">
             <div className="h-20 w-20 mx-auto bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.15)]">
               <CheckCircle2 size={40} className="text-emerald-500" />
             </div>
-            
+
             <div className="space-y-2">
               <h2 className="text-white uppercase tracking-[0.5em] font-bold text-sm">Mission_Accomplished</h2>
               <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Node_Sync_Successful // Batch_ID: {activeBatch?.batchId}</p>
@@ -453,15 +526,19 @@ export const CustomWorkbench = () => {
             <div className="grid grid-cols-2 gap-4 py-6 border-y border-zinc-900">
               <div className="text-left space-y-1">
                 <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-tighter">Assets_Finalized</span>
-                <p className="text-xl text-white font-mono">{activeBatch?.totalTasks}</p>
+                <p className="text-xl text-white font-mono">{activeBatch?.totalTasks || 0}</p>
               </div>
               <div className="text-left space-y-1">
                 <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-tighter">Contribution_Reward</span>
-                <p className="text-xl text-emerald-500 font-mono">+${(activeBatch?.totalTasks * 0.42).toFixed(2)}</p>
+                <p className="text-xl text-emerald-500 font-mono">
+                  +${(activeBatch?.pricePerBatch > 0 
+                    ? activeBatch.pricePerBatch 
+                    : (activeBatch?.totalTasks || 0) * 0.42).toFixed(2)}
+                </p>
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => window.location.href = '/labeller/work'}
               className="w-full py-4 bg-white text-black text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-indigo-50 transition-all active:scale-95 shadow-xl shadow-white/5"
             >
@@ -482,7 +559,7 @@ export const CustomWorkbench = () => {
           <p className="text-[10px] text-zinc-700 max-w-xs mx-auto leading-relaxed italic">
             All active nodes are currently occupied. Check the global mission board for new available data streams.
           </p>
-          <button 
+          <button
             onClick={() => window.location.href = '/labeller/work'}
             className="px-8 py-3 bg-white text-black text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-50 transition-all"
           >
@@ -493,13 +570,38 @@ export const CustomWorkbench = () => {
     );
   }
 
-  const totalTasks = activeBatch?.totalTasks || 0;
-  const completedTasks = activeBatch?.completedTasks || 0;
-  const batchProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const antiPatterns: string[] = protocol?.antiPatterns || [];
 
   return (
     <div className="h-full min-h-0 w-full bg-[#020203] flex flex-col overflow-hidden text-zinc-300 font-sans">
+      {timer.isExpired && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/95 backdrop-blur-xl font-mono">
+          <div className="w-full max-w-md bg-[#050505] border border-zinc-800 p-8 shadow-2xl shadow-rose-500/10 space-y-6 text-center animate-in zoom-in-95 duration-200 relative">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-rose-500 via-rose-400 to-transparent" />
+            <div className="h-16 w-16 mx-auto bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.15)]">
+              <Clock size={32} className="text-rose-500 animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-white uppercase tracking-[0.3em] font-bold text-sm">Session_Expired</h2>
+              <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono">
+                The allocation window for this batch has closed.
+              </p>
+            </div>
+
+            <p className="text-[10px] text-zinc-400 leading-relaxed font-mono bg-zinc-950 p-4 border border-zinc-900">
+              To ensure data freshness and fair distribution, tasks are automatically returned to the pool after the session time elapses. Any unsubmitted progress has been released.
+            </p>
+
+            <button
+              onClick={() => navigate('/labeller/work')}
+              className="w-full py-4 bg-white text-black text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-rose-50 transition-all active:scale-95 shadow-xl shadow-white/5"
+            >
+              Return_To_Registry
+            </button>
+          </div>
+        </div>
+      )}
       {showFlagModal && (
         <FlagModal
           onSubmit={handleFlagSubmit}
@@ -537,11 +639,11 @@ export const CustomWorkbench = () => {
 
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-3 pr-6 border-r border-zinc-900">
-             <div className="text-right">
-                <p className="text-[9px] font-mono text-zinc-600 uppercase font-bold tracking-tighter">Current_Reward</p>
-                <p className="text-emerald-500 font-mono font-bold text-sm">+${(activeTaskIndex * 0.42).toFixed(2)}</p>
-             </div>
-             <Zap size={16} className="text-amber-500 animate-pulse" />
+            <div className="text-right">
+              <p className="text-[9px] font-mono text-zinc-600 uppercase font-bold tracking-tighter">Current_Reward</p>
+              <p className="text-emerald-500 font-mono font-bold text-sm">+${(completedTasks * taskReward).toFixed(2)}</p>
+            </div>
+            <Zap size={16} className="text-amber-500 animate-pulse" />
           </div>
           <div className="flex flex-col text-right">
             <span className="text-[9px] font-mono text-zinc-500 uppercase">Queue_Sync</span>
@@ -554,13 +656,13 @@ export const CustomWorkbench = () => {
         <aside className="w-80 min-h-0 border-r border-zinc-900 bg-black p-8 flex flex-col gap-10 overflow-y-auto shrink-0">
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-zinc-500">
-                <Database size={14} />
-                <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest">Batch_Telemetry</h3>
+              <Database size={14} />
+              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest">Batch_Telemetry</h3>
             </div>
             <div className="bg-[#050505] border border-zinc-900 p-4 space-y-4">
               <div className="flex justify-between items-center text-[10px] font-mono">
-                  <span className="text-zinc-600 uppercase">Synchronization</span>
-                  <span className={batchProgress > 50 ? "text-emerald-500" : "text-amber-500"}>{batchProgress}%</span>
+                <span className="text-zinc-600 uppercase">Synchronization</span>
+                <span className={batchProgress > 50 ? "text-emerald-500" : "text-amber-500"}>{batchProgress}%</span>
               </div>
               <ProgressBar progress={batchProgress} className="h-1" />
               <div className="grid grid-cols-2 gap-4 pt-2">
@@ -597,28 +699,18 @@ export const CustomWorkbench = () => {
             {protocol?.finalDirectives && protocol.finalDirectives.length > 0 ? (
               <div className="space-y-3 bg-[#050505] border border-zinc-900 p-4">
                 {protocol.finalDirectives.map((directive: string, index: number) => {
-                  const isChecked = !!checkedDirectives[index];
                   return (
-                    <label 
-                      key={index} 
-                      className={`flex items-start gap-3 cursor-pointer text-xs transition-colors select-none p-1 rounded-sm
-                        ${isChecked ? 'text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 text-xs p-1 rounded-sm text-zinc-400"
                     >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          setCheckedDirectives(prev => ({
-                            ...prev,
-                            [index]: !prev[index]
-                          }));
-                        }}
-                        className="mt-0.5 rounded border-zinc-800 bg-black text-indigo-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="leading-tight font-mono text-[9px] uppercase">
+                      <span className="text-indigo-500 font-mono text-[9px] font-bold mt-0.5 shrink-0 select-none">
+                        {index + 1}.
+                      </span>
+                      <span className="leading-relaxed font-mono text-[9px] uppercase">
                         {directive}
                       </span>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
@@ -662,35 +754,35 @@ export const CustomWorkbench = () => {
 
           <section>
             <div className="flex items-center gap-2 mb-4 text-zinc-500">
-                <MousePointer2 size={14} />
-                <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest">Active_Protocol</h3>
+              <MousePointer2 size={14} />
+              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest">Active_Protocol</h3>
             </div>
             <div className="grid grid-cols-2 gap-px bg-zinc-900 border border-zinc-900">
-              <ToolBtn icon={<ImageIcon size={14}/>} label="Visual" active={contentType === 'image' || contentType === 'video'} />
-              <ToolBtn icon={<Type size={14}/>} label="Semantic" active={['text', 'code', 'document'].includes(contentType)} />
+              <ToolBtn icon={<ImageIcon size={14} />} label="Visual" active={contentType === 'image' || contentType === 'video'} />
+              <ToolBtn icon={<Type size={14} />} label="Semantic" active={['text', 'code', 'document'].includes(contentType)} />
             </div>
           </section>
-          
+
           <div className="mt-auto p-5 bg-zinc-950 border border-zinc-900 flex flex-col gap-4">
             <div className="flex justify-between items-center text-[10px] font-mono">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={12} className="text-emerald-500" />
-                  <span className="text-zinc-600 uppercase">Integrity_Score</span>
-                </div>
-                <span className="text-white">
-                  {labeller?.performance?.averageQualityScore != null
-                    ? `${Number(labeller.performance.averageQualityScore).toFixed(1)}%`
-                    : '—'}
-                </span>
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={12} className="text-emerald-500" />
+                <span className="text-zinc-600 uppercase">Integrity_Score</span>
+              </div>
+              <span className="text-white">
+                {labeller?.performance?.averageQualityScore != null
+                  ? `${Number(labeller.performance.averageQualityScore).toFixed(1)}%`
+                  : '—'}
+              </span>
             </div>
             <div className="flex justify-between items-center text-[10px] font-mono">
-                <div className="flex items-center gap-2">
-                  <Clock size={12} className={timer.isLow ? "text-rose-500" : "text-amber-500"} />
-                  <span className="text-zinc-600 uppercase">Session_Time</span>
-                </div>
-                <span className={`font-bold tabular-nums ${timer.isLow ? 'text-rose-400 animate-pulse' : 'text-white'}`}>
-                  {timer.display}
-                </span>
+              <div className="flex items-center gap-2">
+                <Clock size={12} className={timer.isLow ? "text-rose-500" : "text-amber-500"} />
+                <span className="text-zinc-600 uppercase">Session_Time</span>
+              </div>
+              <span className={`font-bold tabular-nums ${timer.isLow ? 'text-rose-400 animate-pulse' : 'text-white'}`}>
+                {timer.display}
+              </span>
             </div>
           </div>
         </aside>
@@ -719,12 +811,22 @@ export const CustomWorkbench = () => {
                     ...currentTask,
                     datasetName: activeBatch?.datasetId?.name || activeBatch?.datasetName || activeBatch?.datasetId?.title || (activeBatch as any)?.name,
                     domain: activeBatch?.datasetId?.domain || activeBatch?.domain || (activeBatch as any)?.domain,
-                    categories: protocol?.rubrics?.map((r: any) => r.tag) || []
+                    categories: imageAllowedLabels.length > 0
+                      ? imageAllowedLabels
+                      : protocol?.rubrics?.map((r: any) => r.tag) || []
                   } as any}
                   onBoxesChange={setBoundingBoxes}
+                  shortcutsDisabled={showFlagModal || isFlagging}
                 />
               ) : contentType === 'audio' ? (
-                <AudioStage task={currentTask as any} />
+                <AudioStage
+                  task={currentTask as any}
+                  labellingMethod={labellingMethod}
+                  onLabelSelect={(label) => setClassificationLabel(label)}
+                  selectedLabel={classificationLabel}
+                  onTranscriptionChange={setTranscriptionText}
+                  transcriptionText={transcriptionText}
+                />
               ) : (
                 <TextStage
                   task={currentTask as any}
@@ -744,12 +846,22 @@ export const CustomWorkbench = () => {
                   ...currentTask,
                   datasetName: activeBatch?.datasetId?.name || activeBatch?.datasetName || activeBatch?.datasetId?.title || (activeBatch as any)?.name,
                   domain: activeBatch?.datasetId?.domain || activeBatch?.domain || (activeBatch as any)?.domain,
-                  categories: protocol?.rubrics?.map((r: any) => r.tag) || []
+                  categories: imageAllowedLabels.length > 0
+                    ? imageAllowedLabels
+                    : protocol?.rubrics?.map((r: any) => r.tag) || []
                 } as any}
                 onBoxesChange={setBoundingBoxes}
+                shortcutsDisabled={showFlagModal || isFlagging}
               />
             ) : contentType === 'audio' ? (
-              <AudioStage task={currentTask as any} />
+              <AudioStage
+                task={currentTask as any}
+                labellingMethod={labellingMethod}
+                onLabelSelect={(label) => setClassificationLabel(label)}
+                selectedLabel={classificationLabel}
+                onTranscriptionChange={setTranscriptionText}
+                transcriptionText={transcriptionText}
+              />
             ) : (
               <div className="h-full w-full flex items-center justify-center text-zinc-600 font-mono text-xs uppercase tracking-widest animate-pulse">
                 [ Protocol_Initialization_Failure ]
@@ -767,94 +879,92 @@ export const CustomWorkbench = () => {
           >
             <Flag size={14} className="group-hover:animate-bounce" /> Flag_Corruption
           </button>
-          <button 
-            onClick={handleSkip}
-            disabled={isLastTask || isSubmitting}
-            className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all ${isLastTask || isSubmitting ? 'text-zinc-800 cursor-not-allowed' : 'text-zinc-600 hover:text-white'}`}
-          >
-            <SkipForward size={14} /> Skip_Asset
-          </button>
         </div>
-        
+
         <div className="flex items-center gap-8">
-           <div className="flex flex-col items-end pr-8 border-r border-zinc-900">
-              <div className="flex items-center gap-2">
-                <Activity size={12} className="text-indigo-500" />
-                <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.2em] italic">Encryption_Tunnel_Stable</span>
-              </div>
-              <span className="text-[8px] text-zinc-800 font-mono uppercase">Node: 0x4f2..3a9 // Ping: 24ms</span>
-           </div>
-           
-           {(() => {
-             const scoringConfig = protocol?.scoringConfig;
-             const isPreferenceRequired = scoringConfig?.taskTypes?.includes('Preference Ranking (A vs B)');
-             const isScoringRequired = scoringConfig?.taskTypes?.includes('Dimensional Scoring (1-5)');
-             const isRationaleRequired = scoringConfig?.requireRationale;
-             const minLength = scoringConfig?.minLength || 20;
-             const tieRequiresJustification = scoringConfig?.tieRequiresJustification !== false;
+          <div className="flex flex-col items-end pr-8 border-r border-zinc-900">
+            <div className="flex items-center gap-2">
+              <Activity size={12} className="text-indigo-500" />
+              <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.2em] italic">Encryption_Tunnel_Stable</span>
+            </div>
+            <span className="text-[8px] text-zinc-800 font-mono uppercase">Node: 0x4f2..3a9 // Ping: 24ms</span>
+          </div>
 
-             const isPreferenceOk = !isPreferenceRequired || !!selection;
-             const isTieOk = selection !== 'tie' || !tieRequiresJustification || tieJustification.trim().length >= 20;
-             
-             const responses = currentTask?.responses || currentTask?.response || currentTask?.result?.responses || currentTask?.result?.response || currentTask?.data?.responses || currentTask?.data?.response || [];
-             const normalizedCount = responses.length || 1;
-             const dimensions = scoringConfig?.scoreDimensions || [];
-             const expectedRatings = normalizedCount * dimensions.length;
-             const actualRatingsCount = Object.keys(ratings).filter(k => !!ratings[k]).length;
-             
-             const isScoringOk = !isScoringRequired || actualRatingsCount >= expectedRatings;
-             const isRationaleOk = !isRationaleRequired || rationale.trim().length >= minLength;
-             const requiresImageAnnotation = !showRlhfStage && (contentType === "image" || contentType === "video");
-             const imageValidation = requiresImageAnnotation
-               ? validateImageAnnotation(boundingBoxes, imageAllowedLabels)
-               : { ok: true };
-             const hasImageAnnotation = imageValidation.ok;
+          {(() => {
+            const scoringConfig = protocol?.scoringConfig;
+            const isPreferenceRequired = showRlhfStage && scoringConfig?.taskTypes?.includes('Preference Ranking (A vs B)');
+            const isScoringRequired = showRlhfStage && scoringConfig?.taskTypes?.includes('Dimensional Scoring (1-5)');
+            const isRationaleRequired = showRlhfStage && scoringConfig?.requireRationale;
+            const minLength = scoringConfig?.minLength || 20;
+            const tieRequiresJustification = scoringConfig?.tieRequiresJustification !== false;
 
-             const directivesList = protocol?.finalDirectives || [];
-             const allDirectivesChecked = directivesList.length > 0
-               ? directivesList.every((_: any, index: number) => !!checkedDirectives[index])
-               : true;
+            const isPreferenceOk = !isPreferenceRequired || !!selection;
+            const isTieOk = selection !== 'tie' || !tieRequiresJustification || tieJustification.trim().length >= 20;
 
-             const isSubmitDisabled = isSubmitting || 
-               (currentTask?.status === 'submitted') || 
-               !isPreferenceOk || 
-               !isTieOk ||
-               !isScoringOk || 
-               !isRationaleOk || 
-               !hasImageAnnotation ||
-               !allDirectivesChecked;
+            const responses = currentTask?.responses || currentTask?.response || currentTask?.result?.responses || currentTask?.result?.response || currentTask?.data?.responses || currentTask?.data?.response || [];
+            const normalizedCount = responses.length || 1;
+            const dimensions = scoringConfig?.scoreDimensions || [];
+            const expectedRatings = normalizedCount * dimensions.length;
+            const actualRatingsCount = Object.keys(ratings).filter(k => !!ratings[k]).length;
 
-             return (
-               <button 
-                 onClick={handleSubmit}
-                 disabled={isSubmitDisabled}
-                 className={`px-12 py-4 text-[10px] font-bold uppercase tracking-[0.3em] transition-all flex items-center gap-3 shadow-2xl relative overflow-hidden group
+            const isScoringOk = !isScoringRequired || actualRatingsCount >= expectedRatings;
+            const isRationaleOk = !isRationaleRequired || rationale.trim().length >= minLength;
+            const requiresImageAnnotation = !showRlhfStage && (contentType === "image" || contentType === "video");
+            // Pass allowedLabels only if there are real class labels from the task payload.
+            // If none defined, only enforce that each box has a non-empty label (label-agnostic validation).
+            const imageValidation = requiresImageAnnotation
+              ? validateImageAnnotation(boundingBoxes, imageAllowedLabels.length > 0 ? imageAllowedLabels : undefined)
+              : { ok: true };
+            const hasImageAnnotation = imageValidation.ok;
+
+            // Audio readiness
+            const isAudioTask = !showRlhfStage && contentType === 'audio';
+            const audioTranscriptionOk = !isAudioTask || labellingMethod !== 'transcription' || transcriptionText.trim().length >= 10;
+            const audioClassificationOk = !isAudioTask || labellingMethod !== 'classification' || !!classificationLabel;
+            const isAudioReady = !isAudioTask || (audioTranscriptionOk && audioClassificationOk);
+
+            const isSubmitDisabled = isSubmitting ||
+              (currentTask?.status === 'submitted') ||
+              !isPreferenceOk ||
+              !isTieOk ||
+              !isScoringOk ||
+              !isRationaleOk ||
+              !hasImageAnnotation ||
+              !isAudioReady;
+
+            return (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitDisabled}
+                className={`px-12 py-4 text-[10px] font-bold uppercase tracking-[0.3em] transition-all flex items-center gap-3 shadow-2xl relative overflow-hidden group
                    ${isSubmitDisabled
-                     ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed' 
-                     : 'bg-white text-black hover:bg-indigo-50 active:scale-95 shadow-indigo-500/10'}`}
-               >
-                  {isSubmitting ? (
-                    <>Synchronizing... <Activity size={14} className="animate-spin" /></>
-                  ) : currentTask?.status === 'submitted' ? (
-                    <>Asset_Verified <CheckCircle2 size={14} /></>
-                  ) : !isPreferenceOk ? (
-                    <>Select_Preference <ChevronRight size={14} /></>
-                  ) : !isTieOk ? (
-                    <>Write_Tie_Reason <ChevronRight size={14} /></>
-                  ) : !isScoringOk ? (
-                    <>Rate_Dimensions <ChevronRight size={14} /></>
-                  ) : !isRationaleOk ? (
-                    <>Write_Rationale <ChevronRight size={14} /></>
-                  ) : !hasImageAnnotation ? (
-                    <>Draw_Annotation_Box <ChevronRight size={14} /></>
-                  ) : !allDirectivesChecked ? (
-                    <>Verify_Directives <ChevronRight size={14} /></>
-                  ) : (
-                    <>Commit_Asset_Transfer <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" /></>
-                  )}
-               </button>
-             );
-           })()}
+                    ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
+                    : 'bg-white text-black hover:bg-indigo-50 active:scale-95 shadow-indigo-500/10'}`}
+              >
+                {isSubmitting ? (
+                  <>Synchronizing... <Activity size={14} className="animate-spin" /></>
+                ) : currentTask?.status === 'submitted' ? (
+                  <>Asset_Verified <CheckCircle2 size={14} /></>
+                ) : !isPreferenceOk ? (
+                  <>Select_Preference <ChevronRight size={14} /></>
+                ) : !isTieOk ? (
+                  <>Write_Tie_Reason <ChevronRight size={14} /></>
+                ) : !isScoringOk ? (
+                  <>Rate_Dimensions <ChevronRight size={14} /></>
+                ) : !isRationaleOk ? (
+                  <>Write_Rationale <ChevronRight size={14} /></>
+                ) : !hasImageAnnotation ? (
+                  <>Draw_Annotation_Box <ChevronRight size={14} /></>
+                ) : !audioTranscriptionOk ? (
+                  <>Write_Transcription <ChevronRight size={14} /></>
+                ) : !audioClassificationOk ? (
+                  <>Select_Label <ChevronRight size={14} /></>
+                ) : (
+                  <>Commit_Asset_Transfer <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" /></>
+                )}
+              </button>
+            );
+          })()}
         </div>
       </footer>
     </div>
