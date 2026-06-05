@@ -47,6 +47,7 @@ const cloneBoxes = (list: BoundingBox[]) => list.map((box) => ({ ...box }));
 
 export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: ImageStageProps) => {
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>('pointer');
   const [boxes, setBoxes] = useState<BoundingBox[]>([]);
   const [drawing, setDrawing] = useState<{ x: number; y: number } | null>(null);
@@ -285,6 +286,7 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
 
   useEffect(() => {
     setLoaded(false);
+    setError(null);
     setBoxes([]);
     setDrawing(null);
     setCurrentRect(null);
@@ -292,6 +294,14 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
     setZoom(100);
     setPan({ x: 0, y: 0 });
   }, [imageUrl]);
+
+  useEffect(() => {
+    if (task?.taskObject && typeof task.taskObject === 'object' && task.taskObject !== null) {
+      if ((task.taskObject as any).error) {
+        setError((task.taskObject as any).error);
+      }
+    }
+  }, [task]);
 
   useEffect(() => {
     if (categories.length > 0 && !categories.includes(activeLabel)) {
@@ -622,9 +632,11 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
         onMouseUp={handleMouseUp}
         style={{ cursor: activeTool === 'bbox' ? 'crosshair' : activeTool === 'pointer' && zoom > 100 ? 'grab' : 'default' }}
       >
-        {!imageUrl ? (
-          <div className="text-rose-500 font-mono text-xs flex items-center gap-2">
-            <Scan className="animate-spin" size={14} /> [ Error: NO_ASSET_PROTOCOL_FOUND ]
+        {!imageUrl || error ? (
+          <div className="text-rose-500 font-mono text-xs flex flex-col items-center gap-2 text-center p-8 border border-dashed border-rose-900/30 bg-rose-950/5 max-w-md">
+            <Scan className="text-rose-500 animate-pulse" size={24} />
+            <span className="font-bold uppercase tracking-wider">[ Error: Asset Protocol Failure ]</span>
+            <span className="text-[10px] text-zinc-500 normal-case mt-1">{error || "No valid asset storage reference (R2 key) was found for this task node."}</span>
           </div>
         ) : (
           <div 
@@ -640,7 +652,13 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
               src={imageUrl}
               alt="Task Asset"
               className="max-h-[80vh] max-w-full object-contain border border-zinc-800 shadow-2xl shadow-indigo-500/10 select-none"
-              onLoad={() => setLoaded(true)}
+              onLoad={() => {
+                setLoaded(true);
+                setError(null);
+              }}
+              onError={() => {
+                setError("Failed to load image asset. The resource may be missing or access denied.");
+              }}
               draggable={false}
             />
             {loaded && (
@@ -732,7 +750,7 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
             )}
           </div>
         )}
-        {!loaded && imageUrl && (
+        {!loaded && imageUrl && !error && (
           <div className="flex flex-col items-center gap-4 absolute">
             <div className="w-16 h-px bg-indigo-500/50 animate-pulse" />
             <span className="text-[10px] font-mono text-indigo-500 uppercase tracking-[0.3em] animate-pulse">

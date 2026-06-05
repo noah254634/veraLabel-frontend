@@ -55,3 +55,7 @@ This repository contains the frontend application for Veralabel, a platform buil
 ## 🔗 Backend
 
 This frontend interacts with the Veralabel Backend. Ensure the backend server is running for full functionality.
+
+## 📐 Architecture Guide
+
+For a detailed walkthrough of modules, state management (Zustand), workbench stages (image, audio, text, RLHF), and direct cloud storage (R2) uploads, please refer to the [Frontend Architecture Guide](FRONTEND_ARCHITECTURE.md).

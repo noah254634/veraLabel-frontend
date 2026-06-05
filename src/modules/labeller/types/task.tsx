@@ -11,6 +11,7 @@ export interface Task {
   status: "pending" | "assigned" | "in_progress" | "completed" | "submitted" | "verified" | "flagged"
 
   taskObject?: any;
+  payloadFetched?: boolean;
   responses?: any;
   response?: any;
 

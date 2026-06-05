@@ -82,8 +82,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const taskIndex = tasks.findIndex(t => t.id === id || (t as any)._id === id);
       if (taskIndex === -1) return;
 
-      // If we already have the payload (e.g. data or taskObject), skip
-      if (tasks[taskIndex].data?.url || (tasks[taskIndex] as any).taskObject) return;
+      // If we already have the payload (e.g. data or taskObject) or have fetched it, skip
+      if (
+        tasks[taskIndex].data?.url || 
+        (tasks[taskIndex] as any).taskObject || 
+        (tasks[taskIndex] as any).payloadFetched
+      ) return;
 
       const response = await taskService.getTaskById(id);
       const payload = response?.taskObject ?? response?.task?.taskObject ?? response?.task?.data ?? null;
@@ -92,12 +96,24 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       updatedTasks[taskIndex] = {
         ...updatedTasks[taskIndex],
         ...payload, // Merge R2 payload (prompt, responses, etc)
-        taskObject: payload ?? response?.taskObject ?? response?.task ?? null // Keep raw object just in case
+        taskObject: payload ?? response?.taskObject ?? response?.task ?? null, // Keep raw object just in case
+        payloadFetched: true
       };
 
       set({ tasks: updatedTasks });
     } catch (err) {
       console.error("Failed to fetch task payload", err);
+      // Mark as fetched even on error to prevent infinite API call loops
+      const { tasks } = get();
+      const taskIndex = tasks.findIndex(t => t.id === id || (t as any)._id === id);
+      if (taskIndex !== -1) {
+        const updatedTasks = [...tasks];
+        updatedTasks[taskIndex] = {
+          ...updatedTasks[taskIndex],
+          payloadFetched: true
+        };
+        set({ tasks: updatedTasks });
+      }
     }
   },
   claimBatch: async (datasetId) => {
