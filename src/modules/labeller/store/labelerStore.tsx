@@ -3,6 +3,7 @@ import type { Dataset } from "../../../shared/types/dataset";
 import type { User } from "../../../shared/types/user";
 import type { LabellerProfile, Tier } from "../types/types";
 import { labellerService } from "../services/labellerService";
+import { useAuthStore } from "../../auth/useAuthstore";
 
 const normalizeLabellerProfile = (labeller: any): LabellerProfile => ({
   ...labeller,
@@ -37,6 +38,13 @@ export const useLabelerStore = create<LabelerStore>((set) => ({
     const labeller = await labellerService.getLabeller();
     const normalized = normalizeLabellerProfile(labeller);
     set({ labeller: normalized });
+    if (normalized.isOnboarded) {
+      const user = useAuthStore.getState().user;
+      if (user) {
+        const key = `labellerOnboardingCompleted:${user._id ?? user.email}`;
+        localStorage.setItem(key, "true");
+      }
+    }
     return normalized;
   },
   getLabellerOnboardingStatus: async () => {

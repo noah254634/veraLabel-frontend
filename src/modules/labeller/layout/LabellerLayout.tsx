@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { LabellerSidebar } from "../components/Sidebar";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../auth/useAuthstore";
 import { OnboardingEnforcer } from "../onboarding/Onboarding";
 import { AppLayout } from "../../../shared/components/AppLayout";
@@ -13,17 +13,26 @@ export const LabellerLayout = ({
   children?: ReactNode;
 }) => {
   const { user } = useAuthStore();
-  const { getLabeller } = useLabelerStore();
+  const { getLabeller, labeller } = useLabelerStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const role = user ? String(user.role).toLowerCase() : "";
   const onboardingKey = user ? `labellerOnboardingCompleted:${user._id ?? user.email}` : null;
-  const onboardingCompleted = onboardingKey ? localStorage.getItem(onboardingKey) === "true" : false;
+  const onboardingCompleted =
+    (onboardingKey ? localStorage.getItem(onboardingKey) === "true" : false) ||
+    !!labeller?.isOnboarded;
 
   useEffect(() => {
     if (role === "labeler" || role === "labeller") {
       void getLabeller();
     }
   }, [getLabeller, role]);
+
+  useEffect(() => {
+    if (onboardingCompleted && location.pathname.startsWith("/labeller/onboarding")) {
+      navigate("/labeller", { replace: true });
+    }
+  }, [onboardingCompleted, location.pathname, navigate]);
   
   const shouldForceOnboarding =
     (role === "labeler" || role === "labeller") &&
