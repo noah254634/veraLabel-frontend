@@ -1,6 +1,11 @@
 const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
 
 export const getApiBaseUrl = () => {
+  const override = typeof window !== 'undefined' ? localStorage.getItem("API_URL_OVERRIDE")?.trim() : null;
+  if (override) {
+    return `${normalizeBaseUrl(override)}/api/v1`;
+  }
+
   const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim();
 
   if (!configuredBase) {

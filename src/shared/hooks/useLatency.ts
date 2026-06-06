@@ -47,7 +47,10 @@ export interface HealthReport {
 const pingApi = axios.create({
   baseURL: getApiBaseUrl(),
   timeout: 5000,
-  headers: { 'Cache-Control': 'no-cache' }
+  headers: { 
+    'Cache-Control': 'no-cache',
+    'ngrok-skip-browser-warning': 'true'
+  }
 });
 
 export const useLatency = () => {
