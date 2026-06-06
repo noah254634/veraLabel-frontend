@@ -1,6 +1,6 @@
 import toast from "react-hot-toast";
+import { buildApiUrl } from "../../shared/utils/apiUrl";
 
-const Url = "/api/v1/auth/";
 export type LoginCredentials = {
   email: string;
   password: string;
@@ -13,7 +13,7 @@ export type SignupCredentials = {
 
 export const loginApi = async (credentials: LoginCredentials) => {
   try {
-    const response = await fetch(`${Url}login`, {
+    const response = await fetch(buildApiUrl("/auth/login"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,7 +44,7 @@ export const loginApi = async (credentials: LoginCredentials) => {
 };
 export const signupApi = async (credentials: SignupCredentials) => {
   try {
-    const response = await fetch(`${Url}signup`, {
+    const response = await fetch(buildApiUrl("/auth/signup"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -69,7 +69,7 @@ export const signupApi = async (credentials: SignupCredentials) => {
 };
 
 export const verifyEmailApi = async (email: string, token: string) => {
-  const response = await fetch(`${Url}verifyEmail`, {
+  const response = await fetch(buildApiUrl("/auth/verifyEmail"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -86,7 +86,7 @@ export const verifyEmailApi = async (email: string, token: string) => {
 };
 
 export const resendVerificationApi = async (email: string) => {
-  const response = await fetch(`${Url}resend-verification`, {
+  const response = await fetch(buildApiUrl("/auth/resend-verification"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

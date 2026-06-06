@@ -23,6 +23,7 @@ import {
   inferContentTypeFromDomain,
   fileMatchesContentType,
 } from "../../../shared/utils/labellingProtocol";
+import { buildApiUrl } from "../../../shared/utils/apiUrl";
 
 const CONTENT_TYPE_OPTIONS: { id: ContentType; label: string }[] = [
   { id: "text", label: "Text" },
@@ -165,7 +166,7 @@ const CustomDataRequestModal = ({
     setTelemetryProgress(0);
     setTelemetryStatus("active");
 
-    const sseUrl = `/api/v1/tasks/progress/${projectId}/${datasetId}/stream`;
+    const sseUrl = buildApiUrl(`/tasks/progress/${projectId}/${datasetId}/stream`);
     const eventSource = new EventSource(sseUrl, { withCredentials: true });
 
     const appendLog = (type: string, message: string) => {
@@ -186,7 +187,7 @@ const CustomDataRequestModal = ({
       
       fallbackInterval = setInterval(async () => {
         try {
-          const response = await fetch(`/api/v1/tasks/progress/${projectId}/${datasetId}`);
+          const response = await fetch(buildApiUrl(`/tasks/progress/${projectId}/${datasetId}`));
           if (!response.ok) throw new Error("Status poll failed");
           const resJson = await response.json();
           const summary = resJson.data || resJson;

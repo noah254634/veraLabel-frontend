@@ -3,6 +3,7 @@ import type { User } from "../../shared/types/user";
 import { loginApi,signupApi, type LoginCredentials,type SignupCredentials} from "./authApi";
 import {toast} from "react-hot-toast";
 import { api } from "../../shared/types/api";
+import { buildApiUrl } from "../../shared/utils/apiUrl";
 type AuthStore = {
   user: User | null;
   isAuthenticated: boolean;
@@ -29,7 +30,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   checkAuth: async () => {
     try {
       set({ loading: true, isRestoringSession: false });
-      const response = await fetch("/api/v1/auth/me", {
+      const response = await fetch(buildApiUrl("/auth/me"), {
         credentials: "include",
       });
       if (!response.ok) {
@@ -115,7 +116,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   logout: async() =>{
     try{
       set({error:null, isRestoringSession: false});
-      const response = await fetch("/api/v1/auth/logout",{
+      const response = await fetch(buildApiUrl("/auth/logout"),{
         method:"POST",
         credentials:"include",
         });

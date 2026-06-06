@@ -1,22 +1,35 @@
-import type { CartItem, Cart } from "../types/cart";
+// CartItem     and Cart types are not imported from "../types/cart"
+// You might need to define them in this file or import from the correct location
+type CartItem = {
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+};
+
+type Cart = {
+    buyerId: string;
+    items: CartItem[];
+    totalAmount: number;
+};
 import { create } from "zustand";
 type cartStore = {
-  error: string | null;
-  loading: boolean;
-  setError: (error: string | null) => void;
-  setLoading: (loading: boolean) => void;
-  cart: Cart;
-  addToCart(item: CartItem): Promise<void>;
-  removeFromCart(productId: string): Promise<void>;
-  updateQuantity(productId: string, quantity: number): Promise<void>;
-  getCart(): Promise<Cart>;
-  clearCart(): void;
+    error: string | null;
+    loading: boolean;
+    setError: (error: string | null) => void;
+    setLoading: (loading: boolean) => void;
+    cart: Cart;
+    addToCart(item: CartItem): Promise<void>;
+    removeFromCart(productId: string): Promise<void>;
+    updateQuantity(productId: string, quantity: number): Promise<void>;
+    getCart(): Promise<Cart>;
+    clearCart(): void;
 };
 export const useCartStore = create<cartStore>((set, get) => ({
-    error:null,
-    loading:false,
-    setError:(error:string|null)=>set({error}),
-    setLoading:(loading:boolean)=>set({loading}),
+    error: null,
+    loading: false,
+    setError: (error: string | null) => set({ error }),
+    setLoading: (loading: boolean) => set({ loading }),
     cart: {
         buyerId: "",
         items: [],
@@ -24,29 +37,29 @@ export const useCartStore = create<cartStore>((set, get) => ({
     },
     addToCart: async (_item: CartItem) => {
         try {
-        }catch(err){}finally{}
+        } catch (err) { } finally { }
     },
     removeFromCart: async (_productId: string) => {
         try {
-        }catch(err){}finally{
+        } catch (err) { } finally {
 
         }
-        },
-        updateQuantity: async (_productId: string, _quantity: number) => {
-            try {
-            }catch(err){}finally{
+    },
+    updateQuantity: async (_productId: string, _quantity: number) => {
+        try {
+        } catch (err) { } finally {
 
-            }
-        },
-        getCart: async ():Promise<Cart> => {
-            try {
-                return get().cart;
-            }catch(err){
-                const errorMessage=err instanceof Error?err.message:"Unknown Error";
-                set({ error: errorMessage });
-                return get().cart;
-            }finally{
-            }
-        },
-        clearCart: () => {},
+        }
+    },
+    getCart: async (): Promise<Cart> => {
+        try {
+            return get().cart;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Unknown Error";
+            set({ error: errorMessage });
+            return get().cart;
+        } finally {
+        }
+    },
+    clearCart: () => { },
 }))

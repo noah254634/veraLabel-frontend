@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { getApiBaseUrl } from '../utils/apiUrl';
 
 const PING_INTERVAL = 5000; // Ping every 5 seconds
 
@@ -44,7 +45,7 @@ export interface HealthReport {
 
 // Create a clean instance to avoid global interceptors affecting latency measurement
 const pingApi = axios.create({
-  baseURL: '/api/v1',
+  baseURL: getApiBaseUrl(),
   timeout: 5000,
   headers: { 'Cache-Control': 'no-cache' }
 });
@@ -75,7 +76,7 @@ export const useLatency = () => {
       }
     } catch (error) {
       // Only set offline if we can't reach the server at all
-      console.warn("Latency probe failed. Node may be offline.");
+      console.warn("Latency probe failed. Node may be offline.", error);
       setStatus('offline');
       setLatency(null);
       setHealth(null);

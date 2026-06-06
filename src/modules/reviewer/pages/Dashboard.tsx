@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Zap, CheckCircle2, AlertTriangle, 
+import {
+  Zap, CheckCircle2, AlertTriangle,
   Activity, Cpu, Fingerprint, RefreshCw, BarChart2
 } from 'lucide-react';
 import { api } from '../../../shared/types/api';
@@ -61,7 +61,7 @@ const ReviewerDashboard = () => {
           </div>
         </div>
 
-        <button 
+        <button
           onClick={fetchStats}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 border border-zinc-800 text-zinc-600 hover:text-white rounded-sm text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
@@ -78,7 +78,7 @@ const ReviewerDashboard = () => {
       ) : stats ? (
         <div className="space-y-8 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            
+
             <div className="bg-[#05070A] border border-slate-900 p-6 flex flex-col justify-between h-40">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Pending_Queue</span>
@@ -137,7 +137,7 @@ const ReviewerDashboard = () => {
               </div>
 
               <div className="pt-8">
-                <button 
+                <button
                   onClick={() => navigate('/reviewer/queue')}
                   className="w-full md:w-auto px-12 py-5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.4em] transition-all shadow-[0_0_30px_rgba(99,102,241,0.15)] rounded-sm"
                 >
@@ -150,7 +150,7 @@ const ReviewerDashboard = () => {
                 <Activity className="text-slate-600" size={16} />
                 <h3 className="text-white text-xs font-black uppercase tracking-widest">Audit_Dispositions</h3>
               </div>
-              
+
               <div className="space-y-6 flex-1 flex flex-col justify-center">
                 <div className="flex justify-between items-center pb-3 border-b border-slate-900">
                   <span className="text-[10px] text-zinc-500 font-bold uppercase">Approved_Submissions</span>

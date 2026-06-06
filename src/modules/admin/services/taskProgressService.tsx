@@ -1,4 +1,5 @@
 import { api } from "../../../shared/types/api";
+import { buildApiUrl } from "../../../shared/utils/apiUrl";
 import type { TaskSession, SystemStats } from "../types/taskProgressTypes";
 
 export interface TaskProgressResponse {
@@ -37,6 +38,8 @@ export const taskProgressService = {
    * Get EventSource for streaming a specific task session
    */
   subscribeToSessionStream: (projectId: string, datasetId: string): EventSource => {
-    return new EventSource(`/api/v1/tasks/progress/${projectId}/${datasetId}/stream`);
+    return new EventSource(buildApiUrl(`/tasks/progress/${projectId}/${datasetId}/stream`), {
+      withCredentials: true,
+    });
   },
 };

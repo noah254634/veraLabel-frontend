@@ -1,12 +1,13 @@
 import { useAuthStore } from "../../modules/auth/useAuthstore";
 import axios from "axios";
+import { getApiBaseUrl } from "../utils/apiUrl";
 export type ApiResponse<T> = {
   data: T;
   error?: string;
 };
 
 export const api = axios.create({
-  baseURL: "/api/v1",
+  baseURL: getApiBaseUrl(),
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -15,11 +16,8 @@ export const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Don't show error message directly - it's handled by route-specific error handlers
     if (error.response?.status === 401) {
-      // Only show error and logout if user explicitly was authenticated
       if (localStorage.getItem("isAuthenticated") === "true") {
-        // Don't toast here - let the component handle it
         useAuthStore.getState().logout();
       }
     }
