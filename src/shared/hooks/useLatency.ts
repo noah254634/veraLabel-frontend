@@ -47,7 +47,7 @@ export interface HealthReport {
 const pingApi = axios.create({
   baseURL: getApiBaseUrl(),
   timeout: 5000,
-  headers: { 
+  headers: {
     'Cache-Control': 'no-cache',
     'ngrok-skip-browser-warning': 'true'
   }
@@ -64,11 +64,11 @@ export const useLatency = () => {
       const response = await pingApi.get<HealthReport>('/ping');
       const end = performance.now();
       const rtt = Math.round(end - start);
-      
+
       const healthData = response.data;
       setLatency(rtt);
       setHealth(healthData);
-      
+
       // Determine UI status based on both RTT and backend reported health
       // We only show 'offline' if the request itself fails.
       // If the backend returns a status of 'critical' or 'degraded', we show 'degraded'.
