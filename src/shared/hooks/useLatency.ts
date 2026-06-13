@@ -78,11 +78,26 @@ export const useLatency = () => {
         setStatus('online');
       }
     } catch (error) {
-      // Only set offline if we can't reach the server at all
-      console.warn("Latency probe failed. Node may be offline.", error);
-      setStatus('offline');
-      setLatency(null);
-      setHealth(null);
+      const end = performance.now();
+      const rtt = Math.round(end - start);
+
+      if (axios.isAxiosError(error) && error.response) {
+        // We received a response from the server, meaning it is reachable/online,
+        // even if it returned an HTTP error (like 403 Forbidden or 400 Bad Request).
+        setLatency(rtt);
+        setHealth(null);
+        if (rtt > 500) {
+          setStatus('degraded');
+        } else {
+          setStatus('online');
+        }
+      } else {
+        // Only set offline if we can't reach the server at all (network error or timeout)
+        console.warn("Latency probe failed. Node may be offline.", error);
+        setStatus('offline');
+        setLatency(null);
+        setHealth(null);
+      }
     }
   }, []);
 
