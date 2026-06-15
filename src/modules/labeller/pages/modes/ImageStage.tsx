@@ -648,6 +648,7 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
             }}
           >
             <img
+              key={`${task.taskId}_${imageUrl}`}
               ref={imgRef}
               src={imageUrl}
               alt="Task Asset"

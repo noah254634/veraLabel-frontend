@@ -32,6 +32,18 @@ interface TaskDetail {
   }[];
 }
 
+interface GroupedTask {
+  taskId: string;
+  taskType: string;
+  priority: number;
+  datasetId?: {
+    _id: string;
+    name: string;
+    description?: string;
+  };
+  submissions: TaskDetail[];
+}
+
 interface TaskPayload {
   task: TaskDetail;
   taskObject: any;
@@ -48,9 +60,10 @@ const REJECTION_REASONS = [
 ];
 
 export const AuditReviewV2 = () => {
-  const [tasks, setTasks] = useState<TaskDetail[]>([]);
+  const [groupedTasks, setGroupedTasks] = useState<GroupedTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTask, setSelectedTask] = useState<TaskDetail | null>(null);
+  const [selectedGroupedTask, setSelectedGroupedTask] = useState<GroupedTask | null>(null);
+  const [activeSubmissionIndex, setActiveSubmissionIndex] = useState(0);
   
   // Active review state
   const [taskPayload, setTaskPayload] = useState<TaskPayload | null>(null);
@@ -62,18 +75,33 @@ export const AuditReviewV2 = () => {
   const [rejectNote, setRejectNote] = useState('');
   const [submittingAction, setSubmittingAction] = useState(false);
 
-  // Fetch pending review tasks
+  // Fetch pending review tasks and group them
   const fetchPendingQueue = async () => {
     try {
       setLoading(true);
       const response = await api.get('/reviewer/pending?limit=100');
       const data = response.data?.data || response.data;
-      const pendingTasks = data.tasks || [];
+      const pendingSubmissions: TaskDetail[] = data.tasks || [];
       
-      // Sort tasks: high priority first (priority goes from -10 to 10 or similar, so sort descending)
-      pendingTasks.sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0));
+      const groups: { [key: string]: GroupedTask } = {};
+      pendingSubmissions.forEach(sub => {
+        const tId = sub.taskId || sub._id;
+        if (!groups[tId]) {
+          groups[tId] = {
+            taskId: tId,
+            taskType: sub.taskType,
+            priority: sub.priority || 0,
+            datasetId: sub.datasetId,
+            submissions: []
+          };
+        }
+        groups[tId].submissions.push(sub);
+      });
       
-      setTasks(pendingTasks);
+      const groupedList = Object.values(groups);
+      groupedList.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      
+      setGroupedTasks(groupedList);
     } catch (err: any) {
       console.error(err);
       toast.error("Failed to load audit queue.");
@@ -102,13 +130,14 @@ export const AuditReviewV2 = () => {
     }
   };
 
-  const handleSelectTask = (task: TaskDetail) => {
-    setSelectedTask(task);
-    fetchTaskDetails(task);
+  const handleSelectGroupedTask = (group: GroupedTask) => {
+    setSelectedGroupedTask(group);
+    setActiveSubmissionIndex(0);
+    fetchTaskDetails(group.submissions[0]);
   };
 
   const handleBackToQueue = () => {
-    setSelectedTask(null);
+    setSelectedGroupedTask(null);
     setTaskPayload(null);
     setShowRejectModal(false);
     setRejectReason('');
@@ -117,18 +146,28 @@ export const AuditReviewV2 = () => {
   };
 
   const handleApprove = async () => {
-    if (!selectedTask || submittingAction) return;
+    if (!selectedGroupedTask || submittingAction) return;
+    const currentSubmission = selectedGroupedTask.submissions[activeSubmissionIndex];
     try {
       setSubmittingAction(true);
-      await api.put(`/reviewer/approve/${selectedTask._id}`, { comment: 'Approved by reviewer' });
+      await api.put(`/reviewer/approve/${currentSubmission._id}`, { comment: 'Approved by reviewer' });
       toast.success("Submission Approved.");
       
-      // Move to next task in the queue if possible
-      const currentIndex = tasks.findIndex(t => t._id === selectedTask._id);
-      if (currentIndex !== -1 && currentIndex < tasks.length - 1) {
-        handleSelectTask(tasks[currentIndex + 1]);
+      // Check if there are other pending submissions in this group
+      const nextPendingIndex = selectedGroupedTask.submissions.findIndex(
+        (s, idx) => idx !== activeSubmissionIndex && s.status === 'submitted'
+      );
+      if (nextPendingIndex !== -1) {
+        setActiveSubmissionIndex(nextPendingIndex);
+        fetchTaskDetails(selectedGroupedTask.submissions[nextPendingIndex]);
       } else {
-        handleBackToQueue();
+        // Move to next grouped task in the queue
+        const currentGroupIndex = groupedTasks.findIndex(g => g.taskId === selectedGroupedTask.taskId);
+        if (currentGroupIndex !== -1 && currentGroupIndex < groupedTasks.length - 1) {
+          handleSelectGroupedTask(groupedTasks[currentGroupIndex + 1]);
+        } else {
+          handleBackToQueue();
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -139,15 +178,16 @@ export const AuditReviewV2 = () => {
   };
 
   const handleRejectSubmit = async () => {
-    if (!selectedTask || !rejectReason || submittingAction) return;
+    if (!selectedGroupedTask || !rejectReason || submittingAction) return;
     if (rejectReason === 'Other' && !rejectNote.trim()) {
       toast.error("Note is required when 'Other' is selected.");
       return;
     }
+    const currentSubmission = selectedGroupedTask.submissions[activeSubmissionIndex];
 
     try {
       setSubmittingAction(true);
-      await api.put(`/reviewer/reject/${selectedTask._id}`, {
+      await api.put(`/reviewer/reject/${currentSubmission._id}`, {
         reason: rejectReason,
         suggestions: rejectNote ? [rejectNote] : []
       });
@@ -156,12 +196,21 @@ export const AuditReviewV2 = () => {
       setRejectReason('');
       setRejectNote('');
 
-      // Move to next task in the queue if possible
-      const currentIndex = tasks.findIndex(t => t._id === selectedTask._id);
-      if (currentIndex !== -1 && currentIndex < tasks.length - 1) {
-        handleSelectTask(tasks[currentIndex + 1]);
+      // Check if there are other pending submissions in this group
+      const nextPendingIndex = selectedGroupedTask.submissions.findIndex(
+        (s, idx) => idx !== activeSubmissionIndex && s.status === 'submitted'
+      );
+      if (nextPendingIndex !== -1) {
+        setActiveSubmissionIndex(nextPendingIndex);
+        fetchTaskDetails(selectedGroupedTask.submissions[nextPendingIndex]);
       } else {
-        handleBackToQueue();
+        // Move to next grouped task in the queue
+        const currentGroupIndex = groupedTasks.findIndex(g => g.taskId === selectedGroupedTask.taskId);
+        if (currentGroupIndex !== -1 && currentGroupIndex < groupedTasks.length - 1) {
+          handleSelectGroupedTask(groupedTasks[currentGroupIndex + 1]);
+        } else {
+          handleBackToQueue();
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -171,14 +220,13 @@ export const AuditReviewV2 = () => {
     }
   };
 
-  // Helper priority classes
   const getPriorityBadge = (p: number) => {
     if (p > 5) return 'bg-rose-500/10 border-rose-500/30 text-rose-400';
     if (p > 2) return 'bg-amber-500/10 border-amber-500/30 text-amber-400';
     return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
   };
 
-  if (!selectedTask) {
+  if (!selectedGroupedTask) {
     return (
       <div className="w-full min-h-screen bg-[#020408] p-8 font-mono text-slate-500">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-zinc-900 pb-8">
@@ -188,21 +236,21 @@ export const AuditReviewV2 = () => {
               Active Audit Queue
             </h1>
             <p className="text-zinc-500 text-xs max-w-2xl">
-              Verification queue containing submissions pending operational review. Flat order priority queue.
+              Verification queue containing submissions pending operational review. Grouped by core task node.
             </p>
           </div>
           <div className="flex items-center gap-4 bg-zinc-950 border border-zinc-900 p-3 rounded-sm">
             <Clock size={14} className="text-indigo-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-zinc-400 uppercase">Queue Size: {tasks.length}</span>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase">Grouped Tasks: {groupedTasks.length}</span>
           </div>
         </header>
 
-        {loading ? (
+        {loading && groupedTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[40vh] space-y-4">
             <ActivityIcon className="animate-spin text-indigo-500" />
             <span className="text-xs uppercase tracking-[0.2em]">Querying pending registry...</span>
           </div>
-        ) : tasks.length === 0 ? (
+        ) : groupedTasks.length === 0 ? (
           <div className="border border-dashed border-zinc-900 p-16 text-center rounded-sm max-w-md mx-auto mt-12 space-y-6">
             <CheckCircle className="mx-auto text-zinc-700" size={32} />
             <h2 className="text-zinc-400 uppercase tracking-widest font-bold text-xs">Registry Clear</h2>
@@ -212,10 +260,10 @@ export const AuditReviewV2 = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 max-w-5xl">
-            {tasks.map((task, idx) => (
+            {groupedTasks.map((group, idx) => (
               <div 
-                key={task._id} 
-                onClick={() => handleSelectTask(task)}
+                key={group.taskId} 
+                onClick={() => handleSelectGroupedTask(group)}
                 className="flex items-center justify-between p-4 bg-[#05070A] border border-slate-900 hover:border-indigo-500/40 hover:bg-black transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-6">
@@ -226,21 +274,26 @@ export const AuditReviewV2 = () => {
                   <div className="h-6 w-px bg-zinc-900" />
                   <div>
                     <span className="text-[8px] text-zinc-700 uppercase font-bold">Task ID</span>
-                    <p className="text-xs font-bold text-white tracking-tight">{task.taskId || task._id}</p>
+                    <p className="text-xs font-bold text-white tracking-tight">{group.taskId}</p>
                   </div>
                   <div className="h-6 w-px bg-zinc-900 hidden md:block" />
                   <div className="hidden md:block">
                     <span className="text-[8px] text-zinc-700 uppercase font-bold">Dataset</span>
-                    <p className="text-xs text-zinc-400">{task.datasetId?.name || "Unassociated"}</p>
+                    <p className="text-xs text-zinc-400">{group.datasetId?.name || "Unassociated"}</p>
+                  </div>
+                  <div className="h-6 w-px bg-zinc-900 hidden md:block" />
+                  <div className="hidden md:block">
+                    <span className="text-[8px] text-zinc-700 uppercase font-bold">Submissions</span>
+                    <p className="text-xs text-indigo-400 font-bold">{group.submissions.length} Pending</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-6">
-                  <span className={`px-2 py-0.5 border rounded-sm text-[8px] font-bold uppercase tracking-tighter ${getPriorityBadge(task.priority || 0)}`}>
-                    P: {task.priority || 0}
+                  <span className={`px-2 py-0.5 border rounded-sm text-[8px] font-bold uppercase tracking-tighter ${getPriorityBadge(group.priority || 0)}`}>
+                    P: {group.priority || 0}
                   </span>
                   <span className="text-[8px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 uppercase">
-                    {task.taskType}
+                    {group.taskType}
                   </span>
                   <Play size={12} className="text-zinc-700 group-hover:text-indigo-500 transition-colors" />
                 </div>
@@ -265,18 +318,41 @@ export const AuditReviewV2 = () => {
 
         <div className="flex items-center gap-6">
           <div className="text-[10px] text-zinc-400 uppercase">
-            Dataset: <span className="text-indigo-400 font-bold">{selectedTask.datasetId?.name || "Unassociated"}</span>
+            Dataset: <span className="text-indigo-400 font-bold">{selectedGroupedTask.datasetId?.name || "Unassociated"}</span>
           </div>
           <div className="h-4 w-[1px] bg-zinc-800" />
           <div className="text-[10px] font-bold text-zinc-300">
-            Task ID: #{selectedTask.taskId || selectedTask._id}
+            Task ID: #{selectedGroupedTask.taskId}
           </div>
         </div>
 
         <div className="text-[9px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 uppercase">
-          {selectedTask.taskType}
+          {selectedGroupedTask.taskType}
         </div>
       </nav>
+
+      {selectedGroupedTask.submissions.length > 1 && (
+        <div className="flex gap-2 p-2 bg-zinc-950/80 border-b border-zinc-900 overflow-x-auto shrink-0 select-none">
+          {selectedGroupedTask.submissions.map((sub, idx) => (
+            <button
+              key={sub._id}
+              onClick={() => {
+                setActiveSubmissionIndex(idx);
+                fetchTaskDetails(sub);
+              }}
+              className={`px-4 py-2 border rounded-sm font-mono text-[9px] font-bold uppercase transition-all flex items-center gap-2 ${
+                activeSubmissionIndex === idx
+                  ? 'border-indigo-500 bg-indigo-500/10 text-white'
+                  : 'border-zinc-800 bg-black text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <User size={10} />
+              {sub.assignedTo?.[0]?.userId?.name || `Operator ${idx + 1}`}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex-1 min-h-0 flex overflow-hidden">
         <aside className="w-72 border-r border-zinc-900 bg-black/60 p-6 flex flex-col gap-8 shrink-0 overflow-y-auto">
           <div className="space-y-2">
@@ -285,10 +361,10 @@ export const AuditReviewV2 = () => {
               <User size={14} className="text-indigo-400" />
               <div className="min-w-0">
                 <p className="text-[10px] font-bold text-white truncate">
-                  {selectedTask.assignedTo?.[0]?.userId?.name || "Operator"}
+                  {selectedGroupedTask.submissions[activeSubmissionIndex]?.assignedTo?.[0]?.userId?.name || "Operator"}
                 </p>
                 <p className="text-[8px] text-zinc-600 truncate">
-                  {selectedTask.assignedTo?.[0]?.userId?.email || "No Email"}
+                  {selectedGroupedTask.submissions[activeSubmissionIndex]?.assignedTo?.[0]?.userId?.email || "No Email"}
                 </p>
               </div>
             </div>
@@ -297,7 +373,7 @@ export const AuditReviewV2 = () => {
           <div className="space-y-2">
             <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-wider">Dataset Specifications</span>
             <p className="text-[10px] text-zinc-400 leading-relaxed italic">
-              {selectedTask.datasetId?.description || "No specifications defined for this dataset node."}
+              {selectedGroupedTask.datasetId?.description || "No specifications defined for this dataset node."}
             </p>
           </div>
 
@@ -308,6 +384,7 @@ export const AuditReviewV2 = () => {
             </div>
           )}
         </aside>
+        
         <main className="flex-1 bg-[#010101] p-10 overflow-y-auto flex flex-col">
           {fetchingDetail ? (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4">
@@ -321,12 +398,12 @@ export const AuditReviewV2 = () => {
                   // Input Telemetry (R2)
                 </h3>
                 <div className="bg-[#05070A] border border-zinc-900 p-6 rounded-sm space-y-4">
-                  {resolveContentType(selectedTask) === 'text' && !isRlhfTask(null, selectedTask) && (
+                  {resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) === 'text' && !isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
                     <p className="text-sm text-zinc-300 leading-relaxed font-light">
                       {taskPayload.taskObject?.content || taskPayload.taskObject?.prompt || JSON.stringify(taskPayload.taskObject)}
                     </p>
                   )}
-                  {resolveContentType(selectedTask) === 'image' && !isRlhfTask(null, selectedTask) && (
+                  {resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) === 'image' && !isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
                     <div className="flex flex-col items-center gap-4">
                       {taskPayload.taskObject?.imageUrl || taskPayload.taskObject?.image || taskPayload.taskObject?.url ? (
                         <div className="relative inline-block border border-zinc-800 rounded-sm overflow-hidden bg-black select-none">
@@ -359,7 +436,7 @@ export const AuditReviewV2 = () => {
                       )}
                     </div>
                   )}
-                  {selectedTask.taskType === 'audio' && (
+                  {selectedGroupedTask.taskType === 'audio' && (
                     <div className="space-y-4">
                       {taskPayload.taskObject?.audioUrl ? (
                         <audio controls src={taskPayload.taskObject.audioUrl} className="w-full" />
@@ -371,7 +448,7 @@ export const AuditReviewV2 = () => {
                       )}
                     </div>
                   )}
-                  {isRlhfTask(null, selectedTask) && (
+                  {isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
                     <div className="space-y-6">
                       <div className="space-y-1">
                         <span className="text-[8px] text-indigo-400 font-bold uppercase">Prompt</span>
@@ -395,7 +472,7 @@ export const AuditReviewV2 = () => {
                               <div className="bg-black p-3 border border-zinc-900">
                                 <RlhfResponseContent
                                   content={resp?.content || ""}
-                                  contentType={resolveContentType(selectedTask) as ContentType}
+                                  contentType={resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) as ContentType}
                                   label={`Response ${idx === 0 ? "A" : "B"}`}
                                 />
                               </div>
@@ -406,6 +483,7 @@ export const AuditReviewV2 = () => {
                   )}
                 </div>
               </div>
+              
               <div className="space-y-4">
                 <h3 className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
                   // Submitted Disposition (R2 Output)
@@ -428,7 +506,7 @@ export const AuditReviewV2 = () => {
                       <div>
                         <span className="text-[8px] text-zinc-600 font-bold uppercase">Raw Annotation Result</span>
                         <pre className="text-[10px] text-zinc-500 font-mono bg-black p-3 border border-zinc-900 overflow-x-auto mt-1">
-                          {JSON.stringify(taskPayload.submissionObject, null, 2)}
+                           {JSON.stringify(taskPayload.submissionObject, null, 2)}
                         </pre>
                       </div>
                     </div>
@@ -439,6 +517,7 @@ export const AuditReviewV2 = () => {
                   )}
                 </div>
               </div>
+
               {taskPayload.otherSubmissions && taskPayload.otherSubmissions.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-indigo-400 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
@@ -483,7 +562,6 @@ export const AuditReviewV2 = () => {
                   </div>
                 </div>
               )}
-
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4">
@@ -493,6 +571,7 @@ export const AuditReviewV2 = () => {
           )}
         </main>
       </div>
+
       <footer className="shrink-0 p-6 border-t border-zinc-900 bg-zinc-950 flex justify-between items-center relative z-50">
         <div className="text-[9px] text-zinc-600 uppercase tracking-widest font-mono">
           Operator // Reviewer
@@ -516,6 +595,7 @@ export const AuditReviewV2 = () => {
           </button>
         </div>
       </footer>
+
       {showRejectModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-[#05070A] border border-slate-900 w-full max-w-md p-8 rounded-sm space-y-6 animate-in zoom-in duration-300">
@@ -548,8 +628,9 @@ export const AuditReviewV2 = () => {
                 </button>
               ))}
             </div>
+            
             <div className="space-y-2">
-              <label className="text-[9px] text-zinc-600 uppercase font-bold block">
+              <label className="text-[9px] text-zinc-600 uppercase font-bold block block">
                 Additional Notes {rejectReason !== 'Other' && '(Optional)'}
               </label>
               <textarea
@@ -579,12 +660,10 @@ export const AuditReviewV2 = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
 
-// Inline helper loader icon
 const ActivityIcon = ({ className, size = 20 }: { className?: string; size?: number }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 

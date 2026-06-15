@@ -11,7 +11,8 @@ import {
   Activity,
   ShieldCheck,
   TrendingUp,
-  Bell
+  Bell,
+  Globe
 } from 'lucide-react';
 import LogoutButton from "../../auth/logout";
 
@@ -79,6 +80,11 @@ export const AdminSidebar = () => {
       </div>
 
       <div className="space-y-1">
+        <NavItem 
+          to="/admin/security" 
+          label="Geographic_Shield" 
+          icon={<Globe size={18} strokeWidth={1.5} />} 
+        />
         <NavItem 
           to="/admin/settings" 
           label="System_Settings" 

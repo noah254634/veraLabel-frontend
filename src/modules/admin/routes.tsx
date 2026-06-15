@@ -9,6 +9,7 @@ import ModelsPage from "./pages/Models"
 import AnalyticsHub from "./pages/Analytics/AnalyticsHub"
 import { InstructionManager } from "./pages/InstructionManager"
 import NotificationTester from "../../NotificationTester"
+import SecurityPage from "./pages/Security"
 export const AdminRoutes = (
   <Route path="admin" element={<AdminLayout />}>
     <Route index element={<AdminDashboard />} />
@@ -20,6 +21,7 @@ export const AdminRoutes = (
     <Route path="help" element={<HelpPage />} />
     <Route path="users" element={<AdminUserModule />} />
     <Route path="models" element={<ModelsPage />} />
+    <Route path="security" element={<SecurityPage />} />
     <Route path="notifications" element={<NotificationTester />} />
   </Route>
 )

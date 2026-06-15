@@ -77,30 +77,56 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   resetStore: () => set({ loading: false, error: null, tasks: [] }),
   fetchTaskPayload: async (id) => {
     try {
-      // Don't set global loading as it might flicker the whole UI
       const { tasks } = get();
       const taskIndex = tasks.findIndex(t => t.id === id || (t as any)._id === id);
       if (taskIndex === -1) return;
 
-      // If we already have the payload (e.g. data or taskObject) or have fetched it, skip
+      const triggerPrefetch = () => {
+        const currentTasks = get().tasks;
+        const index = currentTasks.findIndex(t => t.id === id || (t as any)._id === id);
+        if (index === -1) return;
+
+        const nextPendingTask = currentTasks.slice(index + 1).find(
+          (t) => t.status !== 'submitted' && t.status !== 'flagged' && t.status !== 'verified'
+        );
+        if (nextPendingTask) {
+          const nextId = nextPendingTask.id || (nextPendingTask as any)._id;
+          const nextFetched = nextPendingTask.data?.url || (nextPendingTask as any).taskObject || (nextPendingTask as any).payloadFetched;
+          if (nextId && !nextFetched) {
+            get().fetchTaskPayload(nextId).catch((err) => {
+              console.error("Background pre-fetching failed for task", nextId, err);
+            });
+          }
+        }
+      };
+
+      // If we already have the payload (e.g. data or taskObject) or have fetched it, skip actual fetch but still prefetch next task
       if (
         tasks[taskIndex].data?.url || 
         (tasks[taskIndex] as any).taskObject || 
         (tasks[taskIndex] as any).payloadFetched
-      ) return;
+      ) {
+        triggerPrefetch();
+        return;
+      }
 
       const response = await taskService.getTaskById(id);
       const payload = response?.taskObject ?? response?.task?.taskObject ?? response?.task?.data ?? null;
 
-      const updatedTasks = [...tasks];
-      updatedTasks[taskIndex] = {
-        ...updatedTasks[taskIndex],
-        ...payload, // Merge R2 payload (prompt, responses, etc)
-        taskObject: payload ?? response?.taskObject ?? response?.task ?? null, // Keep raw object just in case
-        payloadFetched: true
-      };
+      const updatedTasks = [...get().tasks];
+      const currentTaskIndex = updatedTasks.findIndex(t => t.id === id || (t as any)._id === id);
+      if (currentTaskIndex !== -1) {
+        updatedTasks[currentTaskIndex] = {
+          ...updatedTasks[currentTaskIndex],
+          ...payload, // Merge R2 payload (prompt, responses, etc)
+          taskObject: payload ?? response?.taskObject ?? response?.task ?? null, // Keep raw object just in case
+          payloadFetched: true
+        };
+        set({ tasks: updatedTasks });
+      }
 
-      set({ tasks: updatedTasks });
+      // Trigger pre-fetching for the next pending task
+      triggerPrefetch();
     } catch (err) {
       console.error("Failed to fetch task payload", err);
       // Mark as fetched even on error to prevent infinite API call loops

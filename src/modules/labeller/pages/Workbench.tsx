@@ -198,6 +198,8 @@ export const CustomWorkbench = () => {
   const [transcriptionText, setTranscriptionText] = useState<string>('');
 
   const timer = useLiveTimer(activeBatch?.expiresAt);
+  const batchId = activeBatch?._id || activeBatch?.id;
+  const initializedRef = useRef<string | null>(null);
 
   // Preload next task's image
   const nextTask = tasks?.[activeTaskIndex + 1];
@@ -221,15 +223,18 @@ export const CustomWorkbench = () => {
   }, [getMyActiveBatch]);
 
   useEffect(() => {
-    if (tasks && tasks.length > 0) {
+    if (tasks && tasks.length > 0 && initializedRef.current !== batchId) {
       const firstPendingIndex = tasks.findIndex(
         t => t.status !== 'submitted' && t.status !== 'verified' && t.status !== 'flagged'
       );
       if (firstPendingIndex !== -1) {
         setActiveTaskIndex(firstPendingIndex);
       }
+      if (batchId) {
+        initializedRef.current = batchId;
+      }
     }
-  }, [tasks]);
+  }, [tasks, batchId]);
 
   const currentTask = tasks?.[activeTaskIndex];
   const labellingMethod = resolveLabellingMethod(activeBatch, currentTask);
