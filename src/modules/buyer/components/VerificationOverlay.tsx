@@ -46,7 +46,7 @@ export const VerificationOverlay: React.FC<VerificationOverlayProps> = ({ status
               Verification Declined
             </h2>
             <p className="text-zinc-500 text-xs mt-3 leading-relaxed">
-              Your buyer application could not be verified with the details provided. Please check the feedback below, modify your profile, and re-submit for audit.
+              Your client application could not be verified with the details provided. Please check the feedback below, modify your profile, and re-submit for audit.
             </p>
           </>
         )}

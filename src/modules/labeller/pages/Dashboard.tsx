@@ -45,7 +45,7 @@ export const LabellerDashboard = () => {
             <span className="font-mono text-[9px] uppercase tracking-[0.4em] font-bold">Operator_Session_Initialized</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter leading-none italic">
-            Welcome, Labeller <span className="text-indigo-400 font-light not-italic">{displayName}</span>
+            Welcome, Contributor <span className="text-indigo-400 font-light not-italic">{displayName}</span>
           </h1>
           <p className="text-zinc-500 mt-4 text-sm font-light leading-relaxed">
             Telemetry synchronized for <span className="text-zinc-300 font-mono">{displayEmail}</span>. Current node is {onboarded} and operating from <span className="text-zinc-300 font-mono">{city}, {country}</span>.

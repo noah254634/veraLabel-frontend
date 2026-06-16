@@ -103,6 +103,10 @@ export const datasetService = {
     const response = await api.post(`/tasks/revoke-dataset-batches`, { datasetId });
     return response.data.data;
   },
+  compileDataset: async (id: string): Promise<any> => {
+    const response = await api.post(`admin/datasets/${id}/compile`);
+    return response.data.data || response.data;
+  },
   // Global sweep: revoke all expired batches across the platform
   revokeAllExpiredBatches: async (): Promise<{ revoked: number; tasksReset: number }> => {
     const response = await api.post(`/tasks/revoke-expired-batches`, {});

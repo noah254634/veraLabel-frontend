@@ -15,8 +15,7 @@ const CTA = () => {
         </h2>
 
         <p className="mt-8 text-base md:text-xl text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
-          Join the elite teams building inclusive, real-world AI systems with 
-          high-fidelity datasets from emerging markets.
+          Partner with VeraLabel to train inclusive, real-world AI using verified, high-fidelity datasets from emerging markets.
         </p>
 
         <div className="mt-12 flex flex-col items-center gap-6">
@@ -24,7 +23,7 @@ const CTA = () => {
             to="/signup"
             className="group relative inline-flex items-center justify-center px-10 py-5 bg-white text-black rounded-full font-bold text-sm tracking-wide transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           >
-            Create Your Account
+            Access the Platform
             <svg 
               className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" 
               fill="none" 

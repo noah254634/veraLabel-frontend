@@ -10,9 +10,9 @@ const features = [
     ),
   },
   {
-    title: "AI-Assisted Labeling",
+    title: "AI-Assisted Pre-Annotation",
     description:
-      "Accelerate dataset creation with intelligent pre-labeling tools that reduce manual overhead by up to 70%.",
+      "Accelerate dataset creation with intelligent pre-annotation models that reduce manual review time by up to 70%.",
     icon: (
       <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -30,9 +30,9 @@ const features = [
     ),
   },
   {
-    title: "Marketplace Access",
+    title: "Institutional Registry",
     description:
-      "Access an exclusive ecosystem to buy and sell curated datasets specifically for production AI systems.",
+      "Access a secure registry to license high-fidelity regional datasets built for production AI systems.",
     icon: (
       <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />

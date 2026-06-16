@@ -17,7 +17,7 @@ const RoleToggle = ({ role, onChange }: RoleToggleProps) => {
             : "text-gray-600 hover:text-black"
         }`}
       >
-        Buyer
+        Enterprise Client
       </button>
 
       <button
@@ -29,7 +29,7 @@ const RoleToggle = ({ role, onChange }: RoleToggleProps) => {
             : "text-gray-600 hover:text-black"
         }`}
       >
-        Seller
+        Contributor
       </button>
     </div>
   );

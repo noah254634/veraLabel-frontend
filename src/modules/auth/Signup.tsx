@@ -54,8 +54,8 @@ const SignupPage = () => {
           Create Account<span className="text-indigo-600">.</span>
         </h2>
         <p className="text-zinc-500 mt-4 font-light text-sm text-center md:text-left leading-relaxed">
-          Join the infrastructure for 
-          <span className="text-zinc-300"> global AI diversity</span>.
+          Access the infrastructure powering 
+          <span className="text-zinc-300"> inclusive, representative AI training</span>.
         </p>
       </div>
 
@@ -141,7 +141,7 @@ const SignupPage = () => {
             <Loader2 className="animate-spin" size={16} />
           ) : (
             <>
-              Initialize Account
+              Create Enterprise Account
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </>
           )}

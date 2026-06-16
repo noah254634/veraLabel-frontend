@@ -26,8 +26,7 @@ export const Contact = () => {
             <span className="text-zinc-600 font-normal italic">Correspondence.</span>
           </h1>
           <p className="text-xl md:text-2xl text-zinc-300 font-normal tracking-tight max-w-2xl leading-snug">
-            Whether you are acquiring linguistic assets or joining our decentralized 
-            contributor network, our <span className="text-white underline decoration-zinc-800 underline-offset-8">technical leads</span> are standing by.
+            Whether licensing regional data assets or joining our verified contributor network, our <span className="text-white underline decoration-zinc-800 underline-offset-8">technical operations team</span> is available.
           </p>
         </section>
 
@@ -64,7 +63,7 @@ export const Contact = () => {
                 </label>
                 <textarea 
                   rows="4" 
-                  placeholder="Describe your dataset requirements or inquiry..." 
+                  placeholder="Specify model requirements, data modalities, or partnership details..." 
                   className="w-full bg-transparent border-b border-zinc-900 py-3 text-sm outline-none focus:border-blue-500 transition-all placeholder:text-zinc-800 text-zinc-200 font-light resize-none"
                 />
               </div>
@@ -81,9 +80,9 @@ export const Contact = () => {
             <div className="space-y-6">
               <h3 className="text-white font-mono text-[10px] uppercase tracking-[0.3em]">Operational Nodes</h3>
               <div className="space-y-px bg-zinc-900 border border-zinc-900">
-                <LocationNode city="Bungoma" region="Western Ops" status="Primary" />
-                <LocationNode city="Nairobi" region="Commercial Core" status="Active" />
-                <LocationNode city="Global" region="Decentralized Network" status="Distributed" />
+                <LocationNode city="Bungoma" region="Regional Collection Hub & Field Operations" status="Primary" />
+                <LocationNode city="Nairobi" region="East Africa Commercial Core" status="Active" />
+                <LocationNode city="Global" region="Distributed Expert Network" status="Distributed" />
               </div>
             </div>
 
@@ -99,7 +98,7 @@ export const Contact = () => {
                 </a>
                 <div className="flex items-center gap-3">
                   <MessageSquare size={14} className="text-zinc-700" />
-                  <span className="text-xs text-zinc-500">Live Concierge (Support Center)</span>
+                  <span className="text-xs text-zinc-500">Enterprise Relations Concierge</span>
                 </div>
               </div>
             </div>

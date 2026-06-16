@@ -90,7 +90,7 @@ export const PrivacyPolicy = () => {
               </h3>
             </div>
             <p className="text-zinc-400 text-sm leading-relaxed font-light mb-6">
-              Human-in-the-loop contributions are anonymized before delivery to third-party AI buyers. Your cognitive output contributes to the model's intelligence without exposing the contributor's demographic origin.
+              Human-in-the-loop contributions are anonymized before delivery to third-party AI clients. Your cognitive output contributes to the model's intelligence without exposing the contributor's demographic origin.
             </p>
             <ul className="text-[10px] font-mono text-zinc-600 space-y-2 uppercase tracking-tighter">
               <li>• Contribution Anonymization</li>

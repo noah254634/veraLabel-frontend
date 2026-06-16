@@ -32,6 +32,7 @@ type DatasetStore = {
   updateDatasetPriority: (id: string, priority: string) => Promise<void>;
   updateDatasetMaxLabellers: (id: string, maxLabellers: number) => Promise<void>;
   revokeDatasetBatches: (datasetId: string) => Promise<{ revoked: number; tasksReset: number } | null>;
+  compileDataset: (id: string) => Promise<any>;
 };
 export const dataStore = create<DatasetStore>((set, get) => ({
   error: null,
@@ -431,6 +432,28 @@ export const dataStore = create<DatasetStore>((set, get) => ({
       const msg = error?.response?.data?.message || error?.message || "Failed to revoke batches";
       toast.error(msg);
       return null;
+    } finally {
+      set({ loading: false });
+    }
+  },
+  compileDataset: async (id: string) => {
+    try {
+      set({ loading: true });
+      const result = await datasetService.compileDataset(id);
+      toast.success(result.message || "Dataset compiled successfully!");
+      // Update local dataset object with compiled downloadUrl and status
+      if (result.r2Key) {
+        set({
+          datasets: get().datasets.map((d) =>
+            (d._id === id || d.datasetId === id) ? { ...d, downloadUrl: result.r2Key, status: "completed" } : d
+          )
+        });
+      }
+      return result;
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || "Failed to compile dataset";
+      toast.error(msg);
+      throw error;
     } finally {
       set({ loading: false });
     }

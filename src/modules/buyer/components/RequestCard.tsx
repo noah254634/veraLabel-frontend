@@ -10,9 +10,12 @@ import {
   ChevronRight,
   Database,
   Layers,
-  Zap
+  Zap,
+  RefreshCw
 } from "lucide-react";
 import InvoiceBreakdownModal from "./InvoiceBreakdownModal";
+import { useBuyerStore } from "../store/buyerStore";
+import toast from "react-hot-toast";
 
 interface RequestCardProps {
   order: any; // Ideally this should be a typed Order
@@ -33,6 +36,30 @@ const RequestCard: React.FC<RequestCardProps> = ({
   calculateDeliveryDate
 }) => {
   const [showInvoiceModal, setShowInvoiceModal] = React.useState(false);
+  const { downloadDataset } = useBuyerStore();
+  const [isDownloading, setIsDownloading] = React.useState(false);
+
+  const handleDownload = async () => {
+    const datasetId = order.entryType === 'purchase' ? order.datasetId : order._id;
+    if (!datasetId) {
+      toast.error("Dataset ID not found");
+      return;
+    }
+    setIsDownloading(true);
+    try {
+      const downloadUrl = await downloadDataset(datasetId);
+      if (downloadUrl) {
+        window.open(downloadUrl, "_blank");
+      } else {
+        toast.error("Failed to generate download link");
+      }
+    } catch (err: any) {
+      // toast is already handled in store
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const statusColors: Record<string, string> = {
     pending: "border-zinc-500 text-zinc-400 bg-zinc-500/5",
     awaiting_payment: "border-amber-500 text-amber-400 bg-amber-500/5",
@@ -204,14 +231,18 @@ const RequestCard: React.FC<RequestCardProps> = ({
             )}
 
             {order.status === "completed" && order.downloadUrl && (
-              <a
-                href={order.downloadUrl}
-                download
-                className="h-8 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[9px] uppercase tracking-widest transition-all inline-flex items-center gap-2 rounded-sm"
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="h-8 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 text-white font-bold text-[9px] uppercase tracking-widest transition-all inline-flex items-center gap-2 rounded-sm cursor-pointer"
               >
-                <Download size={10} />
-                Download_Set
-              </a>
+                {isDownloading ? (
+                  <RefreshCw size={10} className="animate-spin" />
+                ) : (
+                  <Download size={10} />
+                )}
+                {isDownloading ? "Generating..." : "Download_Set"}
+              </button>
             )}
 
             {(order.status === "pending" || order.status === "awaiting_payment") && order.canBeCancelled && (

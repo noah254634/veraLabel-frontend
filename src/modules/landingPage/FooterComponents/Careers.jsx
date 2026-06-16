@@ -22,15 +22,15 @@ export const Careers = () => (
           <span className="text-zinc-600 font-normal italic">Contextual Intelligence.</span>
         </h1>
         <p className="text-xl md:text-2xl text-zinc-300 font-normal tracking-tight max-w-3xl leading-snug">
-          VeraLabel.ai is seeking architects, linguists, and engineers to define the 
+          VeraLabel is seeking research engineers, domain experts, and computational scientists to define the 
           <span className="text-white"> parameters of machine understanding.</span>
         </p>
       </section>
       <div className="border-t border-zinc-900">
         {[
-          { id: "V-01", role: "Data Annotator", type: "Decentralized", domain: "NLP / Linguistics" },
+          { id: "V-01", role: "Clinical Data Annotation Specialist", type: "Distributed", domain: "Medical Imaging / CV" },
           { id: "V-02", role: "Full-Stack Architect", type: "Hybrid", domain: "Node.js / R2 Pipelines" },
-          { id: "V-03", role: "QA Validation Specialist", type: "Remote", domain: "Python / HITL" }
+          { id: "V-03", role: "Data Quality Reviewer", type: "Distributed", domain: "Python / Consensus Adjudication" }
         ].map((job) => (
           <div key={job.id} className="group grid grid-cols-1 md:grid-cols-12 gap-4 py-8 border-b border-zinc-900 hover:bg-zinc-900/10 transition-all px-4 cursor-pointer">
             <div className="md:col-span-1 font-mono text-[10px] text-zinc-700 group-hover:text-blue-600 transition-colors">
@@ -56,8 +56,8 @@ export const Careers = () => (
       </div>
       <div className="mt-32 pt-16 border-t border-zinc-900 text-center">
         <h2 className="text-white font-medium text-xl mb-4 tracking-tight">Unsolicited Inquiries</h2>
-        <p className="text-zinc-500 text-sm mb-10 max-w-md mx-auto leading-relaxed">
-          We prioritize specialists from Kibabii and global research networks. 
+        <p className="text-zinc-500 text-sm mb-10 max-w-xl mx-auto leading-relaxed">
+          We prioritize domain experts from leading regional institutions, including Kibabii University, and global AI research networks. 
           If your expertise isn't listed, submit a technical dossier.
         </p>
         <button className="group relative px-8 py-3 bg-transparent border border-zinc-800 text-zinc-400 hover:text-white transition-all overflow-hidden">

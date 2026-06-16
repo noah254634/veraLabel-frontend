@@ -23,7 +23,7 @@ export const Terms = () => (
         </h1>
         <p className="text-xl md:text-2xl text-zinc-300 font-normal tracking-tight max-w-4xl leading-snug">
           VeraLabel.ai is an institutional-grade data marketplace. By utilizing
-          this infrastructure, you agree to a{" "}
+          this infrastructure as an Enterprise Licensee ("Licensee"), you agree to a{" "}
           <span className="text-white">
             secure, quality-contingent engagement model.
           </span>
@@ -59,7 +59,7 @@ export const Terms = () => (
                 <span className="text-blue-500 font-bold tracking-tight">
                   Non-Exclusive:
                 </span>{" "}
-                Perpetual training rights for the buyer; the asset remains
+                Perpetual training rights for the Licensee; the asset remains
                 available for secondary marketplace acquisition.
               </li>
               <li>
@@ -67,8 +67,8 @@ export const Terms = () => (
                   Exclusive (Sovereign):
                 </span>{" "}
                 Total IP transfer. Upon final settlement, VeraLabel will purge
-                the asset from all public directories, granting the buyer{" "}
-                <strong>unilateral market dominance</strong> over that specific
+                the asset from all public directories, granting the Licensee{" "}
+                <strong>exclusive commercial rights</strong> over that specific
                 dataset.
               </li>
             </ul>
@@ -101,7 +101,7 @@ export const Terms = () => (
                 <span className="text-white font-bold tracking-tight">
                   Prohibited Resale:
                 </span>
-                The Buyer is strictly prohibited from reselling, sub-licensing,
+                The Licensee is strictly prohibited from reselling, sub-licensing,
                 or redistributing the raw dataset, in part or in whole, on any
                 third-party marketplace or independent platform.
               </li>
@@ -109,7 +109,7 @@ export const Terms = () => (
                 <span className="text-white font-bold tracking-tight">
                   Derivative Works:
                 </span>
-                While the Buyer may use the data to train proprietary AI models,
+                While the Licensee may use the data to train proprietary AI models,
                 the
                 <strong> raw structural assets</strong> remain the intellectual
                 property of the original creator and VeraLabel.ai.

@@ -101,10 +101,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onSuccess })
           </span>
         </div>
         <h2 className="text-3xl font-bold text-white tracking-tighter">
-          Verify Your Buyer Account
+          Verify Your Enterprise Account
         </h2>
         <p className="text-zinc-500 text-xs mt-2 leading-relaxed">
-          Provide your enterprise identification. Verified buyer profiles secure access to high-integrity data assets, payment logs, and exclusive transactions.
+          Provide your enterprise identification. Verified client profiles secure access to high-integrity data assets, payment logs, and exclusive transactions.
         </p>
       </div>
       <div className="grid grid-cols-3 gap-2 mb-10">

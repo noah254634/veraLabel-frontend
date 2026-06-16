@@ -228,7 +228,7 @@ const Dashboard: React.FC = () => {
             {buyerProfile?.verificationStatus === "approved" && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono font-bold tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 shadow-[0_0_10px_rgba(99,102,241,0.2)] rounded-sm uppercase">
                 <ShieldCheck size={12} className="text-indigo-400 animate-pulse" />
-                Verified_Buyer
+                Verified_Client
               </span>
             )}
           </h1>

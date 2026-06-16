@@ -25,7 +25,7 @@ export const About = () => (
         </p>
         <p className="mt-6 text-lg text-zinc-500 max-w-2xl leading-relaxed">
           While the industry scales computation, the underlying datasets remain culturally monolithic, 
-          leaving billions of edge cases—and cultures—unmapped in the race for AGI.
+          leaving billions of clinical, visual, and cultural edge cases unmapped in the path to AGI.
         </p>
       </section>
 
@@ -38,17 +38,17 @@ export const About = () => (
         </div>
         <div className="md:col-span-7">
           <p className="text-2xl text-zinc-300 font-light leading-snug mb-8">
-            "Will the machines of tomorrow understand the dialect of Kisumu?"
+            "Will the machines of tomorrow recognize the accent of Kisumu — or the skin tone of the patient sitting in its clinic?"
           </p>
           <div className="space-y-6 text-zinc-500 leading-relaxed">
             <p>
               Our founder, <span className="text-zinc-200 font-medium">Noah Khaemba</span>, 
-              identified this systemic blind spot while architecting solutions for global AI leaders. 
-              VeraLabel serves as the <span className="text-blue-400">Linguistic Bridge</span>.
+              identified this systemic blind spot while building data infrastructure for global AI leaders. 
+              VeraLabel serves as the <span className="text-blue-400">missing bridge between local context and global AI standards</span>.
             </p>
             <p>
-              We interface high-fidelity global standards with the nuanced, localized intuition of 
-              African linguistic ecosystems. We don’t just label data; we encode cultural context into intelligence.
+              We calibrate enterprise-grade data validation protocols with the nuanced, localized intuition of 
+              regional expert networks. We don’t just label data; we encode cultural context into intelligence.
             </p>
           </div>
         </div>
@@ -63,8 +63,8 @@ export const About = () => (
           </h3>
           <p className="text-zinc-500 leading-relaxed text-sm">
             Utilizing a high-concurrency <span className="text-zinc-300">Node.js and Cloudflare R2 </span> 
-            stack, we deploy enterprise-grade data buckets that support the training requirements 
-            of the world’s most sophisticated Large Language Models (LLMs).
+            pipeline, we deploy enterprise-grade data buckets that support the training requirements 
+            of the world’s most sophisticated Foundation Models.
           </p>
         </div>
 
@@ -76,8 +76,8 @@ export const About = () => (
           <p className="text-zinc-500 leading-relaxed text-sm">
             Strategically headquartered in <span className="text-zinc-300">Bungoma, Kenya</span>. 
             We have engineered a frictionless cross-border settlement engine via Paystack, 
-            converting global USD capital into local liquidity for our decentralized 
-            human-in-the-loop (HITL) workforce.
+            converting global institutional capital into direct liquidity for our distributed, 
+            expert human-in-the-loop (HITL) network.
           </p>
         </div>
       </section>

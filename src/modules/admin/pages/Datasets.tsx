@@ -4,13 +4,14 @@ import {
   Download, Trash2, Terminal, ChevronRight, Activity, User, ExternalLink, RotateCcw, RefreshCw
 } from "lucide-react";
 import { dataStore } from "../store/datasetManagementStore";
+import toast from "react-hot-toast";
 
 const DatasetAdminPage = () => {
   const {
     datasets, getDataset, approveDataset, rejectDataset, 
     unpublishDatasetById, publishDatasetById, deleteDataset, loading,
     currentStatus, setCurrentStatus, getDatasetsByStatus, updateDatasetPrice,
-    updateDatasetStatus, revokeDatasetBatches
+    updateDatasetStatus, revokeDatasetBatches, compileDataset
   } = dataStore();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -25,6 +26,8 @@ const DatasetAdminPage = () => {
   const [revokeConfirm, setRevokeConfirm] = useState(false);
   const [revokeResult, setRevokeResult] = useState<{ revoked: number; tasksReset: number } | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [isCompiling, setIsCompiling] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (currentStatus === "all") {
@@ -114,6 +117,46 @@ const DatasetAdminPage = () => {
       setIsRevoking(false);
     }
   };
+
+  const handleCompileDataset = async () => {
+    if (!selectedId) return;
+    setIsCompiling(true);
+    try {
+      await compileDataset(selectedId);
+    } catch (error) {
+      // Error toast is already handled inside compileDataset in store
+    } finally {
+      setIsCompiling(false);
+    }
+  };
+
+  const handleDownloadCompiledDataset = async (datasetId: string) => {
+    setIsDownloading(true);
+    try {
+      const { api } = await import("../../../shared/types/api");
+      const response = await api.get(`/datasets/${datasetId}/download`);
+      const downloadUrl = response.data?.data?.downloadUrl || response.data?.downloadUrl;
+      if (downloadUrl) {
+        window.open(downloadUrl, "_blank");
+      } else {
+        toast.error("Failed to generate download URL");
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Download failed";
+      toast.error(msg);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const showCompileButton = useMemo(() => {
+    if (!selectedDataset) return false;
+    const isCustom = (selectedDataset as any).type === 'custom';
+    const total = (selectedDataset as any).totalTasksCount ?? 0;
+    const verified = (selectedDataset as any).verifiedTasksCount ?? 0;
+    const hasDownloadUrl = !!(selectedDataset as any).downloadUrl;
+    return isCustom && total > 0 && verified === total && !hasDownloadUrl;
+  }, [selectedDataset]);
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col overflow-hidden gap-6 bg-black">
@@ -363,6 +406,8 @@ const DatasetAdminPage = () => {
                   <QuickStat label="Labelling" value={(selectedDataset as any).labellingMethod?.toUpperCase() || "N/A"} />
                   <QuickStat label="Content" value={(selectedDataset as any).contentType?.toUpperCase() || "N/A"} />
                   <QuickStat label="Payment" value={selectedDataset.paidAt ? `Settled (${new Date(selectedDataset.paidAt).toLocaleDateString()})` : "Awaiting_Payment"} />
+                  <QuickStat label="Total Tasks" value={String((selectedDataset as any).totalTasksCount ?? 0)} />
+                  <QuickStat label="Verified Tasks" value={String((selectedDataset as any).verifiedTasksCount ?? 0)} />
                 </div>
                 <div className="space-y-px bg-zinc-900 border border-zinc-900">
                   <div className="bg-[#050505] p-3 flex justify-between items-center">
@@ -380,18 +425,48 @@ const DatasetAdminPage = () => {
                   <h3 className="text-[10px] font-mono font-bold text-emerald-500 uppercase tracking-[0.2em] flex items-center gap-2">
                     <Download size={12} /> // Resource_Access
                   </h3>
-                  <a 
-                    href={(selectedDataset as any).fileUrl || (selectedDataset as any).downloadUrl || (selectedDataset as any).sourceLink} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all"
-                  >
-                    <ExternalLink size={14} /> Download_Source_Files
-                  </a>
+                  {(selectedDataset as any).downloadUrl ? (
+                    <button
+                      onClick={() => handleDownloadCompiledDataset(selectedDataset.datasetId ?? String(selectedDataset._id))}
+                      disabled={isDownloading}
+                      className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-950 border border-zinc-800 text-white text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all rounded-sm cursor-pointer"
+                    >
+                      {isDownloading ? (
+                        <RefreshCw size={14} className="animate-spin" />
+                      ) : (
+                        <ExternalLink size={14} />
+                      )}
+                      {isDownloading ? "Generating Link..." : "Download Compiled Dataset"}
+                    </button>
+                  ) : null}
+                  {((selectedDataset as any).fileUrl || (selectedDataset as any).sourceLink) ? (
+                    <a 
+                      href={(selectedDataset as any).fileUrl || (selectedDataset as any).sourceLink} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white text-[10px] font-bold uppercase flex items-center justify-center gap-2 transition-all text-center block rounded-sm cursor-pointer"
+                    >
+                      <ExternalLink size={14} /> Download_Source_Files
+                    </a>
+                  ) : null}
                 </div>
               )}
 
               <div className="space-y-3 pt-6 border-t border-zinc-900">
+                {showCompileButton && (
+                  <button
+                    onClick={handleCompileDataset}
+                    disabled={isCompiling}
+                    className="w-full py-3 bg-indigo-600 disabled:bg-zinc-900 disabled:text-zinc-700 disabled:border-zinc-800 border border-transparent text-white text-[10px] font-bold uppercase flex items-center justify-center gap-2 hover:bg-indigo-500 transition-all rounded-sm cursor-pointer"
+                  >
+                    {isCompiling ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <Activity size={14} />
+                    )}
+                    {isCompiling ? "Compiling Dataset..." : "Compile Dataset"}
+                  </button>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <ActionButton onClick={() => approveDataset(selectedDataset.datasetId ?? String(selectedDataset._id))} icon={<CheckCircle size={14} />} label="APPROVE" color="bg-emerald-600 hover:bg-emerald-500 text-white" />
                   <ActionButton onClick={() => rejectDataset(selectedDataset.datasetId ?? String(selectedDataset._id), "QUALITY")} icon={<XCircle size={14} />} label="REJECT" color="bg-rose-600 hover:bg-rose-500 text-white" />

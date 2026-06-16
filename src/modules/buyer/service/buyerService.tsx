@@ -102,4 +102,9 @@ export const buyerService = {
     const response = await api.post("/buyer/onboarding", details);
     return response.data?.data || response.data;
   },
+  downloadDataset: async (id: string): Promise<string> => {
+    const response = await api.get(`/datasets/${id}/download`);
+    return response.data?.data?.downloadUrl || response.data?.downloadUrl;
+  },
 };
+

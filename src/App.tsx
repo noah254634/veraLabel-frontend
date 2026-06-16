@@ -18,7 +18,7 @@ import { useFCM } from "./shared/hooks/useFCM";
 import PaymentVerify from "./modules/buyer/PaymentVerify";
 import { detectDeviceCapabilities } from "./shared/utils/deviceCapabilities";
 // @ts-ignore
-import { Careers } from "./modules/landingPage/FooterComponents/Carreers";
+import { Careers } from "./modules/landingPage/FooterComponents/Careers";
 // @ts-ignore
 import { Mission } from "./modules/landingPage/FooterComponents/Mission.jsx";
 // @ts-ignore

@@ -10,7 +10,7 @@ const Footer = () => {
               VeraLabel<span className="text-indigo-500">.</span>
             </Link>
             <p className="mt-6 text-sm leading-relaxed max-w-xs font-light">
-              Advancing AI global equity through high-fidelity data infrastructure for emerging markets.
+              Architecting global AI equity through high-fidelity data pipelines for emerging markets.
             </p>
             <div className="mt-8 flex gap-4">
               <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:border-indigo-500 transition-colors cursor-pointer">
@@ -35,8 +35,8 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <h4 className="text-white text-xs font-bold uppercase tracking-widest mb-6">Platform</h4>
             <ul className="space-y-4 text-sm">
-              <li><Link to="/signup?role=buyer" className="hover:text-white transition-colors">Explore</Link></li>
-              <li><Link to="/signup?role=seller" className="hover:text-white transition-colors">Publish</Link></li>
+              <li><Link to="/signup?role=buyer" className="hover:text-white transition-colors">License Data</Link></li>
+              <li><Link to="/signup?role=seller" className="hover:text-white transition-colors">Become a Partner</Link></li>
               <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
             </ul>
           </div>

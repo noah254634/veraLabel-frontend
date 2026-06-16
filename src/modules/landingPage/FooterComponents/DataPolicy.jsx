@@ -45,7 +45,7 @@ export const DataPolicy = () => (
           <p className="text-zinc-200 font-medium mb-4 italic">Cognitive Labor Verification.</p>
           <div className="text-sm leading-relaxed text-zinc-500 font-light space-y-4">
             <p>
-              We utilize <strong>Stochastic Consensus</strong> and "Golden Tasks" to identify low-fidelity annotation. Users attempting to bypass human-in-the-loop requirements via bots or random input will be flagged.
+              We utilize <strong>Stochastic Consensus</strong> and "Golden Tasks" to identify non-conforming annotations. Users attempting to bypass human-in-the-loop requirements via bots or random input will be flagged.
             </p>
             <p className="bg-zinc-900/50 p-3 rounded-sm text-zinc-400">
               Violation results in the immediate <strong>slashing of all pending balances</strong> and account termination.
@@ -67,7 +67,7 @@ export const DataPolicy = () => (
           </h3>
           <p className="text-zinc-200 font-medium mb-4 italic">Clean Chain of Custody.</p>
           <p className="text-sm leading-relaxed text-zinc-500 font-light">
-            Every file on the VeraLabel marketplace is cryptographically signed and audit-trailed. We provide buyers with a <strong>Security Indemnity Guarantee</strong>, confirming all assets have cleared our malware-detonation sandbox.
+            Every file on the VeraLabel marketplace is cryptographically signed and audit-trailed. We provide enterprise clients with a <strong>Security Indemnity Guarantee</strong>, confirming all assets have cleared our malware-detonation sandbox.
           </p>
         </div>
 

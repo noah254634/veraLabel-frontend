@@ -11,7 +11,7 @@ const FAQPage = () => {
         },
         {
           q: "How do you source your data?",
-          a: "Our engineers work on the ground to actively collect original datasets. We don't just wait for buyers to submit data; we curate and annotate original sets—from local language transcriptions to cultural text analysis—to ensure the African context is represented in global AI."
+          a: "Our engineers work on the ground to actively collect original datasets. We do not merely ingest client-provided sets; we curate and annotate proprietary datasets—from local language transcriptions to cultural text analysis—to ensure the African context is represented in global AI."
         }
       ]
     },
@@ -39,7 +39,7 @@ const FAQPage = () => {
         },
         {
           q: "What is a 'Sovereign' purchase?",
-          a: "An Exclusive (Sovereign) purchase grants the buyer total IP transfer. Once finalized, we purge the asset from our public directories, granting the buyer unilateral market dominance over that specific cultural or linguistic data."
+          a: "An Exclusive (Sovereign) purchase grants the enterprise client complete IP transfer. Once finalized, the asset is removed from our public index, granting the client exclusive commercial rights to the dataset."
         }
       ]
     }

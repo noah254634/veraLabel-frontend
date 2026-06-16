@@ -14,7 +14,7 @@ const Hero = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
               </span>
-              The AI Data Infrastructure Platform
+              Enterprise AI Data Infrastructure & Curation
             </div>
             <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tighter leading-[1.05] max-w-5xl">
               Build Better AI With
@@ -22,15 +22,15 @@ const Hero = () => {
                 Verified Data
               </span>
             </h1>
-            <p className="max-w-2xl text-base md:text-xl text-zinc-400 leading-relaxed font-light">
-              VeraLabel is the definitive data marketplace for rarely covered regions across Africa and emerging markets. High-fidelity datasets for teams training real-world AI.
+            <p className="max-w-3xl text-base md:text-xl text-zinc-400 leading-relaxed font-light">
+              VeraLabel is the enterprise data infrastructure for high-fidelity regional datasets across Africa and emerging markets, purpose-built for teams training frontier foundation models.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto pt-6">
               <Link
                 to="/signup?role=buyer"
                 className="w-full sm:w-auto px-10 py-4 bg-white text-black hover:bg-indigo-50 transition-all duration-300 font-bold text-xs uppercase tracking-widest flex items-center justify-center group"
               >
-                Explore Datasets
+                License Datasets
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform text-indigo-600" />
               </Link>
 
@@ -38,13 +38,13 @@ const Hero = () => {
                 to="/signup?role=seller"
                 className="w-full sm:w-auto px-10 py-4 border border-zinc-800 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all duration-300 text-zinc-400 hover:text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center"
               >
-                Publish a Dataset
+                Become a Data Partner
               </Link>
             </div>
             <div className="pt-16">
               <div className="flex flex-col items-center gap-4">
                 <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-600 font-bold">
-                  Trusted by AI builders & Research teams
+                  Trusted by Enterprise AI Teams and Leading Research Institutions
                 </p>
                 <div className="flex gap-8 opacity-30 grayscale contrast-125">
                    <Globe size={20} />

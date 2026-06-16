@@ -91,6 +91,7 @@ type BuyerStore = {
   buyerProfile: any | null
   getBuyerProfile: () => Promise<any>
   submitOnboarding: (details: any) => Promise<any>
+  downloadDataset: (id: string) => Promise<string>
 };
 const useBuyerStore = create<BuyerStore>((set)=>({
   datasets:[],
@@ -303,6 +304,19 @@ const useBuyerStore = create<BuyerStore>((set)=>({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to submit onboarding profile";
       console.error(errorMessage);
+      toast.error(errorMessage);
+      set({ loading: false });
+      throw err;
+    }
+  },
+  downloadDataset: async (id: string) => {
+    set({ loading: true });
+    try {
+      const url = await buyerService.downloadDataset(id);
+      set({ loading: false });
+      return url;
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to get download URL";
       toast.error(errorMessage);
       set({ loading: false });
       throw err;
