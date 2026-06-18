@@ -169,6 +169,17 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       return;
     }
 
+    // --- Optimistic local state update (instant, before any network call) ---
+    const optimisticTasks = tasks.map((t) => {
+      const id = t.id || (t as any)._id;
+      return String(id) === String(taskId) ? { ...t, status: 'submitted' as any } : t;
+    });
+    const optimisticBatch = {
+      ...activeBatch,
+      completedTasks: (activeBatch?.completedTasks ?? 0) + 1,
+    };
+    set({ tasks: optimisticTasks, activeBatch: optimisticBatch });
+
     try {
       // 1. Generate presigned upload URL
       const responseUrl = await taskService.generateSubmissionUrl(taskId);
@@ -178,54 +189,41 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         throw new Error("Failed to generate secure upload gateway.");
       }
 
-      // 2. Direct upload annotation to R2 (bypasses backend for efficiency)
+      // 2. Direct upload annotation to R2
       await axios.put(uploadUrl, annotation || {}, {
         headers: { 'Content-Type': 'application/json' },
       });
 
       // 3. Finalize task on backend — retry up to 2 extra times if network/server fails.
-      //    The annotation is already safely in R2, so retrying is safe.
       let response: any = null;
       let lastError: any = null;
       for (let attempt = 0; attempt <= 2; attempt++) {
         try {
           response = await taskService.submitTask(taskId, batchId);
           lastError = null;
-          break; // success — exit retry loop
+          break;
         } catch (finalizeErr: any) {
           lastError = finalizeErr;
           if (attempt < 2) {
-            // Exponential backoff: 500ms, 1500ms
             await new Promise((r) => setTimeout(r, 500 * (attempt + 1) * (attempt + 1)));
           }
         }
       }
 
       if (lastError) {
-        // All retries exhausted — surface a clear message, task will still be pending
-        // but annotation is safe in R2 and can be recovered.
         throw new Error(
           `Annotation uploaded, but sync confirmation failed: ${lastError?.response?.data?.message ?? lastError?.message}. Please contact support with Task ID: ${taskId}.`
         );
       }
 
-      // Update local task status optimistically
-      const updatedTasks = tasks.map((t) => {
-        const id = t.id || (t as any)._id;
-        return String(id) === String(taskId) ? { ...t, status: 'submitted' as any } : t;
-      });
-
-      // Update active batch progress counters if returned
-      const updatedBatch = { ...activeBatch };
+      // Reconcile with server-returned progress counters if available
       const progress = response?.progress ?? response?.data?.progress;
       if (progress?.completed != null) {
-        updatedBatch.completedTasks = progress.completed;
-      } else {
-        // Increment locally if backend didn't return updated count
-        updatedBatch.completedTasks = (updatedBatch.completedTasks ?? 0) + 1;
+        set((s) => ({
+          activeBatch: { ...s.activeBatch, completedTasks: progress.completed },
+        }));
       }
 
-      set({ tasks: updatedTasks, activeBatch: updatedBatch });
       toast.success("Asset synchronization successful");
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message;

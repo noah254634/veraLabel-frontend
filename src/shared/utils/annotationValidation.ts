@@ -28,8 +28,49 @@ const normalizeLabels = (labels: unknown): string[] => {
 
 export const validateImageAnnotation = (
   boxes: unknown,
-  allowedLabels?: unknown
+  allowedLabels?: unknown,
+  polygons?: unknown
 ): ValidationResult => {
+  const normalizedAllowed = normalizeLabels(allowedLabels);
+
+  if (polygons !== undefined && polygons !== null) {
+    if (!Array.isArray(polygons)) {
+      return { ok: false, error: "Annotation payload is malformed (polygons array missing)." };
+    }
+    if (polygons.length === 0) {
+      return { ok: false, error: "At least one annotation region is required." };
+    }
+    for (let i = 0; i < polygons.length; i += 1) {
+      const poly = polygons[i];
+      if (!poly || typeof poly !== "object") {
+        return { ok: false, error: `Region ${i + 1} is invalid.` };
+      }
+      const label = String(poly.label || "").trim();
+      const coords = poly.polygon;
+      if (!label) {
+        return { ok: false, error: `Region ${i + 1} is missing a class label.` };
+      }
+      if (normalizedAllowed.length > 0 && !normalizedAllowed.includes(label)) {
+        return { ok: false, error: `Region ${i + 1} uses a label not in protocol classes.` };
+      }
+      if (!Array.isArray(coords) || coords.length < 3) {
+        return { ok: false, error: `Region ${i + 1} must have at least 3 points.` };
+      }
+      for (let j = 0; j < coords.length; j += 1) {
+        const pt = coords[j];
+        if (!Array.isArray(pt) || pt.length !== 2) {
+          return { ok: false, error: `Region ${i + 1} has invalid points.` };
+        }
+        const px = pt[0];
+        const py = pt[1];
+        if (!isFiniteNumber(px) || !isFiniteNumber(py)) {
+          return { ok: false, error: `Region ${i + 1} point ${j + 1} has invalid coordinates.` };
+        }
+      }
+    }
+    return { ok: true };
+  }
+
   if (!Array.isArray(boxes)) {
     return { ok: false, error: "Annotation payload is malformed (boxes array missing)." };
   }
@@ -37,8 +78,6 @@ export const validateImageAnnotation = (
   if (boxes.length === 0) {
     return { ok: false, error: "At least one annotation region is required." };
   }
-
-  const normalizedAllowed = normalizeLabels(allowedLabels);
 
   for (let i = 0; i < boxes.length; i += 1) {
     const box = boxes[i] as Partial<BoundingBox> | null;

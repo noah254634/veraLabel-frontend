@@ -33,6 +33,7 @@ type DatasetStore = {
   updateDatasetMaxLabellers: (id: string, maxLabellers: number) => Promise<void>;
   revokeDatasetBatches: (datasetId: string) => Promise<{ revoked: number; tasksReset: number } | null>;
   compileDataset: (id: string) => Promise<any>;
+  evaluateConsensus: (id: string) => Promise<any>;
 };
 export const dataStore = create<DatasetStore>((set, get) => ({
   error: null,
@@ -452,6 +453,27 @@ export const dataStore = create<DatasetStore>((set, get) => ({
       return result;
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || "Failed to compile dataset";
+      toast.error(msg);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+  evaluateConsensus: async (id: string) => {
+    try {
+      set({ loading: true });
+      const result = await datasetService.evaluateConsensus(id);
+      toast.success(result.message || "Consensus evaluation completed successfully!");
+      if (result.consensusIoU !== undefined) {
+        set({
+          datasets: get().datasets.map((d) =>
+            (d._id === id || d.datasetId === id) ? { ...d, consensusIoU: result.consensusIoU } : d
+          )
+        });
+      }
+      return result;
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || "Failed to evaluate consensus";
       toast.error(msg);
       throw error;
     } finally {

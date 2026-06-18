@@ -10,9 +10,10 @@ type AppLayoutProps = {
   children: React.ReactNode;
   sidebar?: React.ReactNode;
   header?: React.ReactNode;
+  noPadding?: boolean;
 };
 
-export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
+export function AppLayout({ children, sidebar, header, noPadding = false }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -85,8 +86,10 @@ export function AppLayout({ children, sidebar, header }: AppLayoutProps) {
           <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-indigo-500/[0.03] to-transparent pointer-events-none" />
 
 
-          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-            <div className="p-6 md:p-10 lg:p-12 w-full max-w-[1600px] mx-auto min-h-full">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
+            <div className={noPadding 
+              ? "w-full h-full min-h-full flex flex-col flex-1" 
+              : "p-6 md:p-10 lg:p-12 w-full max-w-[1600px] mx-auto min-h-full flex flex-col flex-1"}>
               {children}
             </div>
           </div>

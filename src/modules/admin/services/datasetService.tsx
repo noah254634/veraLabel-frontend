@@ -107,6 +107,10 @@ export const datasetService = {
     const response = await api.post(`admin/datasets/${id}/compile`);
     return response.data.data || response.data;
   },
+  evaluateConsensus: async (id: string): Promise<any> => {
+    const response = await api.post(`admin/datasets/${id}/evaluate-consensus`);
+    return response.data.data || response.data;
+  },
   // Global sweep: revoke all expired batches across the platform
   revokeAllExpiredBatches: async (): Promise<{ revoked: number; tasksReset: number }> => {
     const response = await api.post(`/tasks/revoke-expired-batches`, {});

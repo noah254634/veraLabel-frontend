@@ -44,12 +44,15 @@ export const LabellerLayout = ({
     return `// ${pathSegment.charAt(0).toUpperCase() + pathSegment.slice(1)}`;
   };
 
+  const isWorkbench = location.pathname.endsWith("/workbench");
+
   return (
     <>
       {shouldForceOnboarding && <OnboardingEnforcer />}
       <AppLayout 
         sidebar={<LabellerSidebar />}
         header={getHeaderTitle()}
+        noPadding={isWorkbench}
       >
         {children || <Outlet />}
       </AppLayout>

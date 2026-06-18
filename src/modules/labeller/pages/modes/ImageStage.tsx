@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Maximize2, MousePointer2, Square, Trash2, Scan, Crosshair, ZoomIn, ZoomOut, CheckCircle2 } from 'lucide-react';
+import { Maximize2, MousePointer2, Square, Trash2, Scan, Crosshair, ZoomIn, ZoomOut, CheckCircle2, Plus, Minus, Brain, Sparkles } from 'lucide-react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+
+interface PointPrompt {
+  id: string;
+  x: number; // percentage of image width
+  y: number; // percentage of image height
+  isPositive: boolean;
+}
 
 interface BoundingBox {
   id: string;
@@ -8,6 +17,7 @@ interface BoundingBox {
   w: number;
   h: number;
   label: string;
+  points?: PointPrompt[];
 }
 
 interface ImageStageProps {
@@ -21,6 +31,7 @@ interface ImageStageProps {
       categories?: string[];
       labels?: string[];
       options?: string[];
+      embeddingUrl?: string;
     } | string;
     taskId: string;
     categories?: string[];
@@ -28,12 +39,14 @@ interface ImageStageProps {
     options?: string[];
     datasetName?: string;
     domain?: string;
+    embeddingUrl?: string;
   };
   onBoxesChange?: (boxes: BoundingBox[]) => void;
+  onPolygonsChange?: (polygons: any[]) => void;
   shortcutsDisabled?: boolean;
 }
 
-type Tool = 'pointer' | 'bbox';
+type Tool = 'pointer' | 'bbox' | 'pos_click' | 'neg_click';
 
 const LABEL_COLORS = [
   'rgba(99,102,241,0.7)',
@@ -45,7 +58,7 @@ const LABEL_COLORS = [
 
 const cloneBoxes = (list: BoundingBox[]) => list.map((box) => ({ ...box }));
 
-export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: ImageStageProps) => {
+export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDisabled = false }: ImageStageProps) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>('pointer');
@@ -61,6 +74,19 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
   const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   const historyRef = useRef<BoundingBox[][]>([]);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [decoding, setDecoding] = useState(false);
+  const [polygons, setPolygons] = useState<{ label: string; polygon: [number, number][] }[]>([]);
+
+  useEffect(() => {
+    onPolygonsChange?.(polygons);
+  }, [polygons, onPolygonsChange]);
+
+  useEffect(() => {
+    setPolygons([]);
+  }, [boxes]);
 
   const [resizing, setResizing] = useState<{
     boxId: string;
@@ -84,6 +110,78 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
     setResizing(null);
     setIsPanning(false);
   }, []);
+
+  const confirmBatchBoxes = useCallback(async () => {
+    if (boxes.length === 0 || decoding) return;
+    const img = imgRef.current;
+    if (!img) return;
+
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
+    const mlUrl = import.meta.env.VITE_FASTAPI_ML_URL || "http://localhost:8001";
+
+    const prompts = boxes.map(b => {
+      const hasBox = b.w > 0 && b.h > 0;
+      const box = hasBox ? [
+        (b.x / 100) * naturalWidth,
+        (b.y / 100) * naturalHeight,
+        ((b.x + b.w) / 100) * naturalWidth,
+        ((b.y + b.h) / 100) * naturalHeight
+      ] : null;
+
+      const points = b.points && b.points.length > 0 ? b.points.map(p => [
+        (p.x / 100) * naturalWidth,
+        (p.y / 100) * naturalHeight
+      ]) : null;
+
+      const point_labels = b.points && b.points.length > 0 ? b.points.map(p => p.isPositive ? 1 : 0) : null;
+
+      return {
+        box,
+        points,
+        point_labels
+      };
+    });
+
+    const currentEmbeddingUrl =
+      task.embeddingUrl ||
+      (typeof task.taskObject === 'object' && task.taskObject !== null
+        ? (task.taskObject as any).embeddingUrl
+        : undefined);
+
+    setDecoding(true);
+    try {
+      const payload = {
+        embedding_url: currentEmbeddingUrl || "http://mock-embedding.npy",
+        prompts
+      };
+
+      const response = await axios.post(`${mlUrl}/api/v1/decode-batch`, payload);
+      if (response.data && response.data.status === "success" && Array.isArray(response.data.results)) {
+        const results = response.data.results;
+        
+        const confirmedPolys = results.map((res: any) => {
+          const boxIdx = res.box_index;
+          const box = boxes[boxIdx];
+          const label = box ? box.label : "Lesion";
+          return {
+            label,
+            polygon: res.polygon
+          };
+        });
+        
+        setPolygons(confirmedPolys);
+        toast.success("Masks decoded successfully!");
+      } else {
+        throw new Error("Invalid response format from decode service.");
+      }
+    } catch (err: any) {
+      console.error("Failed to decode batch masks:", err);
+      toast.error(`Mask decoding failed: ${err.message}`);
+    } finally {
+      setDecoding(false);
+    }
+  }, [boxes, decoding, task, imgRef]);
 
   const resetViewport = useCallback(() => {
     setZoom(100);
@@ -241,9 +339,6 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
     };
   }, [resizing]);
 
-  const imgRef = useRef<HTMLImageElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const imageUrl =
     task.data?.url ||
     (typeof task.taskObject === 'object' && task.taskObject !== null
@@ -323,8 +418,9 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // If not clicking a bounding box directly, clear selection
-    if (e.target === containerRef.current || e.target === imgRef.current) {
+    const isAddingPoint = activeTool === 'pos_click' || activeTool === 'neg_click';
+    // If not clicking a bounding box directly, clear selection (skip if adding point prompts to avoid deselection)
+    if (!isAddingPoint && (e.target === containerRef.current || e.target === imgRef.current)) {
       setSelectedBoxId(null);
     }
 
@@ -334,13 +430,61 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
       return;
     }
 
-    if (activeTool !== 'bbox' || !loaded || categories.length === 0) return;
+    if (!loaded || categories.length === 0) return;
+
+    if (isAddingPoint) {
+      e.preventDefault();
+      const pos = getRelativePos(e);
+      if (!pos) return;
+
+      const newPoint = {
+        id: `pt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        x: pos.x,
+        y: pos.y,
+        isPositive: activeTool === 'pos_click'
+      };
+
+      if (selectedBoxId) {
+        setBoxes((prev) => {
+          pushHistory(prev);
+          return prev.map((box) => {
+            if (box.id === selectedBoxId) {
+              const pts = box.points || [];
+              return {
+                ...box,
+                points: [...pts, newPoint]
+              };
+            }
+            return box;
+          });
+        });
+      } else {
+        const newId = `box-${Date.now()}`;
+        const newBox: BoundingBox = {
+          id: newId,
+          x: pos.x,
+          y: pos.y,
+          w: 0,
+          h: 0,
+          label: activeLabel,
+          points: [newPoint]
+        };
+        setBoxes((prev) => {
+          pushHistory(prev);
+          return [...prev, newBox];
+        });
+        setSelectedBoxId(newId);
+      }
+      return;
+    }
+
+    if (activeTool !== 'bbox') return;
     e.preventDefault();
     const pos = getRelativePos(e);
     if (!pos) return;
     setDrawing(pos);
     setCurrentRect({ x: pos.x, y: pos.y, w: 0, h: 0 });
-  }, [activeTool, loaded, getRelativePos, zoom, pan.x, pan.y]);
+  }, [activeTool, loaded, getRelativePos, zoom, pan.x, pan.y, selectedBoxId, activeLabel, pushHistory]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning && activeTool === 'pointer') {
@@ -454,6 +598,12 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
         return;
       }
 
+      if (event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault();
+        confirmBatchBoxes();
+        return;
+      }
+
       const normalizedKey = event.key.toLowerCase();
 
       if (normalizedKey === 'b') {
@@ -465,6 +615,18 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
       if (normalizedKey === 'p') {
         event.preventDefault();
         setActiveTool('pointer');
+        return;
+      }
+
+      if (normalizedKey === 'q') {
+        event.preventDefault();
+        setActiveTool('pos_click');
+        return;
+      }
+
+      if (normalizedKey === 'w') {
+        event.preventDefault();
+        setActiveTool('neg_click');
         return;
       }
 
@@ -507,6 +669,7 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
     categories,
     clearAllBoxes,
     clearSelectionAndInteraction,
+    confirmBatchBoxes,
     currentRect,
     deleteBoxById,
     drawing,
@@ -524,8 +687,29 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
 
   return (
     <div className={`relative flex flex-col bg-[#050505] ${isFullscreen ? 'fixed inset-0 z-[400]' : 'h-full w-full'}`}>
+      <style>{`
+        @keyframes scan {
+          0% { top: 0%; opacity: 0.8; }
+          50% { top: 100%; opacity: 0.8; }
+          100% { top: 0%; opacity: 0.8; }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.3; transform: scale(0.98); }
+          50% { opacity: 0.6; transform: scale(1.02); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes rotateNetwork {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      
+      {/* 1. Header Bar: Active Class Selector */}
       {loaded && (
-        <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-20 max-w-[calc(100%-12rem)]">
+        <div className="shrink-0 w-full bg-black border-b border-zinc-900/60 px-6 py-2.5 flex items-center justify-between z-20">
           <span className="text-[8px] font-mono font-bold text-zinc-500 uppercase tracking-widest block">
             {selectedBoxId ? "Assign Class to Selected Region:" : "Active Class for BBox:"}
           </span>
@@ -536,10 +720,10 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
                 <button
                   key={cat}
                   onClick={() => handleSelectCategory(cat)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 border text-[9px] font-mono font-bold uppercase tracking-widest transition-all active:scale-95 rounded-sm
+                  className={`flex items-center gap-1.5 px-3 py-1 border text-[9px] font-mono font-bold uppercase tracking-widest transition-all active:scale-95 rounded-lg
                     ${isActive
                       ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.2)]'
-                      : 'border-zinc-800 text-zinc-500 bg-black/80 hover:border-zinc-700 hover:text-zinc-300'
+                      : 'border-zinc-800 text-zinc-500 bg-[#080809]/80 hover:border-zinc-700 hover:text-zinc-300'
                     }`}
                 >
                   {isActive && <CheckCircle2 size={10} className="text-indigo-400" />}
@@ -548,247 +732,499 @@ export const ImageStage = ({ task, onBoxesChange, shortcutsDisabled = false }: I
               );
             })}
           </div>
-          {categories.length === 0 && (
+          {categories.length === 0 ? (
             <div className="text-[9px] font-mono text-amber-400/90 uppercase tracking-widest">
-              No class labels provided in protocol payload.
+              No class labels provided.
+            </div>
+          ) : <div />}
+        </div>
+      )}
+
+      {/* 2. Middle Row: Canvas & Right Toolbar */}
+      <div className="flex-1 min-h-0 flex relative overflow-hidden">
+        
+        {/* Canvas Scroll Area */}
+        <div
+          ref={containerRef}
+          className="flex-1 flex flex-col items-center justify-start relative overflow-y-auto py-12 px-12"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          style={{ cursor: activeTool === 'bbox' ? 'crosshair' : activeTool === 'pointer' && zoom > 100 ? 'grab' : 'default' }}
+        >
+          {/* Subtle background grids */}
+          <div
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{ backgroundImage: 'radial-gradient(#3f3f46 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+          />
+          <div className="absolute inset-0 pointer-events-none opacity-[0.05]">
+            <div className="absolute top-1/2 left-0 w-full h-px bg-zinc-750" />
+            <div className="absolute top-0 left-1/2 w-px h-full bg-zinc-750" />
+          </div>
+
+          {/* Floating AI Status Widget */}
+          {loaded && !error && (
+            <div className="absolute top-4 right-4 z-30 bg-[#09090b]/85 backdrop-blur-md border border-zinc-800/80 rounded-xl px-3 py-2 flex items-center gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-all hover:border-indigo-500/50 select-none">
+              <div className="relative flex items-center justify-center">
+                <div className={`absolute w-3.5 h-3.5 rounded-full ${decoding ? 'bg-indigo-500 animate-ping' : 'bg-emerald-500/40 animate-pulse'}`} />
+                <div className={`w-2 h-2 rounded-full relative z-10 ${decoding ? 'bg-indigo-400' : 'bg-emerald-400'}`} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[7px] font-mono text-zinc-500 uppercase tracking-wider">SAM 2 AI Engine</span>
+                <span className="text-[9px] font-mono font-bold text-zinc-200">
+                  {decoding ? 'Segmenting Regions...' : 'Ready & Loaded'}
+                </span>
+              </div>
+              <div className="p-1 rounded bg-zinc-900/60 border border-zinc-800 text-indigo-400">
+                <Sparkles size={11} className={decoding ? 'animate-pulse' : ''} />
+              </div>
+            </div>
+          )}
+
+          {!imageUrl || error ? (
+            <div className="my-auto text-rose-500 font-mono text-xs flex flex-col items-center gap-2 text-center p-8 border border-dashed border-rose-900/30 bg-rose-950/5 max-w-md">
+              <Scan className="text-rose-500 animate-pulse" size={24} />
+              <span className="font-bold uppercase tracking-wider">[ Error: Asset Protocol Failure ]</span>
+              <span className="text-[10px] text-zinc-500 normal-case mt-1">{error || "No valid asset storage reference was found."}</span>
+            </div>
+          ) : (
+            <div 
+              className={`relative transition-opacity duration-150 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`,
+                transformOrigin: 'center center',
+                transition: isPanning ? 'none' : 'transform 150ms ease-out',
+              }}
+            >
+              <img
+                key={`${task.taskId}_${imageUrl}`}
+                ref={imgRef}
+                src={imageUrl}
+                alt="Task Asset"
+                className="max-h-[90vh] max-w-full object-contain border border-zinc-800 shadow-2xl shadow-indigo-500/10 select-none"
+                onLoad={() => {
+                  setLoaded(true);
+                  setError(null);
+                }}
+                onError={() => {
+                  setError("Failed to load image asset. The resource may be missing or access denied.");
+                }}
+                draggable={false}
+              />
+              {loaded && (
+                <>
+                  <div className="absolute -top-4 -left-4 w-8 h-8 border-t-2 border-l-2 border-indigo-500/50" />
+                  <div className="absolute -top-4 -right-4 w-8 h-8 border-t-2 border-r-2 border-indigo-500/50" />
+                  <div className="absolute -bottom-4 -left-4 w-8 h-8 border-b-2 border-l-2 border-indigo-500/50" />
+                  <div className="absolute -bottom-4 -right-4 w-8 h-8 border-b-2 border-r-2 border-indigo-500/50" />
+                </>
+              )}
+
+              {/* AI Scan & Decode Animation Overlay */}
+              {decoding && (
+                <div className="absolute inset-0 bg-indigo-950/25 backdrop-blur-[1px] rounded-lg overflow-hidden pointer-events-none z-30 flex flex-col items-center justify-center border border-indigo-500/30">
+                  {/* Scanning Line */}
+                  <div 
+                    className="absolute left-0 right-0 h-[2px] bg-indigo-500 shadow-[0_0_15px_#6366f1,0_0_5px_#6366f1] opacity-80"
+                    style={{
+                      animation: 'scan 2.2s ease-in-out infinite',
+                    }}
+                  />
+                  
+                  {/* Tech/AI Crosshair Elements in Corners */}
+                  <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-indigo-400/80" />
+                  <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-indigo-400/80" />
+                  <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-indigo-400/80" />
+                  <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-indigo-400/80" />
+
+                  {/* Center AI Illustration Card */}
+                  <div 
+                    className="bg-[#0b0c10]/95 border border-indigo-500/40 rounded-2xl p-5 flex flex-col items-center gap-3.5 shadow-[0_10px_30px_rgba(99,102,241,0.25)]"
+                    style={{
+                      animation: 'float 3s ease-in-out infinite',
+                    }}
+                  >
+                    {/* Glow Rings behind Icon */}
+                    <div className="relative w-16 h-16 flex items-center justify-center">
+                      <div 
+                        className="absolute inset-0 rounded-full border border-indigo-500/20 bg-indigo-500/5"
+                        style={{ animation: 'pulseGlow 2s ease-in-out infinite' }}
+                      />
+                      <div 
+                        className="absolute w-12 h-12 rounded-full border border-dashed border-indigo-400/40"
+                        style={{ animation: 'rotateNetwork 8s linear infinite' }}
+                      />
+                      <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.4)]">
+                        <Brain size={18} className="animate-pulse" />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center text-center select-none">
+                      <span className="text-[10px] font-mono font-black text-indigo-300 uppercase tracking-[0.25em]">
+                        SAM 2 Segmenting
+                      </span>
+                      <span className="text-[8px] font-mono text-zinc-400 uppercase tracking-widest mt-1">
+                        Decoding boundaries
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 h-3 mt-1">
+                      <div className="w-[2px] h-3 bg-indigo-500 rounded animate-[pulse_0.6s_ease-in-out_infinite]" />
+                      <div className="w-[2px] h-2.5 bg-indigo-400 rounded animate-[pulse_0.6s_ease-in-out_infinite_0.15s]" />
+                      <div className="w-[2px] h-3.5 bg-indigo-500 rounded animate-[pulse_0.6s_ease-in-out_infinite_0.3s]" />
+                      <div className="w-[2px] h-2.5 bg-indigo-400 rounded animate-[pulse_0.6s_ease-in-out_infinite_0.45s]" />
+                      <div className="w-[2px] h-2 bg-indigo-500 rounded animate-[pulse_0.6s_ease-in-out_infinite_0.6s]" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {loaded && polygons.length > 0 && (
+                <svg
+                  className="absolute top-0 left-0 pointer-events-none"
+                  style={{
+                    width: imgRef.current?.width || '100%',
+                    height: imgRef.current?.height || '100%',
+                  }}
+                  viewBox={`0 0 ${imgRef.current?.naturalWidth || 100} ${imgRef.current?.naturalHeight || 100}`}
+                  preserveAspectRatio="none"
+                >
+                  {polygons.map((poly, idx) => {
+                    const pointsStr = poly.polygon.map(([x, y]) => `${x},${y}`).join(' ');
+                    const color = LABEL_COLORS[idx % LABEL_COLORS.length];
+                    return (
+                      <polygon
+                        key={idx}
+                        points={pointsStr}
+                        fill={color.replace('0.7', '0.25')}
+                        stroke={color.replace('0.7', '1')}
+                        strokeWidth="2"
+                      />
+                    );
+                  })}
+                </svg>
+              )}
+              {boxes.map((box, i) => {
+                if (box.w === 0 && box.h === 0) return null;
+                const isSelected = selectedBoxId === box.id;
+                return (
+                  <div
+                    key={box.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBoxId(box.id);
+                    }}
+                    onMouseDown={(e) => {
+                      if (activeTool === 'pointer') {
+                        handleBoxInteractionStart(e, box.id, 'move');
+                      }
+                    }}
+                    className={`absolute border-2 group cursor-pointer transition-shadow ${
+                      isSelected ? 'ring-2 ring-white ring-offset-1 ring-offset-black shadow-[0_0_15px_rgba(99,102,241,0.5)]' : ''
+                    }`}
+                    style={{
+                      left: `${box.x}%`,
+                      top: `${box.y}%`,
+                      width: `${box.w}%`,
+                      height: `${box.h}%`,
+                      borderColor: isSelected ? '#6366f1' : LABEL_COLORS[i % LABEL_COLORS.length].replace('0.7', '1'),
+                      backgroundColor: isSelected ? 'rgba(99,102,241,0.15)' : LABEL_COLORS[i % LABEL_COLORS.length].replace('0.7', '0.08'),
+                      pointerEvents: 'all',
+                    }}
+                  >
+                    <span
+                      className="absolute -top-5 left-0 text-[9px] font-mono font-bold px-1.5 py-0.5 whitespace-nowrap"
+                      style={{ backgroundColor: isSelected ? '#6366f1' : LABEL_COLORS[i % LABEL_COLORS.length].replace('0.7', '0.9'), color: '#fff' }}
+                    >
+                      {box.label}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteBoxById(box.id);
+                        if (selectedBoxId === box.id) setSelectedBoxId(null);
+                      }}
+                      className="absolute -top-5 right-0 opacity-0 group-hover:opacity-100 text-[9px] font-mono px-1.5 py-0.5 bg-rose-600 text-white transition-opacity"
+                    >
+                      ✕
+                    </button>
+
+                    {isSelected && activeTool === 'pointer' && (
+                      <>
+                        {/* Corner Resize Handles */}
+                        <div
+                          onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'tl')}
+                          className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nwse-resize z-30 pointer-events-auto"
+                        />
+                        <div
+                          onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'tr')}
+                          className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nesw-resize z-30 pointer-events-auto"
+                        />
+                        <div
+                          onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'bl')}
+                          className="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nesw-resize z-30 pointer-events-auto"
+                        />
+                        <div
+                          onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'br')}
+                          className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nwse-resize z-30 pointer-events-auto"
+                        />
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              {currentRect && currentRect.w > 0 && (
+                <div
+                  className="absolute border-2 border-indigo-400 border-dashed bg-indigo-500/10 pointer-events-none"
+                  style={{
+                    left: `${currentRect.x}%`,
+                    top: `${currentRect.y}%`,
+                    width: `${currentRect.w}%`,
+                    height: `${currentRect.h}%`,
+                  }}
+                />
+              )}
+              
+              {/* Render Point Prompts (clicks) for all boxes */}
+              {boxes.flatMap(box => (box.points || []).map(pt => ({ ...pt, boxId: box.id, label: box.label }))).map((pt) => {
+                const isSelected = selectedBoxId === pt.boxId;
+                return (
+                  <div
+                    key={pt.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBoxId(pt.boxId);
+                    }}
+                    className={`absolute w-3.5 h-3.5 rounded-full border border-white flex items-center justify-center cursor-pointer shadow-md select-none transition-all z-40 group
+                      ${pt.isPositive ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}
+                      ${isSelected ? 'ring-2 ring-indigo-500 scale-125 z-50 shadow-[0_0_8px_rgba(99,102,241,0.8)]' : 'opacity-70 hover:opacity-100'}
+                    `}
+                    style={{
+                      left: `${pt.x}%`,
+                      top: `${pt.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      pointerEvents: 'all',
+                    }}
+                    title={`${pt.label} (${pt.isPositive ? 'Positive' : 'Negative'} click)`}
+                  >
+                    <span className="text-[9px] font-bold pointer-events-none flex items-center justify-center leading-none select-none">
+                      {pt.isPositive ? '+' : '-'}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setBoxes((prev) => {
+                          pushHistory(prev);
+                          const updated = prev.map((b) => {
+                            if (b.id === pt.boxId) {
+                              return {
+                                ...b,
+                                points: (b.points || []).filter((p) => p.id !== pt.id),
+                              };
+                            }
+                            return b;
+                          });
+                          return updated.filter((b) => {
+                            const isPointOnly = b.w === 0 && b.h === 0;
+                            const hasPoints = b.points && b.points.length > 0;
+                            return !(isPointOnly && !hasPoints);
+                          });
+                        });
+                        
+                        setTimeout(() => {
+                          setBoxes((curr) => {
+                            const exists = curr.some((b) => b.id === pt.boxId);
+                            if (!exists && selectedBoxId === pt.boxId) {
+                              setSelectedBoxId(null);
+                            }
+                            return curr;
+                          });
+                        }, 0);
+                      }}
+                      className="absolute -top-1.5 -right-1.5 bg-zinc-950 text-white text-[7px] w-3 h-3 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:opacity-100 hover:bg-rose-600 border border-zinc-800 transition-all z-50"
+                      title="Remove point"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          {!loaded && imageUrl && !error && (
+            <div className="flex flex-col items-center gap-4 my-auto">
+              <div className="w-16 h-px bg-indigo-500/50 animate-pulse" />
+              <span className="text-[10px] font-mono text-indigo-500 uppercase tracking-[0.3em] animate-pulse">
+                Synchronizing_Image_Buffer...
+              </span>
+              <div className="w-16 h-px bg-indigo-500/50 animate-pulse" />
             </div>
           )}
         </div>
-      )}
-      <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-        <button
-          title="Pointer mode"
-          onClick={() => setActiveTool('pointer')}
-          className={`p-3 border transition-all shadow-xl ${
-            activeTool === 'pointer'
-              ? 'bg-indigo-600 border-indigo-500 text-white'
-              : 'bg-zinc-950 border-zinc-900 text-zinc-600 hover:text-white hover:border-indigo-500'
-          }`}
-        >
-          <MousePointer2 size={16} />
-        </button>
-        <button
-          title="Draw bounding box"
-          onClick={() => setActiveTool('bbox')}
-          className={`p-3 border transition-all shadow-xl ${
-            activeTool === 'bbox'
-              ? 'bg-indigo-600 border-indigo-500 text-white'
-              : 'bg-zinc-950 border-zinc-900 text-zinc-600 hover:text-white hover:border-indigo-500'
-          }`}
-        >
-          <Square size={16} />
-        </button>
-        <button
-          title="Zoom In"
-          onClick={() => setZoom((z) => Math.min(400, z + 25))}
-          className="p-3 bg-zinc-950 border border-zinc-900 text-zinc-600 hover:text-white hover:border-indigo-500 transition-all shadow-xl"
-        >
-          <ZoomIn size={16} />
-        </button>
-        <button
-          title="Zoom Out"
-          onClick={() => {
-            const nextZoom = Math.max(100, zoom - 25);
-            setZoom(nextZoom);
-            if (nextZoom === 100) setPan({ x: 0, y: 0 });
-          }}
-          className="p-3 bg-zinc-950 border border-zinc-900 text-zinc-600 hover:text-white hover:border-indigo-500 transition-all shadow-xl"
-        >
-          <ZoomOut size={16} />
-        </button>
-        <button
-          title="Toggle fullscreen"
-          onClick={() => setIsFullscreen((f) => !f)}
-          className="p-3 bg-zinc-950 border border-zinc-900 text-zinc-600 hover:text-white hover:border-indigo-500 transition-all shadow-xl"
-        >
-          <Maximize2 size={16} />
-        </button>
-        {boxes.length > 0 && (
-          <button
-            title="Clear all boxes"
-            onClick={() => {
-              setBoxes([]);
-              setSelectedBoxId(null);
-            }}
-            className="p-3 bg-zinc-950 border border-rose-900/40 text-rose-600 hover:text-rose-400 hover:border-rose-500 transition-all shadow-xl"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-      </div>
-      <div
-        className="absolute inset-0 opacity-10 pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(#3f3f46 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-      />
-      <div className="absolute inset-0 pointer-events-none opacity-20">
-        <div className="absolute top-1/2 left-0 w-full h-px bg-zinc-700" />
-        <div className="absolute top-0 left-1/2 w-px h-full bg-zinc-700" />
-      </div>
-      <div
-        ref={containerRef}
-        className="flex-1 flex items-center justify-center relative overflow-hidden"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        style={{ cursor: activeTool === 'bbox' ? 'crosshair' : activeTool === 'pointer' && zoom > 100 ? 'grab' : 'default' }}
-      >
-        {!imageUrl || error ? (
-          <div className="text-rose-500 font-mono text-xs flex flex-col items-center gap-2 text-center p-8 border border-dashed border-rose-900/30 bg-rose-950/5 max-w-md">
-            <Scan className="text-rose-500 animate-pulse" size={24} />
-            <span className="font-bold uppercase tracking-wider">[ Error: Asset Protocol Failure ]</span>
-            <span className="text-[10px] text-zinc-500 normal-case mt-1">{error || "No valid asset storage reference (R2 key) was found for this task node."}</span>
-          </div>
-        ) : (
-          <div 
-            className={`relative transition-opacity duration-150 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`,
-              transformOrigin: 'center center',
-              transition: isPanning ? 'none' : 'transform 150ms ease-out',
-            }}
-          >
-            <img
-              key={`${task.taskId}_${imageUrl}`}
-              ref={imgRef}
-              src={imageUrl}
-              alt="Task Asset"
-              className="max-h-[80vh] max-w-full object-contain border border-zinc-800 shadow-2xl shadow-indigo-500/10 select-none"
-              onLoad={() => {
-                setLoaded(true);
-                setError(null);
-              }}
-              onError={() => {
-                setError("Failed to load image asset. The resource may be missing or access denied.");
-              }}
-              draggable={false}
-            />
-            {loaded && (
-              <>
-                <div className="absolute -top-4 -left-4 w-8 h-8 border-t-2 border-l-2 border-indigo-500/50" />
-                <div className="absolute -top-4 -right-4 w-8 h-8 border-t-2 border-r-2 border-indigo-500/50" />
-                <div className="absolute -bottom-4 -left-4 w-8 h-8 border-b-2 border-l-2 border-indigo-500/50" />
-                <div className="absolute -bottom-4 -right-4 w-8 h-8 border-b-2 border-r-2 border-indigo-500/50" />
-              </>
-            )}
-            {boxes.map((box, i) => {
-              const isSelected = selectedBoxId === box.id;
-              return (
-                <div
-                  key={box.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedBoxId(box.id);
-                  }}
-                  onMouseDown={(e) => {
-                    if (activeTool === 'pointer') {
-                      handleBoxInteractionStart(e, box.id, 'move');
-                    }
-                  }}
-                  className={`absolute border-2 group cursor-pointer transition-shadow ${
-                    isSelected ? 'ring-2 ring-white ring-offset-1 ring-offset-black shadow-[0_0_15px_rgba(99,102,241,0.5)]' : ''
-                  }`}
-                  style={{
-                    left: `${box.x}%`,
-                    top: `${box.y}%`,
-                    width: `${box.w}%`,
-                    height: `${box.h}%`,
-                    borderColor: isSelected ? '#6366f1' : LABEL_COLORS[i % LABEL_COLORS.length].replace('0.7', '1'),
-                    backgroundColor: isSelected ? 'rgba(99,102,241,0.15)' : LABEL_COLORS[i % LABEL_COLORS.length].replace('0.7', '0.08'),
-                    pointerEvents: 'all',
-                  }}
-                >
-                  <span
-                    className="absolute -top-5 left-0 text-[9px] font-mono font-bold px-1.5 py-0.5 whitespace-nowrap"
-                    style={{ backgroundColor: isSelected ? '#6366f1' : LABEL_COLORS[i % LABEL_COLORS.length].replace('0.7', '0.9'), color: '#fff' }}
-                  >
-                    {box.label}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteBoxById(box.id);
-                      if (selectedBoxId === box.id) setSelectedBoxId(null);
-                    }}
-                    className="absolute -top-5 right-0 opacity-0 group-hover:opacity-100 text-[9px] font-mono px-1.5 py-0.5 bg-rose-600 text-white transition-opacity"
-                  >
-                    ✕
-                  </button>
 
-                  {isSelected && activeTool === 'pointer' && (
-                    <>
-                      {/* Corner Resize Handles */}
-                      <div
-                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'tl')}
-                        className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nwse-resize z-30 pointer-events-auto"
-                      />
-                      <div
-                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'tr')}
-                        className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nesw-resize z-30 pointer-events-auto"
-                      />
-                      <div
-                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'bl')}
-                        className="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nesw-resize z-30 pointer-events-auto"
-                      />
-                      <div
-                        onMouseDown={(e) => handleBoxInteractionStart(e, box.id, 'br')}
-                        className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-indigo-600 rounded-full shadow-lg cursor-nwse-resize z-30 pointer-events-auto"
-                      />
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            {currentRect && currentRect.w > 0 && (
-              <div
-                className="absolute border-2 border-indigo-400 border-dashed bg-indigo-500/10 pointer-events-none"
-                style={{
-                  left: `${currentRect.x}%`,
-                  top: `${currentRect.y}%`,
-                  width: `${currentRect.w}%`,
-                  height: `${currentRect.h}%`,
-                }}
-              />
-            )}
+        {/* Dedicated Right Toolbar Column — overflow-y-auto so no buttons are ever clipped */}
+        <div className="w-14 shrink-0 min-h-0 bg-black border-l border-zinc-900/60 py-3 flex flex-col gap-2 items-center z-20 overflow-y-auto">
+          {/* Interaction Tools */}
+          <div className="flex flex-col gap-1 w-10">
+            <button
+              title="Pointer mode (P)"
+              onClick={() => setActiveTool('pointer')}
+              className={`p-2 w-full rounded-lg transition-all flex items-center justify-center ${
+                activeTool === 'pointer'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50'
+              }`}
+            >
+              <MousePointer2 size={13} />
+            </button>
+            <button
+              title="Draw bounding box (B)"
+              onClick={() => setActiveTool('bbox')}
+              className={`p-2 w-full rounded-lg transition-all flex items-center justify-center ${
+                activeTool === 'bbox'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50'
+              }`}
+            >
+              <Square size={13} />
+            </button>
+            <button
+              title="Add Positive Prompt Click (Q)"
+              onClick={() => setActiveTool('pos_click')}
+              className={`p-2 w-full rounded-lg transition-all flex items-center justify-center ${
+                activeTool === 'pos_click'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                  : 'text-emerald-500 hover:text-emerald-400 hover:bg-zinc-900/50'
+              }`}
+            >
+              <Plus size={13} />
+            </button>
+            <button
+              title="Add Negative Prompt Click (W)"
+              onClick={() => setActiveTool('neg_click')}
+              className={`p-2 w-full rounded-lg transition-all flex items-center justify-center ${
+                activeTool === 'neg_click'
+                  ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20'
+                  : 'text-rose-500 hover:text-rose-400 hover:bg-zinc-900/50'
+              }`}
+            >
+              <Minus size={13} />
+            </button>
           </div>
-        )}
-        {!loaded && imageUrl && !error && (
-          <div className="flex flex-col items-center gap-4 absolute">
-            <div className="w-16 h-px bg-indigo-500/50 animate-pulse" />
-            <span className="text-[10px] font-mono text-indigo-500 uppercase tracking-[0.3em] animate-pulse">
-              Synchronizing_Image_Buffer...
-            </span>
-            <div className="w-16 h-px bg-indigo-500/50 animate-pulse" />
+
+          <div className="h-px w-6 bg-zinc-800/60" />
+
+          {/* View Controls */}
+          <div className="flex flex-col gap-1 w-10">
+            <button
+              title="Zoom In"
+              onClick={() => setZoom((z) => Math.min(400, z + 25))}
+              className="p-2 w-full rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-all flex items-center justify-center"
+            >
+              <ZoomIn size={13} />
+            </button>
+            <button
+              title="Zoom Out"
+              onClick={() => {
+                const nextZoom = Math.max(100, zoom - 25);
+                setZoom(nextZoom);
+                if (nextZoom === 100) setPan({ x: 0, y: 0 });
+              }}
+              className="p-2 w-full rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-all flex items-center justify-center"
+            >
+              <ZoomOut size={13} />
+            </button>
+            <button
+              title="Toggle fullscreen"
+              onClick={() => setIsFullscreen((f) => !f)}
+              className="p-2 w-full rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/50 transition-all flex items-center justify-center"
+            >
+              <Maximize2 size={13} />
+            </button>
           </div>
-        )}
+
+          <div className="h-px w-6 bg-zinc-800/60" />
+
+          {/* SAM2 Action Controls — always visible, disabled when no boxes */}
+          <div className="flex flex-col gap-1 w-10">
+            <button
+              title={boxes.length === 0 ? "Draw a box first to run SAM2" : "Decode Masks with SAM2 (Spacebar)"}
+              disabled={decoding || boxes.length === 0}
+              onClick={confirmBatchBoxes}
+              className={`p-2 w-full rounded-lg transition-all flex items-center justify-center ${
+                boxes.length === 0
+                  ? 'text-zinc-750 bg-zinc-900/10 cursor-not-allowed opacity-30'
+                  : decoding
+                    ? 'bg-zinc-900 text-indigo-400 cursor-wait border border-indigo-500/30'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-500/20 hover:shadow-indigo-550/40 border border-indigo-500/30 hover:scale-105 active:scale-95'
+              }`}
+            >
+              <Sparkles size={13} className={decoding ? 'animate-spin text-indigo-400' : 'text-indigo-100'} />
+            </button>
+            <button
+              title={boxes.length === 0 ? "No boxes to clear" : "Clear all boxes"}
+              disabled={boxes.length === 0}
+              onClick={() => {
+                setBoxes([]);
+                setSelectedBoxId(null);
+              }}
+              className={`p-2 w-full rounded-lg transition-all flex items-center justify-center ${
+                boxes.length === 0
+                  ? 'text-zinc-800 cursor-not-allowed opacity-40'
+                  : 'text-rose-500 hover:text-rose-400 hover:bg-rose-950/20'
+              }`}
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+
+        </div>
       </div>
+
+      {/* 3. Footer Bar: Status Info */}
       {loaded && (
-        <div className="absolute bottom-4 left-4 flex flex-col gap-2 font-mono z-20">
-          <div className="flex items-center gap-3 bg-black/80 backdrop-blur-md border border-zinc-900 px-4 py-2 rounded-sm shadow-lg">
-            <Crosshair size={12} className="text-indigo-500" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
-              Tool: <span className="text-white">{activeTool === 'bbox' ? 'BBox_Draw' : 'Pointer'}</span>
+        <div className="shrink-0 w-full bg-black border-t border-zinc-900/60 px-6 py-2.5 flex items-center gap-3 font-mono z-20 text-[9px] text-zinc-500 uppercase tracking-widest">
+          <Crosshair size={10} className="text-indigo-500" />
+          <span>
+            Tool: <span className="text-white">
+              {activeTool === 'bbox' && 'BBox_Draw'}
+              {activeTool === 'pointer' && 'Pointer'}
+              {activeTool === 'pos_click' && 'Positive'}
+              {activeTool === 'neg_click' && 'Negative'}
             </span>
-            <div className="h-3 w-px bg-zinc-800" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
-              Zoom: <span className="text-indigo-400">{zoom}%</span>
-            </span>
-            <div className="h-3 w-px bg-zinc-800" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
-              Boxes: <span className="text-indigo-400">{boxes.length}</span>
-            </span>
-          </div>
+          </span>
+          <div className="h-3 w-px bg-zinc-800" />
+          <span>
+            Zoom: <span className="text-indigo-400">{zoom}%</span>
+          </span>
+          <div className="h-3 w-px bg-zinc-800" />
+          <span>
+            Regions: <span className="text-indigo-400">{boxes.length}</span>
+          </span>
+          <div className="h-3 w-px bg-zinc-800" />
           {activeTool === 'bbox' && (
-            <p className="text-[9px] font-mono text-indigo-400/70 uppercase tracking-widest animate-pulse">
-              Click and drag on the image to draw a box
-            </p>
+            <span className="text-indigo-400/60 animate-pulse font-sans">
+              Click & drag to draw bounding boxes
+            </span>
           )}
           {activeTool === 'pointer' && zoom > 100 && (
-            <p className="text-[9px] font-mono text-emerald-400/70 uppercase tracking-widest">
-              Click and drag to pan the image
-            </p>
+            <span className="text-emerald-400/60 font-sans">
+              Click & drag to pan viewport
+            </span>
+          )}
+          {activeTool === 'pos_click' && (
+            <span className="text-emerald-400/60 animate-pulse font-sans">
+              Click to place positive prompt dots (Green)
+            </span>
+          )}
+          {activeTool === 'neg_click' && (
+            <span className="text-rose-400/60 animate-pulse font-sans">
+              Click to place negative prompt dots (Red)
+            </span>
           )}
         </div>
       )}
+
     </div>
   );
 };

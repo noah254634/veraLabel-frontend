@@ -3,7 +3,8 @@ import {
   Terminal, Zap, Info, ChevronRight, X,
   MousePointer2, Type, Image as ImageIcon,
   Activity, CheckCircle2,
-  Database, ShieldCheck, Clock, Flag, XCircle
+  Database, ShieldCheck, Clock, Flag, XCircle,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';
 import { useTaskStore } from '../store/taskStore';
@@ -181,6 +182,7 @@ export const CustomWorkbench = () => {
   const [activeTaskIndex, setActiveTaskIndex] = useState(0);
   const [selection, setSelection] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [protocol, setProtocol] = useState<any>(null);
   const [showBriefing, setShowBriefing] = useState(false);
   const [briefingDismissed, setBriefingDismissed] = useState(false);
@@ -196,6 +198,7 @@ export const CustomWorkbench = () => {
   const [boundingBoxes, setBoundingBoxes] = useState<any[]>([]);
   // Audio stage state
   const [transcriptionText, setTranscriptionText] = useState<string>('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const timer = useLiveTimer(activeBatch?.expiresAt);
   const batchId = activeBatch?._id || activeBatch?.id;
@@ -396,37 +399,46 @@ export const CustomWorkbench = () => {
       }
     }
 
+    // --- Optimistic UI advance: move to the next task immediately ---
+    // The actual upload runs in background so the labeller is never blocked.
+    const taskId = currentTask.id || (currentTask as any)._id;
+    const annotation = {
+      preference: isPreferenceRequired ? selection : null,
+      tieJustification: selection === 'tie' ? tieJustification : null,
+      ratings: isScoringRequired ? ratings : {},
+      rationale: isRationaleRequired ? rationale : "",
+      rubrics: selectedRubrics,
+      directives: {},
+      classificationLabel: classificationLabel || null,
+      boundingBoxes: boundingBoxes.length > 0 ? boundingBoxes : null,
+      transcription: contentType === 'audio' && labellingMethod === 'transcription'
+        ? transcriptionText.trim()
+        : null,
+      contentType: contentType || null,
+      submittedAt: new Date().toISOString()
+    };
+
+    // Show brief success flash, then advance — storage fires in background
     setIsSubmitting(true);
-    try {
-      const taskId = currentTask.id || (currentTask as any)._id;
-      const annotation = {
-        preference: isPreferenceRequired ? selection : null,
-        tieJustification: selection === 'tie' ? tieJustification : null,
-        ratings: isScoringRequired ? ratings : {},
-        rationale: isRationaleRequired ? rationale : "",
-        rubrics: selectedRubrics,
-        directives: {},
-        // Bug #5: include classification label from TextStage / AudioStage
-        classificationLabel: classificationLabel || null,
-        // Bug #3: include bounding boxes from ImageStage
-        boundingBoxes: boundingBoxes.length > 0 ? boundingBoxes : null,
-        // Audio annotation fields
-        transcription: contentType === 'audio' && labellingMethod === 'transcription'
-          ? transcriptionText.trim()
-          : null,
-        contentType: contentType || null,
-        submittedAt: new Date().toISOString()
-      };
-      await submitTask(taskId, annotation);
-      setSelection(null);
-      if (activeTaskIndex < tasks.length - 1) {
-        setActiveTaskIndex(prev => prev + 1);
-      }
-    } catch {
-      // handled by store/toast
-    } finally {
-      setIsSubmitting(false);
+    setSubmitSuccess(true);
+
+    // Fire-and-forget storage in background immediately
+    submitTask(taskId, annotation).catch(() => {
+      // Error toast already handled by store
+    });
+
+    // Hold success state for 700ms so the labeller sees confirmation
+    await new Promise((r) => setTimeout(r, 700));
+
+    setSelection(null);
+    setBoundingBoxes([]);
+    setTranscriptionText('');
+    setClassificationLabel(null);
+    if (activeTaskIndex < tasks.length - 1) {
+      setActiveTaskIndex(prev => prev + 1);
     }
+    setSubmitSuccess(false);
+    setIsSubmitting(false);
   };
 
   useEffect(() => {
@@ -454,14 +466,14 @@ export const CustomWorkbench = () => {
   const handleFlagSubmit = async (reason: string, detail: string) => {
     setIsFlagging(true);
     const taskId = currentTask?.id || (currentTask as any)?._id;
-    
+
     // Optimistic UI updates: dismiss modal and move to next task immediately
     setShowFlagModal(false);
     if (!isLastTask) {
       setActiveTaskIndex(prev => prev + 1);
       setSelection(null);
     }
-    
+
     try {
       await flagTask(taskId, reason, detail);
     } catch {
@@ -536,8 +548,8 @@ export const CustomWorkbench = () => {
               <div className="text-left space-y-1">
                 <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-tighter">Contribution_Reward</span>
                 <p className="text-xl text-emerald-500 font-mono">
-                  +${(activeBatch?.pricePerBatch > 0 
-                    ? activeBatch.pricePerBatch 
+                  +${(activeBatch?.pricePerBatch > 0
+                    ? activeBatch.pricePerBatch
                     : (activeBatch?.totalTasks || 0) * 0.42).toFixed(2)}
                 </p>
               </div>
@@ -623,47 +635,57 @@ export const CustomWorkbench = () => {
           }}
         />
       )}
-      <header className="h-16 border-b border-zinc-900 bg-black flex items-center justify-between px-6 shrink-0 relative z-50">
+      <header className="h-14 border-b border-zinc-900 bg-[#020203]/90 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-50">
         <div className="flex items-center gap-6">
           <button
             onClick={() => navigate('/labeller/work')}
-            className="flex items-center gap-2 text-[10px] font-mono font-bold text-zinc-600 hover:text-white transition-all uppercase tracking-widest"
+            className="flex items-center gap-2 text-[10px] font-mono font-bold text-zinc-500 hover:text-white transition-all uppercase tracking-widest"
           >
-            <X size={14} /> Terminate_Session
+            <X size={12} /> Terminate_Session
           </button>
-          <div className="h-6 w-px bg-zinc-900" />
+          <div className="h-5 w-px bg-zinc-900" />
           <div className="flex flex-col">
-            <span className="text-[9px] font-mono font-bold text-indigo-500 uppercase tracking-widest">
+            <span className="text-[8px] font-mono font-bold text-indigo-500 uppercase tracking-widest">
               Protocol // {currentTask?.taskType?.toUpperCase()}
             </span>
-            <span className="text-xs font-bold text-white italic tracking-tight">
+            <span className="text-[11px] font-bold text-zinc-300 italic tracking-tight">
               Asset_ID: #{currentTask?.taskId?.slice(0, 8)}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 pr-6 border-r border-zinc-900">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2.5 pr-6 border-r border-zinc-900">
             <div className="text-right">
-              <p className="text-[9px] font-mono text-zinc-600 uppercase font-bold tracking-tighter">Current_Reward</p>
-              <p className="text-emerald-500 font-mono font-bold text-sm">+${(completedTasks * taskReward).toFixed(2)}</p>
+              <p className="text-[8px] font-mono text-zinc-500 uppercase font-bold tracking-tighter">Current_Reward</p>
+              <p className="text-emerald-500 font-mono font-bold text-xs">+${(completedTasks * taskReward).toFixed(2)}</p>
             </div>
-            <Zap size={16} className="text-amber-500 animate-pulse" />
+            <Zap size={14} className="text-amber-500/80 animate-pulse" />
           </div>
           <div className="flex flex-col text-right">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase">Queue_Sync</span>
-            <span className="text-xs font-bold text-white tabular-nums">{activeTaskIndex + 1} / {tasks.length}</span>
+            <span className="text-[8px] font-mono text-zinc-500 uppercase">Queue_Sync</span>
+            <span className="text-xs font-bold text-zinc-300 tabular-nums">{activeTaskIndex + 1} / {tasks.length}</span>
           </div>
         </div>
       </header>
 
       <main className="flex-1 min-h-0 flex overflow-hidden">
-        <aside className="w-80 min-h-0 border-r border-zinc-900 bg-black p-8 flex flex-col gap-10 overflow-y-auto shrink-0">
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 text-zinc-500">
-              <Database size={14} />
-              <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest">Batch_Telemetry</h3>
-            </div>
+        {sidebarOpen && (
+          <aside className="w-80 min-h-0 border-r border-zinc-900 bg-black p-8 flex flex-col gap-10 overflow-y-auto shrink-0 animate-in slide-in-from-left duration-200">
+            <section className="space-y-4">
+              <div className="flex items-center justify-between text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Database size={14} />
+                  <h3 className="text-[10px] font-mono font-bold uppercase tracking-widest">Batch_Telemetry</h3>
+                </div>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-1 hover:text-white transition-colors cursor-pointer text-zinc-600"
+                  title="Hide instructions and telemetry"
+                >
+                  <PanelLeftClose size={14} />
+                </button>
+              </div>
             <div className="bg-[#050505] border border-zinc-900 p-4 space-y-4">
               <div className="flex justify-between items-center text-[10px] font-mono">
                 <span className="text-zinc-600 uppercase">Synchronization</span>
@@ -791,7 +813,18 @@ export const CustomWorkbench = () => {
             </div>
           </div>
         </aside>
+      )}
         <div className="flex-1 min-h-0 relative bg-[#010101] overflow-hidden">
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="absolute top-1/2 left-0 -translate-y-1/2 bg-zinc-950/90 backdrop-blur-md border border-l-0 border-zinc-800/80 hover:border-indigo-500/50 w-6 h-24 cursor-pointer flex flex-col items-center justify-center rounded-r-md transition-all duration-300 shadow-2xl z-[100] text-zinc-500 hover:text-white group hover:w-7"
+              title="Show instructions and telemetry"
+            >
+              <PanelLeftOpen size={16} className="group-hover:translate-x-0.5 group-hover:scale-110 transition-transform" />
+              <div className="w-[2px] h-8 bg-indigo-500/0 group-hover:bg-indigo-500/50 absolute left-0 transition-colors" />
+            </button>
+          )}
           <div className="absolute inset-0 overflow-y-auto">
             {showRlhfStage ? (
               <UnifiedRLHFStage
@@ -876,7 +909,7 @@ export const CustomWorkbench = () => {
         </div>
 
       </main>
-      <footer className="h-20 border-t border-zinc-900 bg-black flex items-center justify-between px-8 shrink-0 relative z-50">
+      <footer className="h-14 border-t border-zinc-900 bg-[#020203]/90 backdrop-blur-md flex items-center justify-between px-8 shrink-0 relative z-50">
         <div className="flex gap-8 items-center">
           <button
             onClick={() => setShowFlagModal(true)}
@@ -940,13 +973,17 @@ export const CustomWorkbench = () => {
             return (
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitDisabled}
-                className={`px-12 py-4 text-[10px] font-bold uppercase tracking-[0.3em] transition-all flex items-center gap-3 shadow-2xl relative overflow-hidden group
-                   ${isSubmitDisabled
-                    ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
-                    : 'bg-white text-black hover:bg-indigo-50 active:scale-95 shadow-indigo-500/10'}`}
+                disabled={isSubmitDisabled || isSubmitting}
+                className={`px-8 py-2.5 text-[9px] font-bold uppercase tracking-[0.2em] rounded-lg transition-all duration-200 flex items-center gap-2.5 shadow-xl relative overflow-hidden group
+                   ${submitSuccess
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/30 scale-[1.02]'
+                    : isSubmitDisabled
+                      ? 'bg-zinc-900 text-zinc-550 border border-zinc-850 cursor-not-allowed'
+                      : 'bg-white text-black hover:bg-indigo-50 active:scale-95 shadow-indigo-500/10'}`}
               >
-                {isSubmitting ? (
+                {submitSuccess ? (
+                  <>Synchronized <CheckCircle2 size={14} className="animate-bounce" /></>
+                ) : isSubmitting ? (
                   <>Synchronizing... <Activity size={14} className="animate-spin" /></>
                 ) : currentTask?.status === 'submitted' ? (
                   <>Asset_Verified <CheckCircle2 size={14} /></>
@@ -959,7 +996,7 @@ export const CustomWorkbench = () => {
                 ) : !isRationaleOk ? (
                   <>Write_Rationale <ChevronRight size={14} /></>
                 ) : !hasImageAnnotation ? (
-                  <>Draw_Annotation_Box <ChevronRight size={14} /></>
+                  <>Draw_Box <ChevronRight size={14} /></>
                 ) : !audioTranscriptionOk ? (
                   <>Write_Transcription <ChevronRight size={14} /></>
                 ) : !audioClassificationOk ? (
