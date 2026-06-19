@@ -11,8 +11,6 @@ export async function onRequest(context) {
   const targetUrl = new URL(url.pathname + url.search, backendBase);
   const headers = new Headers(request.headers);
   
-  // EXPLICITLY INJECT CLOUDFLARE GEO DATA
-  // Cloudflare strips standard CF-IPCountry headers on outbound fetch, so we use custom headers
   if (request.cf) {
     headers.set('x-cloudflare-country', request.cf.country || '');
     headers.set('x-cloudflare-city', request.cf.city || '');
