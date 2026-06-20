@@ -4,9 +4,9 @@ import * as ort from "onnxruntime-web/webgpu";
 import JSZip from "jszip";
 import { contours } from "d3-contour";
 
-// Point ORT at the JSEP WASM files sitting in /public.
-// ort-wasm-simd-threaded.jsep.wasm is required for WebGPU execution.
-ort.env.wasm.wasmPaths = self.location.origin + "/";
+// Point ORT at the JSEP WASM files hosted on jsDelivr.
+// We must do this because Cloudflare Pages rejects files > 25MB (ort-wasm-simd-threaded.jsep.wasm is 26MB).
+ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/";
 
 // Single-threaded mode — avoids the SharedArrayBuffer / COOP-COEP requirement
 // while still using SIMD. WebGPU offloads the heavy lifting anyway.
