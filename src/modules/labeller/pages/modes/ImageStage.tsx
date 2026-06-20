@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Maximize2, MousePointer2, Square, Trash2, Scan, Crosshair, ZoomIn, ZoomOut, CheckCircle2, Plus, Minus, Brain, Sparkles } from 'lucide-react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 
 interface PointPrompt {
@@ -84,6 +83,49 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
     onPolygonsChange?.(polygons);
   }, [polygons, onPolygonsChange]);
 
+  const workerRef = useRef<Worker | null>(null);
+
+  useEffect(() => {
+    const worker = new Worker(new URL('../../workers/sam2.worker.ts', import.meta.url), { type: 'module' });
+    
+    worker.addEventListener("message", (e) => {
+      const { type, error } = e.data;
+      if (type === "ERROR") {
+        console.error("SAM 2 Worker Error:", error);
+        toast.error(`SAM 2 Worker Error: ${error}`);
+      } else if (type === "INIT_SUCCESS") {
+        console.log("SAM 2 Worker initialized successfully.");
+      }
+    });
+
+    worker.postMessage({ type: 'INIT' });
+    workerRef.current = worker;
+    
+    return () => {
+      worker.terminate();
+    };
+  }, []);
+
+  const decodeWithWorker = (payload: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (!workerRef.current) return reject(new Error("Worker not initialized"));
+      
+      const onMessage = (e: MessageEvent) => {
+        const { type, results, error } = e.data;
+        if (type === "DECODE_SUCCESS") {
+          workerRef.current?.removeEventListener("message", onMessage);
+          resolve(results);
+        } else if (type === "ERROR") {
+          workerRef.current?.removeEventListener("message", onMessage);
+          reject(new Error(error));
+        }
+      };
+      
+      workerRef.current.addEventListener("message", onMessage);
+      workerRef.current.postMessage({ type: "DECODE", payload });
+    });
+  };
+
   useEffect(() => {
     setPolygons([]);
   }, [boxes]);
@@ -118,7 +160,6 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
 
     const naturalWidth = img.naturalWidth;
     const naturalHeight = img.naturalHeight;
-    const mlUrl = import.meta.env.VITE_FASTAPI_ML_URL || "http://localhost:8001";
 
     const prompts = boxes.map(b => {
       const hasBox = b.w > 0 && b.h > 0;
@@ -152,29 +193,24 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
     setDecoding(true);
     try {
       const payload = {
-        embedding_url: currentEmbeddingUrl || "http://mock-embedding.npy",
+        embeddingUrl: currentEmbeddingUrl || "http://mock-embedding.npy",
         prompts
       };
 
-      const response = await axios.post(`${mlUrl}/api/v1/decode-batch`, payload);
-      if (response.data && response.data.status === "success" && Array.isArray(response.data.results)) {
-        const results = response.data.results;
-        
-        const confirmedPolys = results.map((res: any) => {
-          const boxIdx = res.box_index;
-          const box = boxes[boxIdx];
-          const label = box ? box.label : "Lesion";
-          return {
-            label,
-            polygon: res.polygon
-          };
-        });
-        
-        setPolygons(confirmedPolys);
-        toast.success("Masks decoded successfully!");
-      } else {
-        throw new Error("Invalid response format from decode service.");
-      }
+      const results = await decodeWithWorker(payload);
+      
+      const confirmedPolys = results.map((res: any) => {
+        const boxIdx = res.box_index;
+        const box = boxes[boxIdx];
+        const label = box ? box.label : "Lesion";
+        return {
+          label,
+          polygon: res.polygon
+        };
+      });
+      
+      setPolygons(confirmedPolys);
+      toast.success("Masks decoded successfully in browser!");
     } catch (err: any) {
       console.error("Failed to decode batch masks:", err);
       toast.error(`Mask decoding failed: ${err.message}`);

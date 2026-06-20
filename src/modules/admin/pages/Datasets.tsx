@@ -24,6 +24,7 @@ const DatasetAdminPage = () => {
   const [isSavingPrice, setIsSavingPrice] = useState(false);
   const [isSavingBatchPrice, setIsSavingBatchPrice] = useState(false);
   const [isSavingMaxLabellers, setIsSavingMaxLabellers] = useState(false);
+  const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false);
   const [revokeConfirm, setRevokeConfirm] = useState(false);
   const [revokeResult, setRevokeResult] = useState<{ revoked: number; tasksReset: number } | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
@@ -157,6 +158,31 @@ const DatasetAdminPage = () => {
       await compileDataset(selectedId);
     } finally {
       setIsCompiling(false);
+    }
+  };
+
+  const handleGenerateEmbeddings = async () => {
+    if (!selectedId) return;
+    setIsGeneratingEmbeddings(true);
+    try {
+      const { api } = await import("../../../shared/types/api");
+      const response = await api.post(`/tasks/generate-missing-embeddings`, { datasetId: selectedId });
+      const { triggeredCount, failedCount, skippedCount } = response.data?.data || {};
+      
+      let msg = "Generation complete!";
+      if (triggeredCount !== undefined) {
+        msg = `Triggered: ${triggeredCount} | Failed: ${failedCount} | Skipped: ${skippedCount}`;
+      }
+      
+      if (failedCount > 0) {
+        toast.error(`Completed with errors: ${msg}`);
+      } else {
+        toast.success(msg);
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to trigger generation");
+    } finally {
+      setIsGeneratingEmbeddings(false);
     }
   };
 
@@ -629,6 +655,15 @@ const DatasetAdminPage = () => {
                   >
                     {isEvaluatingConsensus ? <RefreshCw size={14} className="animate-spin text-indigo-400" /> : <Activity size={14} className="text-indigo-400" />}
                     {isEvaluatingConsensus ? "Evaluating Consensus..." : "Perform Consensus"}
+                  </button>
+
+                  <button
+                    onClick={handleGenerateEmbeddings}
+                    disabled={isGeneratingEmbeddings}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-blue-400 transition-colors hover:border-blue-500 hover:text-white disabled:opacity-50"
+                  >
+                    {isGeneratingEmbeddings ? <RefreshCw size={14} className="animate-spin text-blue-400" /> : <Terminal size={14} className="text-blue-400" />}
+                    {isGeneratingEmbeddings ? "Generating..." : "Generate .npy Embeddings"}
                   </button>
 
                   {showCompileButton && (

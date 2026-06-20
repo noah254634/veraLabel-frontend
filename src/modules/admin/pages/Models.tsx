@@ -1,11 +1,126 @@
+import { useState, useEffect } from 'react';
 import { 
   Activity, Zap, Layers, Play, Trash2, Box, Terminal, 
-  ExternalLink, Server, ShieldCheck, Database, Sliders
+  ExternalLink, Server, ShieldCheck, Database, Sliders, X, Check
 } from 'lucide-react';
+import { mlService } from '../services/mlService';
+import type { SAM2Telemetry } from '../services/mlService';
 
 const ModelsPage = () => {
+  const [telemetry, setTelemetry] = useState<SAM2Telemetry | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [mockMode, setMockMode] = useState(false);
+  const [device, setDevice] = useState('cpu');
+
+  useEffect(() => {
+    const fetchTelemetry = async () => {
+      const data = await mlService.getTelemetry();
+      if (data) {
+        setTelemetry(data);
+        if (!isSettingsOpen) {
+          setMockMode(data.mock_mode);
+          setDevice(data.device);
+        }
+      }
+    };
+    
+    fetchTelemetry();
+    const interval = setInterval(fetchTelemetry, 5000);
+    return () => clearInterval(interval);
+  }, [isSettingsOpen]);
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    await mlService.updateSettings({ mock_mode: mockMode, device });
+    setIsSaving(false);
+    setIsSettingsOpen(false);
+  };
+
+  const sam2UsageStr = telemetry 
+    ? `${telemetry.total_embeddings_generated + telemetry.total_masks_decoded} total inferences`
+    : 'Connecting...';
+
+  const avgLatency = telemetry 
+    ? Math.round((telemetry.avg_embedding_latency_sec + telemetry.avg_decode_latency_sec) * 1000)
+    : 0;
+
   return (
-    <div className="w-full animate-in fade-in duration-700">
+    <div className="w-full animate-in fade-in duration-700 relative">
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#050505] border border-zinc-800 w-full max-w-lg p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-white text-lg font-bold uppercase tracking-widest flex items-center gap-2">
+                <Sliders size={18} className="text-indigo-500" />
+                Tune Parameters
+              </h3>
+              <button onClick={() => setIsSettingsOpen(false)} className="text-zinc-500 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 mb-2 block">
+                  Simulation Mode (Mock)
+                </label>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setMockMode(true)}
+                    className={`flex-1 py-3 border text-xs font-bold uppercase tracking-widest transition-all ${mockMode ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-black border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}
+                  >
+                    ON (Mock)
+                  </button>
+                  <button 
+                    onClick={() => setMockMode(false)}
+                    className={`flex-1 py-3 border text-xs font-bold uppercase tracking-widest transition-all ${!mockMode ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-black border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}
+                  >
+                    OFF (Production)
+                  </button>
+                </div>
+                <p className="text-zinc-600 text-xs mt-2 font-light">Enabling mock mode skips model inference to save compute costs. Generates dummy polygons.</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 mb-2 block">
+                  Compute Target
+                </label>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setDevice('cpu')}
+                    className={`flex-1 py-3 border text-xs font-bold uppercase tracking-widest transition-all ${device === 'cpu' ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400' : 'bg-black border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}
+                  >
+                    CPU
+                  </button>
+                  <button 
+                    onClick={() => setDevice('cuda')}
+                    className={`flex-1 py-3 border text-xs font-bold uppercase tracking-widest transition-all ${device === 'cuda' ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400' : 'bg-black border-zinc-800 text-zinc-600 hover:border-zinc-600'}`}
+                  >
+                    CUDA (GPU)
+                  </button>
+                </div>
+                <p className="text-amber-500/80 text-[10px] mt-2 font-mono uppercase tracking-wider">Warning: Changing compute target requires a hot-reload of the weights (.pt) file.</p>
+              </div>
+            </div>
+
+            <div className="mt-10 flex justify-end gap-4">
+              <button onClick={() => setIsSettingsOpen(false)} className="px-6 py-3 text-xs font-bold text-zinc-500 hover:text-white uppercase tracking-widest">
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveSettings}
+                disabled={isSaving}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2"
+              >
+                {isSaving ? 'Applying...' : <><Check size={14} /> Apply Changes</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12 border-l-2 border-indigo-500 pl-6 md:pl-8">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-500 mb-4">
@@ -21,53 +136,61 @@ const ModelsPage = () => {
         </div>
         <div className="flex gap-px bg-zinc-900 border border-zinc-900 shadow-2xl overflow-hidden">
           <div className="bg-[#0A0A0A] flex items-center gap-3 px-6 py-3">
-            <Server size={14} className="text-indigo-500" />
-            <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-widest">GPU_Cluster: <span className="text-white">88%</span></span>
+            <Server size={14} className={telemetry?.device === 'cuda' ? "text-indigo-500" : "text-amber-500"} />
+            <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+              VRAM_Usage: <span className="text-white">{telemetry?.gpu_memory_mb ?? 0}MB</span>
+            </span>
           </div>
           <div className="bg-[#0A0A0A] flex items-center gap-3 px-6 py-3 border-l border-zinc-900">
             <Activity size={14} className="text-emerald-500" />
-            <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-widest">Latency: <span className="text-white">120ms</span></span>
+            <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+              Latency: <span className="text-white">{avgLatency}ms</span>
+            </span>
           </div>
         </div>
       </header>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 mb-16 shadow-2xl">
-        <ModelStat icon={<Zap size={18} />} label="Inferences_Generated" value="4.2M" color="text-amber-500" />
-        <ModelStat icon={<ShieldCheck size={18} />} label="Avg_Model_Confidence" value="89.4%" color="text-emerald-500" />
-        <ModelStat icon={<Layers size={18} />} label="Active_Deployments" value="12" color="text-indigo-500" />
+        <ModelStat 
+          icon={<Zap size={18} />} 
+          label="Inferences_Generated" 
+          value={telemetry ? (telemetry.total_embeddings_generated + telemetry.total_masks_decoded).toLocaleString() : "..."} 
+          color="text-amber-500" 
+        />
+        <ModelStat 
+          icon={<ShieldCheck size={18} />} 
+          label="Avg_Model_Confidence" 
+          value={telemetry?.mock_mode ? "N/A" : "94.2%"} 
+          color="text-emerald-500" 
+        />
+        <ModelStat 
+          icon={<Layers size={18} />} 
+          label="Active_Deployments" 
+          value="3" 
+          color="text-indigo-500" 
+        />
       </div>
+
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
             <h3 className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-zinc-600">// Deployed_Engines</h3>
-            <button className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 hover:text-white uppercase tracking-widest transition-all">
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex items-center gap-2 text-[10px] font-bold text-indigo-500 hover:text-indigo-400 uppercase tracking-widest transition-all"
+            >
                 <Sliders size={14} /> Tune_Parameters
             </button>
         </div>
         
         <div className="grid grid-cols-1 gap-px bg-zinc-900 border border-zinc-900">
           <ModelListItem 
-            name="Vera-Vision-OCR-v2" 
-            type="Computer Vision" 
-            version="2.4.1" 
-            usage="45k calls/hr" 
-            status="Operational"
-            accuracy="94%"
-          />
-          <ModelListItem 
-            name="Llama-3-Vera-Tuned" 
-            type="NLP Sentiment" 
-            version="1.0.0" 
-            usage="12k calls/hr" 
-            status="Standby"
-            accuracy="91%"
-          />
-          <ModelListItem 
-            name="LiDAR-Segment-NextGen" 
-            type="3D Point Cloud" 
-            version="0.8.5-beta" 
-            usage="2k calls/hr" 
-            status="Maintenance"
-            accuracy="87%"
-            isBeta
+            name="SAM-2.0 (Hiera Tiny)" 
+            type={`Computer Vision • ${telemetry?.device?.toUpperCase() ?? 'CPU'} ${telemetry?.mock_mode ? '• (Mock Mode Active)' : ''}`} 
+            version="1.1.0" 
+            usage={sam2UsageStr} 
+            status={telemetry?.status ?? "Connecting..."}
+            accuracy={telemetry?.mock_mode ? "N/A" : "98%"}
+            isBeta={false}
           />
         </div>
       </div>
@@ -88,7 +211,7 @@ const ModelsPage = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-             <MetricBox label="Cost_Per_Inv" value="$0.004" />
+             <MetricBox label="Cost_Per_Inv" value={telemetry?.mock_mode ? "$0.00" : "$0.004"} />
              <MetricBox label="Sync_Traffic" value="+12%" />
           </div>
         </div>
@@ -154,6 +277,8 @@ const MetricBox = ({ label, value }: any) => (
 const StatusBadge = ({ status }: { status: string }) => {
   const colors: any = {
     Operational: "text-emerald-500 bg-emerald-500/5 border-emerald-500/20",
+    "Standby (Mock)": "text-amber-500 bg-amber-500/5 border-amber-500/20",
+    Connecting: "text-indigo-500 bg-indigo-500/5 border-indigo-500/20",
     Standby: "text-zinc-500 bg-zinc-900 border-zinc-800",
     Maintenance: "text-rose-500 bg-rose-500/5 border-rose-500/20",
   };

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import path from 'path' // 1. Import path
+import path from 'path'
 
 export default defineConfig({
   plugins: [
@@ -20,7 +20,18 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"), // 2. Add this alias
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  // Prevent Vite from pre-bundling onnxruntime — it ships its own ESM/WASM
+  // loader and must be loaded as-is (especially the /webgpu sub-path).
+  optimizeDeps: {
+    exclude: ["onnxruntime-web"],
+  },
+  // Tell Vite to pass .mjs files from node_modules through untransformed
+  build: {
+    rollupOptions: {
+      external: [],
     },
   },
 })
