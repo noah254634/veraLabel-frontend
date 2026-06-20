@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useImperativeHandle } from 'react';
 import { Maximize2, MousePointer2, Square, Trash2, Scan, Crosshair, ZoomIn, ZoomOut, CheckCircle2, Plus, Minus, Brain, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -42,7 +42,10 @@ interface ImageStageProps {
   };
   onBoxesChange?: (boxes: BoundingBox[]) => void;
   onPolygonsChange?: (polygons: any[]) => void;
+  onDecodingChange?: (decoding: boolean) => void;
   shortcutsDisabled?: boolean;
+  worker?: Worker;
+  ref?: any;
 }
 
 type Tool = 'pointer' | 'bbox' | 'pos_click' | 'neg_click';
@@ -57,7 +60,28 @@ const LABEL_COLORS = [
 
 const cloneBoxes = (list: BoundingBox[]) => list.map((box) => ({ ...box }));
 
-export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDisabled = false }: ImageStageProps) => {
+const smoothPolygon = (points: number[][], iterations = 3, weight = 0.45): number[][] => {
+  if (!points || points.length < 3) return points || [];
+  let current = points.map(pt => [pt[0], pt[1]]);
+  const N = current.length;
+  
+  for (let iter = 0; iter < iterations; iter++) {
+    const next: number[][] = [];
+    for (let i = 0; i < N; i++) {
+      const prevPt = current[(i - 1 + N) % N];
+      const currPt = current[i];
+      const nextPt = current[(i + 1) % N];
+      
+      const smoothedX = currPt[0] * (1 - weight) + (prevPt[0] + nextPt[0]) * (weight / 2);
+      const smoothedY = currPt[1] * (1 - weight) + (prevPt[1] + nextPt[1]) * (weight / 2);
+      next.push([smoothedX, smoothedY]);
+    }
+    current = next;
+  }
+  return current;
+};
+
+export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, onDecodingChange, shortcutsDisabled = false, worker: propWorker, ref }: ImageStageProps) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>('pointer');
@@ -77,6 +101,27 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [decoding, setDecoding] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [isWarmingUp, setIsWarmingUp] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    confirmBatchBoxes
+  }));
+
+  useEffect(() => {
+    onDecodingChange?.(decoding);
+  }, [decoding, onDecodingChange]);
+
+  useEffect(() => {
+    let timer: any;
+    if (decoding) {
+      timer = setTimeout(() => setIsBuffering(true), 150);
+    } else {
+      setIsBuffering(false);
+    }
+    return () => clearTimeout(timer);
+  }, [decoding]);
+
   const [polygons, setPolygons] = useState<{ label: string; polygon: [number, number][] }[]>([]);
 
   useEffect(() => {
@@ -86,6 +131,11 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
+    if (propWorker) {
+      workerRef.current = propWorker;
+      return;
+    }
+
     const worker = new Worker(new URL('../../workers/sam2.worker.ts', import.meta.url), { type: 'module' });
     
     worker.addEventListener("message", (e) => {
@@ -95,6 +145,10 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
         toast.error(`SAM 2 Worker Error: ${error}`);
       } else if (type === "INIT_SUCCESS") {
         console.log("SAM 2 Worker initialized successfully.");
+      } else if (type === "WARMUP_START") {
+        setIsWarmingUp(true);
+      } else if (type === "WARMUP_COMPLETE") {
+        setIsWarmingUp(false);
       }
     });
 
@@ -104,7 +158,7 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
     return () => {
       worker.terminate();
     };
-  }, []);
+  }, [propWorker]);
 
   const decodeWithWorker = (payload: any): Promise<any> => {
     return new Promise((resolve, reject) => {
@@ -205,7 +259,7 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
         const label = box ? box.label : "Lesion";
         return {
           label,
-          polygon: res.polygon
+          polygon: smoothPolygon(res.polygon, 3, 0.45)
         };
       });
       
@@ -723,6 +777,17 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
 
   return (
     <div className={`relative flex flex-col bg-[#050505] ${isFullscreen ? 'fixed inset-0 z-[400]' : 'h-full w-full'}`}>
+      {isWarmingUp && (
+        <div className="absolute inset-0 z-[500] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="flex flex-col items-center gap-4 bg-black/90 p-8 rounded-2xl border border-rose-500/30 shadow-2xl shadow-rose-500/20">
+            <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-rose-500 animate-spin" />
+            <div className="text-center">
+              <h3 className="text-rose-400 font-mono text-sm tracking-widest uppercase mb-1">Compiling WebGPU</h3>
+              <p className="text-zinc-500 text-xs max-w-[220px]">This one-time setup may take a minute. Please wait.</p>
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`
         @keyframes scan {
           0% { top: 0%; opacity: 0.8; }
@@ -740,6 +805,10 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
         @keyframes rotateNetwork {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        @keyframes pulseMask {
+          0%, 100% { fill-opacity: 0.13; stroke-width: 1.8px; }
+          50% { fill-opacity: 0.22; stroke-width: 2.3px; }
         }
       `}</style>
       
@@ -806,10 +875,10 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
                 <div className={`w-2 h-2 rounded-full relative z-10 ${decoding ? 'bg-indigo-400' : 'bg-emerald-400'}`} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[7px] font-mono text-zinc-500 uppercase tracking-wider">SAM 2 AI Engine</span>
-                <span className="text-[9px] font-mono font-bold text-zinc-200">
-                  {decoding ? 'Segmenting Regions...' : 'Ready & Loaded'}
+                <span className={`text-[9px] font-bold uppercase tracking-[0.2em] ${decoding ? 'text-indigo-400' : 'text-emerald-400'}`}>
+                  {decoding ? (isBuffering ? 'Buffering AI data...' : 'Segmenting Regions...') : 'Ready & Loaded'}
                 </span>
+                <span className="text-[8px] text-zinc-500 uppercase tracking-widest font-mono">SAM2_WebGPU_Active</span>
               </div>
               <div className="p-1 rounded bg-zinc-900/60 border border-zinc-800 text-indigo-400">
                 <Sparkles size={11} className={decoding ? 'animate-pulse' : ''} />
@@ -931,9 +1000,15 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, shortcutsDis
                       <polygon
                         key={idx}
                         points={pointsStr}
-                        fill={color.replace('0.7', '0.25')}
+                        fill={color.replace('0.7', '0.13')}
                         stroke={color.replace('0.7', '1')}
                         strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        style={{
+                          animation: 'pulseMask 3s ease-in-out infinite',
+                          filter: `drop-shadow(0 0 3px ${color.replace('0.7', '0.5')})`
+                        }}
                       />
                     );
                   })}

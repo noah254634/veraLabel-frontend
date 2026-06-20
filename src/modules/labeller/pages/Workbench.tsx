@@ -165,6 +165,10 @@ const useLiveTimer = (expiresAt?: string | Date) => {
   };
 };
 
+// Module-level variables to persist worker context across component mounts
+let globalSam2Worker: Worker | null = null;
+let globalWorkerCreating = false;
+
 // Main Workbench
 export const CustomWorkbench = () => {
   const {
@@ -196,6 +200,9 @@ export const CustomWorkbench = () => {
 
   const [classificationLabel, setClassificationLabel] = useState<string | null>(null);
   const [boundingBoxes, setBoundingBoxes] = useState<any[]>([]);
+  const [polygons, setPolygons] = useState<any[]>([]);
+  const [isDecoding, setIsDecoding] = useState(false);
+  const imageStageRef = useRef<any>(null);
   // Audio stage state
   const [transcriptionText, setTranscriptionText] = useState<string>('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -239,6 +246,40 @@ export const CustomWorkbench = () => {
     }
   }, [tasks, batchId]);
 
+  const [sam2Worker, setSam2Worker] = useState<Worker | null>(() => globalSam2Worker);
+
+  // Initialize SAM2 worker and prefetch embeddings for the batch
+  useEffect(() => {
+    if (tasks && tasks.length > 0) {
+      const imageTasks = tasks.filter(t => resolveContentType(t, activeBatch) === 'image');
+      
+      if (imageTasks.length > 0) {
+        let workerToUse = globalSam2Worker;
+        if (!workerToUse && !globalWorkerCreating) {
+          globalWorkerCreating = true;
+          workerToUse = new Worker(new URL('../workers/sam2.worker.ts', import.meta.url), { type: 'module' });
+          workerToUse.postMessage({ type: 'INIT' });
+          globalSam2Worker = workerToUse;
+          setSam2Worker(workerToUse);
+        } else if (workerToUse && !sam2Worker) {
+          setSam2Worker(workerToUse);
+        }
+        
+        if (!workerToUse) return; // Wait until state fully commits if it was already created
+        
+        // Extract embedding URLs for pre-fetching
+        const urls = imageTasks.map(t => {
+          return (t as any).embeddingUrl ||
+                 (typeof t.taskObject === 'object' && t.taskObject !== null ? (t.taskObject as any).embeddingUrl : undefined);
+        }).filter(Boolean);
+        
+        if (urls.length > 0) {
+          workerToUse.postMessage({ type: 'PREFETCH_BATCH', payload: { urls } });
+        }
+      }
+    }
+  }, [tasks, activeBatch, sam2Worker]);
+
   const currentTask = tasks?.[activeTaskIndex];
   const labellingMethod = resolveLabellingMethod(activeBatch, currentTask);
   const contentType = resolveContentType(currentTask, activeBatch);
@@ -269,6 +310,7 @@ export const CustomWorkbench = () => {
       // Reset stage-specific annotation state on task change
       setClassificationLabel(null);
       setBoundingBoxes([]);
+      setPolygons([]);
       setTranscriptionText('');
     }
   }, [currentTask, fetchTaskPayload]);
@@ -380,7 +422,13 @@ export const CustomWorkbench = () => {
 
     const requiresImageAnnotation = !showRlhfStage && (contentType === "image" || contentType === "video");
     if (requiresImageAnnotation) {
-      const validation = validateImageAnnotation(boundingBoxes, imageAllowedLabels);
+      if (boundingBoxes.length > 0 && polygons.length === 0) {
+        if (imageStageRef.current) {
+          imageStageRef.current.confirmBatchBoxes();
+        }
+        return;
+      }
+      const validation = validateImageAnnotation(boundingBoxes, imageAllowedLabels, polygons);
       if (!validation.ok) {
         toast.error(`MISSION_PROTOCOL: ${validation.error}`);
         return;
@@ -411,6 +459,7 @@ export const CustomWorkbench = () => {
       directives: {},
       classificationLabel: classificationLabel || null,
       boundingBoxes: boundingBoxes.length > 0 ? boundingBoxes : null,
+      polygons: polygons.length > 0 ? polygons : null,
       transcription: contentType === 'audio' && labellingMethod === 'transcription'
         ? transcriptionText.trim()
         : null,
@@ -432,10 +481,15 @@ export const CustomWorkbench = () => {
 
     setSelection(null);
     setBoundingBoxes([]);
+    setPolygons([]);
     setTranscriptionText('');
     setClassificationLabel(null);
     if (activeTaskIndex < tasks.length - 1) {
       setActiveTaskIndex(prev => prev + 1);
+    } else {
+      if (sam2Worker) {
+        sam2Worker.postMessage({ type: 'CLEAR_CACHE' });
+      }
     }
     setSubmitSuccess(false);
     setIsSubmitting(false);
@@ -845,6 +899,7 @@ export const CustomWorkbench = () => {
             ) : labellingMethod === 'classification' || labellingMethod === 'annotation' || labellingMethod === 'transcription' ? (
               contentType === 'image' || contentType === 'video' ? (
                 <ImageStage
+                  ref={imageStageRef}
                   task={{
                     ...currentTask,
                     datasetName: activeBatch?.datasetId?.name || activeBatch?.datasetName || activeBatch?.datasetId?.title || (activeBatch as any)?.name,
@@ -854,7 +909,10 @@ export const CustomWorkbench = () => {
                       : protocol?.rubrics?.map((r: any) => r.tag) || []
                   } as any}
                   onBoxesChange={setBoundingBoxes}
+                  onPolygonsChange={setPolygons}
+                  onDecodingChange={setIsDecoding}
                   shortcutsDisabled={showFlagModal || isFlagging}
+                  worker={sam2Worker || undefined}
                 />
               ) : contentType === 'audio' ? (
                 <AudioStage
@@ -880,6 +938,7 @@ export const CustomWorkbench = () => {
               />
             ) : contentType === 'image' || contentType === 'video' ? (
               <ImageStage
+                ref={imageStageRef}
                 task={{
                   ...currentTask,
                   datasetName: activeBatch?.datasetId?.name || activeBatch?.datasetName || activeBatch?.datasetId?.title || (activeBatch as any)?.name,
@@ -889,7 +948,10 @@ export const CustomWorkbench = () => {
                     : protocol?.rubrics?.map((r: any) => r.tag) || []
                 } as any}
                 onBoxesChange={setBoundingBoxes}
+                onPolygonsChange={setPolygons}
+                onDecodingChange={setIsDecoding}
                 shortcutsDisabled={showFlagModal || isFlagging}
+                worker={sam2Worker || undefined}
               />
             ) : contentType === 'audio' ? (
               <AudioStage
@@ -951,7 +1013,7 @@ export const CustomWorkbench = () => {
             // Pass allowedLabels only if there are real class labels from the task payload.
             // If none defined, only enforce that each box has a non-empty label (label-agnostic validation).
             const imageValidation = requiresImageAnnotation
-              ? validateImageAnnotation(boundingBoxes, imageAllowedLabels.length > 0 ? imageAllowedLabels : undefined)
+              ? validateImageAnnotation(boundingBoxes, imageAllowedLabels.length > 0 ? imageAllowedLabels : undefined, polygons)
               : { ok: true };
             const hasImageAnnotation = imageValidation.ok;
 
@@ -961,13 +1023,17 @@ export const CustomWorkbench = () => {
             const audioClassificationOk = !isAudioTask || labellingMethod !== 'classification' || !!classificationLabel;
             const isAudioReady = !isAudioTask || (audioTranscriptionOk && audioClassificationOk);
 
+            // Enabled if user drew bounding boxes but has not yet decoded masks (so they can click it to trigger decode)
+            const isDecodeMode = requiresImageAnnotation && boundingBoxes.length > 0 && polygons.length === 0;
+
             const isSubmitDisabled = isSubmitting ||
+              isDecoding ||
               (currentTask?.status === 'submitted') ||
               !isPreferenceOk ||
               !isTieOk ||
               !isScoringOk ||
               !isRationaleOk ||
-              !hasImageAnnotation ||
+              (!isDecodeMode && !hasImageAnnotation) ||
               !isAudioReady;
 
             return (
@@ -995,8 +1061,14 @@ export const CustomWorkbench = () => {
                   <>Rate_Dimensions <ChevronRight size={14} /></>
                 ) : !isRationaleOk ? (
                   <>Write_Rationale <ChevronRight size={14} /></>
+                ) : isDecoding ? (
+                  <>Segmenting... <Activity size={14} className="animate-spin" /></>
                 ) : !hasImageAnnotation ? (
-                  <>Draw_Box <ChevronRight size={14} /></>
+                  boundingBoxes.length > 0 && polygons.length === 0 ? (
+                    <>Decode_Masks <ChevronRight size={14} /></>
+                  ) : (
+                    <>Draw_Box <ChevronRight size={14} /></>
+                  )
                 ) : !audioTranscriptionOk ? (
                   <>Write_Transcription <ChevronRight size={14} /></>
                 ) : !audioClassificationOk ? (

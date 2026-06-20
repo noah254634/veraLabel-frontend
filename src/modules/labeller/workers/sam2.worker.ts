@@ -5,7 +5,6 @@ import JSZip from "jszip";
 import { contours } from "d3-contour";
 
 // Point ORT at the JSEP WASM files hosted on jsDelivr.
-// We must do this because Cloudflare Pages rejects files > 25MB (ort-wasm-simd-threaded.jsep.wasm is 26MB).
 ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/";
 
 // Single-threaded mode — avoids the SharedArrayBuffer / COOP-COEP requirement
@@ -16,6 +15,7 @@ let session: ort.InferenceSession | null = null;
 
 // Cache parsed embedding tensors (keyed by URL)
 const embeddingCache: Record<string, EmbeddingTensors> = {};
+const fetchingPromises: Record<string, Promise<EmbeddingTensors>> = {};
 
 interface EmbeddingTensors {
   image_embed: ort.Tensor;
@@ -43,13 +43,13 @@ function parseNpy(buffer: ArrayBuffer): { data: Float32Array; shape: number[]; d
   let headerStart: number;
   let dataOffset: number;
   if (major === 1) {
-    headerLen  = view.getUint16(8, true);
+    headerLen = view.getUint16(8, true);
     headerStart = 10;
-    dataOffset  = 10 + headerLen;
+    dataOffset = 10 + headerLen;
   } else {
-    headerLen  = view.getUint32(8, true);
+    headerLen = view.getUint32(8, true);
     headerStart = 12;
-    dataOffset  = 12 + headerLen;
+    dataOffset = 12 + headerLen;
   }
 
   const headerStr = new TextDecoder().decode(new Uint8Array(buffer, headerStart, headerLen));
@@ -82,7 +82,166 @@ function parseNpy(buffer: ArrayBuffer): { data: Float32Array; shape: number[]; d
   return { data, shape, dtype };
 }
 
+// ─── IndexedDB Cache ─────────────────────────────────────────────────────────
+const DB_NAME = "SAM2CacheDB";
+const STORE_NAME = "embeddings";
+
+function initDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getFromDB(key: string): Promise<ArrayBuffer | null> {
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("[SAM2 Worker] IndexedDB get failed:", err);
+    return null;
+  }
+}
+
+async function saveToDB(key: string, buffer: ArrayBuffer): Promise<void> {
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(buffer, key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("[SAM2 Worker] IndexedDB save failed:", err);
+  }
+}
+
+export async function clearDB(): Promise<void> {
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.clear();
+      req.onsuccess = () => {
+        console.log("[SAM2 Worker] IndexedDB cache cleared.");
+        resolve();
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("[SAM2 Worker] IndexedDB clear failed:", err);
+  }
+}
+
+async function getEmbedding(embeddingUrl: string): Promise<EmbeddingTensors> {
+  // Use the pathname as a unique key to ignore rotating AWS signature query params
+  const cacheKey = new URL(embeddingUrl).pathname;
+  
+  if (embeddingCache[cacheKey]) return embeddingCache[cacheKey];
+  if (cacheKey in fetchingPromises) return fetchingPromises[cacheKey] as Promise<EmbeddingTensors>;
+
+  fetchingPromises[cacheKey] = (async () => {
+    let arrayBuffer = await getFromDB(cacheKey);
+
+    if (arrayBuffer) {
+      console.log("[SAM2 Worker] Loaded embedding from IndexedDB:", cacheKey);
+    } else {
+      console.log("[SAM2 Worker] Fetching embedding from Network:", embeddingUrl);
+      const t0 = performance.now();
+      const res = await fetch(embeddingUrl);
+      if (!res.ok) throw new Error(`Embedding fetch failed: ${res.status} ${res.statusText}`);
+      arrayBuffer = await res.arrayBuffer();
+      console.log(`[SAM2 Worker] Fetched ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB in ${(performance.now() - t0).toFixed(0)}ms`);
+      
+      // Fire-and-forget save to IndexedDB
+      saveToDB(cacheKey, arrayBuffer).catch(e => console.error("IDB save error:", e));
+    }
+
+    // The backend saves with np.savez_compressed → it's a ZIP regardless of the .npy extension
+    const zip = await JSZip.loadAsync(arrayBuffer);
+
+    const fileNames = Object.keys(zip.files);
+    console.log("[SAM2 Worker] NPZ contents:", fileNames);
+
+    const getFile = (key: string) => zip.file(`${key}.npy`) || zip.file(key);
+
+    const imgEmbedFile = getFile("image_embed");
+    const hr0File = getFile("high_res_feat_0");
+    const hr1File = getFile("high_res_feat_1");
+
+    if (!imgEmbedFile || !hr0File || !hr1File) {
+      throw new Error(`Invalid NPZ — missing required arrays. Found: [${fileNames.join(", ")}]. Need: image_embed, high_res_feat_0, high_res_feat_1`);
+    }
+
+    const parsedEmbed = parseNpy(await imgEmbedFile.async("arraybuffer"));
+    const parsedHr0 = parseNpy(await hr0File.async("arraybuffer"));
+    const parsedHr1 = parseNpy(await hr1File.async("arraybuffer"));
+
+    let origH = 0, origW = 0;
+    const origHFile = getFile("orig_h");
+    const origWFile = getFile("orig_w");
+    if (origHFile && origWFile) {
+      const ph = parseNpy(await origHFile.async("arraybuffer"));
+      const pw = parseNpy(await origWFile.async("arraybuffer"));
+      origH = ph.data[0];
+      origW = pw.data[0];
+    } else {
+      console.warn("[SAM2 Worker] orig_h / orig_w not found in NPZ — defaulting to 1024×1024");
+      origH = 1024; origW = 1024;
+    }
+
+    if (!origH || !origW || !isFinite(origH) || !isFinite(origW)) {
+      throw new Error(`origH/origW invalid after parsing: H=${origH} W=${origW}.`);
+    }
+
+    const expectedEmbedSize = 1 * 256 * 64 * 64;
+    if (parsedEmbed.data.length !== expectedEmbedSize) {
+      throw new Error(`image_embed size mismatch: got ${parsedEmbed.data.length}, expected ${expectedEmbedSize}`);
+    }
+
+    const tensors: EmbeddingTensors = {
+      image_embed: new ort.Tensor("float32", parsedEmbed.data, parsedEmbed.shape.length > 0 ? parsedEmbed.shape : [1, 256, 64, 64]),
+      high_res_feat_0: new ort.Tensor("float32", parsedHr0.data, parsedHr0.shape.length > 0 ? parsedHr0.shape : [1, 32, 256, 256]),
+      high_res_feat_1: new ort.Tensor("float32", parsedHr1.data, parsedHr1.shape.length > 0 ? parsedHr1.shape : [1, 64, 128, 128]),
+      origH,
+      origW,
+    };
+
+    // Evict oldest entry from memory cache when exceeds 15
+    const cacheKeys = Object.keys(embeddingCache);
+    if (cacheKeys.length >= 15) delete embeddingCache[cacheKeys[0]];
+    embeddingCache[cacheKey] = tensors;
+
+    delete fetchingPromises[cacheKey];
+    return tensors;
+  })().catch(err => {
+    delete fetchingPromises[cacheKey];
+    throw err;
+  });
+
+  return fetchingPromises[cacheKey];
+}
+
 // ─── Worker message handler ───────────────────────────────────────────────────
+
+let warmupPromise: Promise<void> | null = null;
+
 self.onmessage = async (e: MessageEvent) => {
   const { type, payload } = e.data;
 
@@ -111,6 +270,29 @@ self.onmessage = async (e: MessageEvent) => {
           console.log(`[SAM2 Worker] ✅ WASM session ready in ${(performance.now() - t1).toFixed(0)}ms`);
         }
 
+        warmupPromise = (async () => {
+          try {
+            self.postMessage({ type: "WARMUP_START" });
+            console.log("[SAM2 Worker] Warming up WebGPU shaders during initialization...");
+            const tWarmup = performance.now();
+            const dummyInputs = {
+              image_embed: new ort.Tensor("float32", new Float32Array(256 * 64 * 64).fill(0), [1, 256, 64, 64]),
+              high_res_feats_0: new ort.Tensor("float32", new Float32Array(32 * 256 * 256).fill(0), [1, 32, 256, 256]),
+              high_res_feats_1: new ort.Tensor("float32", new Float32Array(64 * 128 * 128).fill(0), [1, 64, 128, 128]),
+              point_coords: new ort.Tensor("float32", new Float32Array([0, 0]), [1, 1, 2]),
+              point_labels: new ort.Tensor("float32", new Float32Array([-1]), [1, 1]),
+              mask_input: new ort.Tensor("float32", new Float32Array(256 * 256).fill(0), [1, 1, 256, 256]),
+              has_mask_input: new ort.Tensor("float32", new Float32Array([0]), [1]),
+            };
+            await session.run(dummyInputs);
+            console.log(`[SAM2 Worker] Shader warmup complete in ${(performance.now() - tWarmup).toFixed(0)}ms.`);
+          } catch (warmupErr) {
+            console.warn("[SAM2 Worker] Shader warmup failed, but continuing:", warmupErr);
+          } finally {
+            self.postMessage({ type: "WARMUP_COMPLETE" });
+          }
+        })();
+
         console.log("[SAM2 Worker] Inputs :", session.inputNames);
         console.log("[SAM2 Worker] Outputs:", session.outputNames);
       }
@@ -118,91 +300,43 @@ self.onmessage = async (e: MessageEvent) => {
     }
 
 
+    // ── PREFETCH_BATCH ────────────────────────────────────────────────────────
+    else if (type === "PREFETCH_BATCH") {
+      const { urls } = payload;
+      console.log(`[SAM2 Worker] PREFETCH_BATCH received with ${urls.length} urls`);
+      // We don't await here because we want it to run in the background without blocking the message loop
+      (async () => {
+        for (const url of urls) {
+          try {
+            await getEmbedding(url);
+            self.postMessage({ type: "PREFETCH_PROGRESS", payload: { url } });
+          } catch (err) {
+            console.warn(`[SAM2 Worker] Failed to prefetch ${url}:`, err);
+          }
+        }
+        console.log(`[SAM2 Worker] PREFETCH_BATCH complete.`);
+      })();
+    }
+
+    // ── CLEAR_CACHE ───────────────────────────────────────────────────────────
+    else if (type === "CLEAR_CACHE") {
+      console.log(`[SAM2 Worker] CLEAR_CACHE received. Wiping IndexedDB...`);
+      clearDB();
+    }
+
     // ── DECODE ────────────────────────────────────────────────────────────────
     else if (type === "DECODE") {
       if (!session) throw new Error("ONNX Session not initialized.");
+      if (warmupPromise) {
+        console.log("[SAM2 Worker] Waiting for shader warmup to complete...");
+        await warmupPromise;
+      }
 
       const { embeddingUrl, prompts } = payload;
       console.log(`[SAM2 Worker] DECODE request — url: ${embeddingUrl}, prompts: ${prompts.length}`);
 
       // ── 1. Load & parse embeddings ─────────────────────────────────────────
-      let tensors = embeddingCache[embeddingUrl];
-      if (!tensors) {
-        console.log("[SAM2 Worker] Fetching embedding from:", embeddingUrl);
-        const t0 = performance.now();
-        const res = await fetch(embeddingUrl);
-        if (!res.ok) throw new Error(`Embedding fetch failed: ${res.status} ${res.statusText}`);
-        const arrayBuffer = await res.arrayBuffer();
-        console.log(`[SAM2 Worker] Fetched ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB in ${(performance.now() - t0).toFixed(0)}ms`);
-
-        // The backend saves with np.savez_compressed → it's a ZIP regardless of the .npy extension
-        const zip = await JSZip.loadAsync(arrayBuffer);
-
-        const fileNames = Object.keys(zip.files);
-        console.log("[SAM2 Worker] NPZ contents:", fileNames);
-
-        // np.savez stores files as "key.npy" inside the zip
-        const getFile = (key: string) =>
-          zip.file(`${key}.npy`) || zip.file(key);
-
-        const imgEmbedFile = getFile("image_embed");
-        const hr0File = getFile("high_res_feat_0");
-        const hr1File = getFile("high_res_feat_1");
-
-        if (!imgEmbedFile || !hr0File || !hr1File) {
-          throw new Error(
-            `Invalid NPZ — missing required arrays. Found: [${fileNames.join(", ")}]. Need: image_embed, high_res_feat_0, high_res_feat_1`
-          );
-        }
-
-        const parsedEmbed = parseNpy(await imgEmbedFile.async("arraybuffer"));
-        const parsedHr0 = parseNpy(await hr0File.async("arraybuffer"));
-        const parsedHr1 = parseNpy(await hr1File.async("arraybuffer"));
-
-        console.log("[SAM2 Worker] image_embed shape:", parsedEmbed.shape, "| elements:", parsedEmbed.data.length);
-        console.log("[SAM2 Worker] high_res_feat_0 shape:", parsedHr0.shape);
-        console.log("[SAM2 Worker] high_res_feat_1 shape:", parsedHr1.shape);
-
-        // orig_h / orig_w — numpy saves plain Python float() as float64 (<f8),
-        // so parseNpy must detect the dtype and convert accordingly.
-        let origH = 0, origW = 0;
-        const origHFile = getFile("orig_h");
-        const origWFile = getFile("orig_w");
-        if (origHFile && origWFile) {
-          const ph = parseNpy(await origHFile.async("arraybuffer"));
-          const pw = parseNpy(await origWFile.async("arraybuffer"));
-          origH = ph.data[0];
-          origW = pw.data[0];
-          console.log(`[SAM2 Worker] orig_h dtype=${ph.dtype} raw=${origH} | orig_w dtype=${pw.dtype} raw=${origW}`);
-        } else {
-          console.warn("[SAM2 Worker] orig_h / orig_w not found in NPZ — defaulting to 1024×1024");
-          origH = 1024; origW = 1024;
-        }
-
-        if (!origH || !origW || !isFinite(origH) || !isFinite(origW)) {
-          throw new Error(`origH/origW invalid after parsing: H=${origH} W=${origW}. Check NPY dtype in the embedding file.`);
-        }
-        console.log(`[SAM2 Worker] origH=${origH} origW=${origW}`);
-
-        // Validate shapes before building tensors
-        const expectedEmbedSize = 1 * 256 * 64 * 64;
-        if (parsedEmbed.data.length !== expectedEmbedSize) {
-          throw new Error(`image_embed size mismatch: got ${parsedEmbed.data.length}, expected ${expectedEmbedSize}`);
-        }
-
-        tensors = {
-          image_embed: new ort.Tensor("float32", parsedEmbed.data, parsedEmbed.shape.length > 0 ? parsedEmbed.shape : [1, 256, 64, 64]),
-          high_res_feat_0: new ort.Tensor("float32", parsedHr0.data, parsedHr0.shape.length > 0 ? parsedHr0.shape : [1, 32, 256, 256]),
-          high_res_feat_1: new ort.Tensor("float32", parsedHr1.data, parsedHr1.shape.length > 0 ? parsedHr1.shape : [1, 64, 128, 128]),
-          origH,
-          origW,
-        };
-
-        // Evict oldest entry when cache exceeds 5 items
-        const cacheKeys = Object.keys(embeddingCache);
-        if (cacheKeys.length >= 5) delete embeddingCache[cacheKeys[0]];
-        embeddingCache[embeddingUrl] = tensors;
-      }
+      let tensors = await getEmbedding(embeddingUrl);
 
       // ── 2. Run inference for each prompt ───────────────────────────────────
       const SAM2_SIZE = 1024; // SAM2 always operates at 1024×1024 internally
@@ -215,16 +349,15 @@ self.onmessage = async (e: MessageEvent) => {
         let pointCoords: number[] = [];
         let pointLabels: number[] = [];
 
+        const sx = SAM2_SIZE / tensors.origW;
+        const sy = SAM2_SIZE / tensors.origH;
+
         if (prompt.box) {
           // box coords are in original image pixels — scale to SAM2's 1024×1024 space
           const [x1, y1, x2, y2] = prompt.box as number[];
-          const sx = SAM2_SIZE / tensors.origW;
-          const sy = SAM2_SIZE / tensors.origH;
           pointCoords.push(x1 * sx, y1 * sy, x2 * sx, y2 * sy);
           pointLabels.push(2, 3); // 2=top-left corner, 3=bottom-right corner (SAM2 bbox encoding)
         } else if (prompt.points) {
-          const sx = SAM2_SIZE / tensors.origW;
-          const sy = SAM2_SIZE / tensors.origH;
           (prompt.points as number[][]).forEach((pt, idx) => {
             pointCoords.push(pt[0] * sx, pt[1] * sy);
             pointLabels.push((prompt.point_labels as number[])[idx]);
