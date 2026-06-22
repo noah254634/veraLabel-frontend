@@ -4,7 +4,7 @@ import {
   RefreshCw, Search, AlertOctagon, HelpCircle 
 } from 'lucide-react';
 import { securityService } from '../services/securityService';
-import type { GeoAccessLog, GeoAnalytics } from '../services/securityService';
+import type { GeoAccessLog, GeoAnalytics, GeoRequestAudit } from '../services/securityService';
 import toast from 'react-hot-toast';
 
 const getFlagEmoji = (countryCode: string) => {
@@ -22,22 +22,26 @@ const getFlagEmoji = (countryCode: string) => {
 
 const SecurityPage = () => {
   const [logs, setLogs] = useState<GeoAccessLog[]>([]);
+  const [audits, setAudits] = useState<GeoRequestAudit[]>([]);
   const [analytics, setAnalytics] = useState<GeoAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'aggregated' | 'waf'>('aggregated');
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     else setRefreshing(true);
 
     try {
-      const [logsData, analyticsData] = await Promise.all([
+      const [logsData, analyticsData, auditsData] = await Promise.all([
         securityService.fetchGeoAccessLogs(),
-        securityService.fetchGeoAnalytics()
+        securityService.fetchGeoAnalytics(),
+        securityService.fetchGeoRequestAudits()
       ]);
       setLogs(logsData);
       setAnalytics(analyticsData);
+      setAudits(auditsData);
       if (isSilent) {
         toast.success("Geographic telemetry updated");
       }
@@ -62,6 +66,19 @@ const SecurityPage = () => {
       log.country.toLowerCase().includes(search) ||
       (log.city || '').toLowerCase().includes(search) ||
       (log.lastPath || '').toLowerCase().includes(search)
+    );
+  });
+
+  // Filter audits based on search term (IP, Country, City, Path, User Email/Name)
+  const filteredAudits = audits.filter(audit => {
+    const search = searchTerm.toLowerCase();
+    return (
+      audit.ip.toLowerCase().includes(search) ||
+      audit.country.toLowerCase().includes(search) ||
+      (audit.city || '').toLowerCase().includes(search) ||
+      (audit.path || '').toLowerCase().includes(search) ||
+      (audit.userId?.email || '').toLowerCase().includes(search) ||
+      (audit.userId?.name || '').toLowerCase().includes(search)
     );
   });
 
@@ -184,10 +201,31 @@ const SecurityPage = () => {
           </div>
         </div>
 
-        {/* Live log table */}
+        {/* Live log table / WAF */}
         <div className="xl:col-span-2 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-4">
-            <h3 className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-zinc-600">// Rolling_Access_Log</h3>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setActiveTab('aggregated')}
+                className={`font-mono text-[9px] uppercase tracking-widest px-4 py-2 border-b-2 transition-all ${
+                  activeTab === 'aggregated'
+                    ? 'border-indigo-500 text-white font-bold'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Aggregated_IPs
+              </button>
+              <button
+                onClick={() => setActiveTab('waf')}
+                className={`font-mono text-[9px] uppercase tracking-widest px-4 py-2 border-b-2 transition-all ${
+                  activeTab === 'waf'
+                    ? 'border-indigo-500 text-white font-bold'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Live_WAF_Audits
+              </button>
+            </div>
             <div className="relative w-full sm:w-64">
               <input
                 type="text"
@@ -201,72 +239,160 @@ const SecurityPage = () => {
           </div>
 
           <div className="bg-[#050505] border border-zinc-900 overflow-x-auto shadow-2xl">
-            <table className="w-full text-left font-mono text-[10px]">
-              <thead>
-                <tr className="border-b border-zinc-900 text-zinc-600 uppercase tracking-widest">
-                  <th className="p-4 font-bold">Origin_Client</th>
-                  <th className="p-4 font-bold">Access_Details</th>
-                  <th className="p-4 font-bold text-center">Hits</th>
-                  <th className="p-4 font-bold">Verdict</th>
-                  <th className="p-4 font-bold text-right">Last_Seen</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-900/50">
-                {filteredLogs.length > 0 ? (
-                  filteredLogs.map((log) => {
-                    const timeAgo = formatTimeAgo(log.lastAccess);
-                    return (
-                      <tr key={log._id} className="hover:bg-[#070709] transition-colors group">
-                        <td className="p-4">
-                          <p className="text-white font-bold group-hover:text-indigo-400 transition-colors">{log.ip}</p>
-                          <p className="text-zinc-600 text-[8px] flex items-center gap-1.5 mt-0.5">
-                            <span>{getFlagEmoji(log.country)} {log.country}</span>
-                            <span>•</span>
-                            <span className="truncate max-w-[100px]">{log.city || 'Unknown'}</span>
-                          </p>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`px-1 py-0.5 text-[8px] font-bold ${
-                              log.lastMethod === 'GET' ? 'text-indigo-400 bg-indigo-500/5' : 'text-amber-400 bg-amber-500/5'
-                            }`}>
-                              {log.lastMethod}
-                            </span>
-                            <span className="text-zinc-400 select-all">{log.lastPath}</span>
-                          </div>
-                          <p className="text-[8px] text-zinc-700 truncate max-w-[200px] mt-0.5" title={log.userAgent}>
-                            {log.userAgent}
-                          </p>
-                        </td>
-                        <td className="p-4 text-center text-zinc-300 font-bold tabular-nums">
-                          {log.hits}
-                        </td>
-                        <td className="p-4">
-                          {log.isBlocked ? (
-                            <span className="px-2 py-0.5 border border-rose-500/20 bg-rose-500/5 text-rose-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 w-fit">
-                              <AlertOctagon size={8} /> Blocked_403
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 w-fit">
-                              <ShieldCheck size={8} /> Allowed_Bypass
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 text-right text-zinc-500 tabular-nums">
-                          {timeAgo}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-zinc-700 uppercase tracking-widest">
-                      [ No access log records match search filter ]
-                    </td>
+            {activeTab === 'aggregated' ? (
+              <table className="w-full text-left font-mono text-[10px]">
+                <thead>
+                  <tr className="border-b border-zinc-900 text-zinc-600 uppercase tracking-widest">
+                    <th className="p-4 font-bold">Origin_Client</th>
+                    <th className="p-4 font-bold">Access_Details</th>
+                    <th className="p-4 font-bold text-center">Hits</th>
+                    <th className="p-4 font-bold">Verdict</th>
+                    <th className="p-4 font-bold text-right">Last_Seen</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-zinc-900/50">
+                  {filteredLogs.length > 0 ? (
+                    filteredLogs.map((log) => {
+                      const timeAgo = formatTimeAgo(log.lastAccess);
+                      return (
+                        <tr key={log._id} className="hover:bg-[#070709] transition-colors group">
+                          <td className="p-4">
+                            <p className="text-white font-bold group-hover:text-indigo-400 transition-colors">{log.ip}</p>
+                            <p className="text-zinc-600 text-[8px] flex items-center gap-1.5 mt-0.5">
+                              <span>{getFlagEmoji(log.country)} {log.country}</span>
+                              <span>•</span>
+                              <span className="truncate max-w-[100px]">{log.city || 'Unknown'}</span>
+                            </p>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-1 py-0.5 text-[8px] font-bold ${
+                                log.lastMethod === 'GET' ? 'text-indigo-400 bg-indigo-500/5' : 'text-amber-400 bg-amber-500/5'
+                              }`}>
+                                {log.lastMethod}
+                              </span>
+                              <span className="text-zinc-400 select-all">{log.lastPath}</span>
+                            </div>
+                            <p className="text-[8px] text-zinc-700 truncate max-w-[200px] mt-0.5" title={log.userAgent}>
+                              {log.userAgent}
+                            </p>
+                          </td>
+                          <td className="p-4 text-center text-zinc-300 font-bold tabular-nums">
+                            {log.hits}
+                          </td>
+                          <td className="p-4">
+                            {log.isBlocked ? (
+                              <span className="px-2 py-0.5 border border-rose-500/20 bg-rose-500/5 text-rose-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 w-fit">
+                                <AlertOctagon size={8} /> Blocked_403
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 w-fit">
+                                <ShieldCheck size={8} /> Allowed_Bypass
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4 text-right text-zinc-500 tabular-nums">
+                            {timeAgo}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-zinc-700 uppercase tracking-widest">
+                        [ No access log records match search filter ]
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-left font-mono text-[10px]">
+                <thead>
+                  <tr className="border-b border-zinc-900 text-zinc-600 uppercase tracking-widest">
+                    <th className="p-4 font-bold">Time</th>
+                    <th className="p-4 font-bold">Client</th>
+                    <th className="p-4 font-bold">Request</th>
+                    <th className="p-4 font-bold">Identity</th>
+                    <th className="p-4 font-bold text-center">Status</th>
+                    <th className="p-4 font-bold">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-900/50">
+                  {filteredAudits.length > 0 ? (
+                    filteredAudits.map((audit) => {
+                      const timeAgo = formatTimeAgo(audit.timestamp);
+                      const isErr = audit.statusCode >= 400;
+                      const isSuccess = audit.statusCode >= 200 && audit.statusCode < 300;
+                      return (
+                        <tr key={audit._id} className="hover:bg-[#070709] transition-colors group">
+                          <td className="p-4 text-zinc-500 tabular-nums">
+                            {timeAgo}
+                          </td>
+                          <td className="p-4">
+                            <p className="text-white font-bold group-hover:text-indigo-400 transition-colors">{audit.ip}</p>
+                            <p className="text-zinc-600 text-[8px] flex items-center gap-1.5 mt-0.5">
+                              <span>{getFlagEmoji(audit.country)} {audit.country}</span>
+                              <span>•</span>
+                              <span className="truncate max-w-[100px]">{audit.city || 'Unknown'}</span>
+                            </p>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-1 py-0.5 text-[8px] font-bold ${
+                                audit.method === 'GET' ? 'text-indigo-400 bg-indigo-500/5' : 'text-amber-400 bg-amber-500/5'
+                              }`}>
+                                {audit.method}
+                              </span>
+                              <span className="text-zinc-400 select-all">{audit.path}</span>
+                            </div>
+                            <p className="text-[8px] text-zinc-700 truncate max-w-[200px] mt-0.5" title={audit.userAgent}>
+                              {audit.userAgent}
+                            </p>
+                          </td>
+                          <td className="p-4">
+                            {audit.userId ? (
+                              <div>
+                                <p className="text-zinc-300 font-bold">{audit.userId.name}</p>
+                                <p className="text-zinc-500 text-[8px]">{audit.userId.email} ({audit.userId.role})</p>
+                              </div>
+                            ) : (
+                              <span className="text-zinc-600 italic">Anonymous</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center tabular-nums font-bold">
+                            <span className={`px-2 py-0.5 ${
+                              isSuccess ? 'text-emerald-400 bg-emerald-500/5 border border-emerald-500/10' :
+                              isErr ? 'text-rose-400 bg-rose-500/5 border border-rose-500/10' :
+                              'text-amber-400 bg-amber-500/5 border border-amber-500/10'
+                            }`}>
+                              {audit.statusCode || '---'}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            {audit.isBlocked ? (
+                              <span className="px-2 py-0.5 border border-rose-500/20 bg-rose-500/5 text-rose-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 w-fit">
+                                <AlertOctagon size={8} /> Blocked_403
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 border border-emerald-500/20 bg-emerald-500/5 text-emerald-500 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 w-fit">
+                                <ShieldCheck size={8} /> Allowed_Bypass
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-zinc-700 uppercase tracking-widest">
+                        [ No request audits match search filter ]
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

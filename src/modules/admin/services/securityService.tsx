@@ -35,10 +35,37 @@ export interface GeoAnalytics {
   blockStatusBreakdown: BlockStat[];
 }
 
+export interface GeoRequestAudit {
+  _id: string;
+  ip: string;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+  } | null;
+  userRole?: string | null;
+  country: string;
+  city: string;
+  timezone: string;
+  path: string;
+  method: string;
+  statusCode: number;
+  isBlocked: boolean;
+  userAgent: string;
+  timestamp: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const securityService = {
   fetchGeoAccessLogs: async (): Promise<GeoAccessLog[]> => {
     const response = await api.get("/admin/geo-access-logs");
     return response.data.data?.logs ?? [];
+  },
+  fetchGeoRequestAudits: async (): Promise<GeoRequestAudit[]> => {
+    const response = await api.get("/admin/geo-request-audits");
+    return response.data.data?.audits ?? [];
   },
   fetchGeoAnalytics: async (): Promise<GeoAnalytics> => {
     const response = await api.get("/admin/geo-analytics");
