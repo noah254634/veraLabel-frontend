@@ -18,10 +18,10 @@ export const OnboardingSidebar = ({ view, currentStep }: { view: string, current
   };
 
   const steps = [
-    { id: 1, icon: <BookOpen size={16} /> },
-    { id: 2, icon: <ShieldCheck size={16} /> },
-    { id: 3, icon: <Target size={16} /> },
-    { id: 4, icon: <Trophy size={16} />, isFinal: true },
+    { id: 1, label: "Welcome", icon: <BookOpen size={16} /> },
+    { id: 2, label: "Profile", icon: <ShieldCheck size={16} /> },
+    { id: 3, label: "Training", icon: <Target size={16} /> },
+    { id: 4, label: "Approval", icon: <Trophy size={16} />, isFinal: true },
   ];
 
   return (
@@ -43,14 +43,21 @@ export const OnboardingSidebar = ({ view, currentStep }: { view: string, current
         </button>
         <nav className="flex flex-row md:flex-col flex-1 justify-around md:justify-start md:space-y-8 w-full">
           {steps.map((s, i) => (
-            <div key={i} className="flex items-center gap-4 relative">
-              <div className={`z-10 p-2 md:p-3 rounded-xl transition-all duration-500 ${
+            <div key={i} className="flex items-center gap-4 relative group">
+              <div className={`z-10 p-2 md:p-3 rounded-xl transition-all duration-500 shrink-0 ${
                 (currentStep >= s.id || (s.isFinal && view === 'SUCCESS')) 
-                ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' 
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
                 : 'bg-white/5 text-zinc-500'
               }`}>
                 {s.icon}
               </div>
+              
+              <span className={`hidden md:block font-bold text-sm transition-colors duration-300 ${
+                (currentStep >= s.id || (s.isFinal && view === 'SUCCESS')) ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'
+              }`}>
+                {s.label}
+              </span>
+              
               {i !== steps.length - 1 && (
                 <div className="hidden md:block absolute left-[19px] top-10 w-[2px] h-8 bg-zinc-900">
                   <div className={`h-full bg-indigo-600 transition-all duration-700 ${currentStep > s.id ? 'w-full' : 'h-0'}`} />

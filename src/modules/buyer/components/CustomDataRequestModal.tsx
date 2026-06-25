@@ -110,7 +110,7 @@ const CustomDataRequestModal = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState(initialFormData);
-  const [budget, setBudget] = useState("");
+  const [maxLabellers, setMaxLabellers] = useState<number>(1);
   const [selectedTimeline, setSelectedTimeline] = useState<number | null>(null);
   const [submissionStep, setSubmissionStep] = useState<"idle" | "generating_url" | "uploading_file" | "creating_request" | "initiating_split" | "splitting_dataset">("idle");
   const [createdDatasetId, setCreatedDatasetId] = useState<string | null>(null);
@@ -123,7 +123,7 @@ const CustomDataRequestModal = ({
     setIntent(null);
     setValidationLog([]);
     setFormData(initialFormData);
-    setBudget("");
+    setMaxLabellers(1);
     setSelectedTimeline(null);
     setProtocols([]);
     setSelectedProtocol(null);
@@ -405,8 +405,8 @@ const CustomDataRequestModal = ({
     if (genericWords.includes(lowerName) || genericWords.some(word => lowerName === word || lowerName.match(new RegExp(`^[\\s_\\-*]*${word}[\\s_\\-*]*\\d*$`)))) {
       return toast.error("Please enter a specific, descriptive name (e.g. 'German Medical Audio Transcriptions v1.0') instead of a generic title.");
     }
-    if (!budget) {
-      return toast.error("Budget is required");
+    if (!maxLabellers) {
+      return toast.error("Number of annotators per task is required");
     }
     if (!formData.labellingMethod) {
       return toast.error("Labelling method is required");
@@ -469,7 +469,8 @@ const CustomDataRequestModal = ({
         specifications: formData.specifications,
         volume: formData.volume,
         format: formData.format,
-        budget,
+        budget: 0,
+        maxLabellers,
         fileUrl: key,
         timeline: formData.timeline,
         timelineDays: timelineOption?.days,
@@ -1069,15 +1070,19 @@ const CustomDataRequestModal = ({
                 </div>
                 <div className="space-y-2">
                   <label className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest ml-1">
-                    Budget_USD
+                    Annotators per Task
                   </label>
-                  <input
-                    value={budget}
-                    onChange={(e) => setBudget(e.target.value)}
-                    type="number"
-                    placeholder="e.g. 500"
-                    className="w-full bg-zinc-950 border border-zinc-900 p-4 text-white text-xs outline-none"
-                  />
+                  <select
+                    value={maxLabellers}
+                    onChange={(e) => setMaxLabellers(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-900 p-4 text-white text-xs outline-none focus:border-indigo-500"
+                  >
+                    <option value={1}>1 (Standard Annotation)</option>
+                    <option value={2}>2 (Dual Consensus)</option>
+                    <option value={3}>3 (Triple Consensus)</option>
+                    <option value={4}>4 (Quad Consensus)</option>
+                    <option value={5}>5 (High-Precision Consensus)</option>
+                  </select>
                 </div>
               </div>
 

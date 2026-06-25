@@ -54,6 +54,15 @@ const DatasetAdminPage = () => {
 
   const selectedDatasetId = selectedId;
 
+  const totalTasks = selectedDataset ? ((selectedDataset as any).totalTasksCount ?? 0) : 0;
+  const maxLabellers = selectedDataset ? ((selectedDataset as any).maxLabellers ?? 1) : 1;
+  const totalWorkUnits = totalTasks * maxLabellers;
+  const submittedTasks = selectedDataset ? ((selectedDataset as any).submittedTasksCount ?? 0) : 0;
+  const verifiedTasks = selectedDataset ? ((selectedDataset as any).verifiedTasksCount ?? 0) : 0;
+  const completedTasks = submittedTasks + verifiedTasks;
+  const remainingTasks = Math.max(0, totalWorkUnits - completedTasks);
+  const percentCompleted = totalWorkUnits > 0 ? (completedTasks / totalWorkUnits) * 100 : 0;
+
   const registryStats = useMemo(() => {
     const visibleCount = filteredDatasets.length;
     const liveCount = filteredDatasets.filter((d) => d.isPublished).length;
@@ -590,10 +599,27 @@ const DatasetAdminPage = () => {
                     <QuickStat label="Labelling" value={(selectedDataset as any).labellingMethod?.toUpperCase() || "N/A"} />
                     <QuickStat label="Content" value={(selectedDataset as any).contentType?.toUpperCase() || "N/A"} />
                     <QuickStat label="Payment" value={selectedDataset.paidAt ? `Settled (${new Date(selectedDataset.paidAt).toLocaleDateString()})` : "Awaiting_Payment"} />
-                    <QuickStat label="Total Tasks" value={String((selectedDataset as any).totalTasksCount ?? 0)} />
-                    <QuickStat label="Verified Tasks" value={String((selectedDataset as any).verifiedTasksCount ?? 0)} />
+                    <QuickStat label="Total Tasks" value={String(totalTasks)} />
+                    <QuickStat label="Submitted Tasks" value={String(submittedTasks)} />
+                    <QuickStat label="Verified Tasks" value={String(verifiedTasks)} />
+                    <QuickStat label="Progress %" value={`${percentCompleted.toFixed(1)}%`} />
+                    <QuickStat label="Remaining Work" value={remainingTasks.toLocaleString()} />
                     <QuickStat label="Consensus IoU" value={(selectedDataset as any).consensusIoU !== undefined && (selectedDataset as any).consensusIoU !== null ? `${((selectedDataset as any).consensusIoU * 100).toFixed(2)}%` : "N/A"} />
                     <QuickStat label="Consensus Status" value={(selectedDataset as any).consensusIoU !== undefined && (selectedDataset as any).consensusIoU !== null ? "Evaluated" : "Unevaluated"} />
+                  </div>
+
+                  {/* Beautiful Sleek Progress Bar */}
+                  <div className="space-y-2 mt-4">
+                    <div className="flex justify-between items-center text-[8px] font-mono uppercase tracking-widest text-zinc-500">
+                      <span>Overall Progress</span>
+                      <span className="text-indigo-400 font-bold">{percentCompleted.toFixed(1)}% Completed</span>
+                    </div>
+                    <div className="h-2 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-900">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${percentCompleted}%` }}
+                      />
+                    </div>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">

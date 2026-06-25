@@ -249,15 +249,15 @@ self.onmessage = async (e: MessageEvent) => {
     // ── INIT ──────────────────────────────────────────────────────────────────
     if (type === "INIT") {
       if (!session) {
-        console.log("[SAM2 Worker] Loading ONNX model (WebGPU build)...");
-        const t0 = performance.now();
-
         // Primary: WebGPU — requires 'onnxruntime-web/webgpu' import and Chrome 113+
         // Fallback: wasm with numThreads=1 (no SharedArrayBuffer needed, ~2-5s)
         try {
+          console.log("[SAM2 Worker] Loading ONNX model (WebGPU build)...");
+          const t0 = performance.now();
           session = await ort.InferenceSession.create("/models/sam2_hiera_tiny.onnx", {
             executionProviders: ["webgpu"],
-            graphOptimizationLevel: "all",
+            graphOptimizationLevel: "disabled", // Disabled to prevent shader compilation freezes on Windows
+            enableMemPattern: false,
           });
           console.log(`[SAM2 Worker] ✅ WebGPU session ready in ${(performance.now() - t0).toFixed(0)}ms`);
         } catch (gpuErr) {

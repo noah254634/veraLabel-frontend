@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Wallet, TrendingUp, Clock, ArrowUpRight, 
   ArrowDownLeft, History, ShieldCheck, Zap,
@@ -10,12 +10,48 @@ import { ProgressBar } from '../components/ProgressBar';
 export const WalletPage = () => {
   const { 
     balance, totalEarned, pendingPayment, 
-    transactions, fetchEarnings, requestPayout 
+    transactions, fetchEarnings, requestPayout, requestWithdrawalOTP, loading 
   } = useWalletStore();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
+  const [otpStep, setOtpStep] = useState<'request' | 'verify'>('request');
+  const [otp, setOtp] = useState('');
 
   useEffect(() => {
     fetchEarnings();
   }, [fetchEarnings]);
+
+  const handleWithdrawalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneNumber || !withdrawAmount || Number(withdrawAmount) <= 0 || Number(withdrawAmount) > balance) return;
+    
+    if (otpStep === 'request') {
+      const success = await requestWithdrawalOTP(Number(withdrawAmount));
+      if (success) {
+        setOtpStep('verify');
+      }
+    } else {
+      if (!otp || otp.length < 6) return;
+      try {
+        await requestPayout(Number(withdrawAmount), phoneNumber, otp);
+        setIsModalOpen(false);
+        setPhoneNumber('');
+        setWithdrawAmount('');
+        setOtpStep('request');
+        setOtp('');
+      } catch (err) {
+        // Error handled in store, keep modal open
+      }
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setOtpStep('request');
+    setOtp('');
+  };
 
   return (
     <div className="w-full space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -63,7 +99,7 @@ export const WalletPage = () => {
 
               <div className="flex flex-col gap-4 w-full md:w-auto relative z-10">
                  <button 
-                   onClick={() => requestPayout(balance, 'M-Pesa')}
+                   onClick={() => { setWithdrawAmount(balance); setIsModalOpen(true); }}
                    disabled={balance <= 0}
                    className="px-10 py-5 bg-white text-black font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-indigo-50 transition-all shadow-2xl shadow-white/5 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                  >
@@ -176,6 +212,122 @@ export const WalletPage = () => {
             </p>
          </div>
       </footer>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#050505] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-emerald-500"></div>
+            <div className="p-8 space-y-6">
+              
+              {otpStep === 'request' ? (
+                <>
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-bold text-white tracking-tighter">M-Pesa Withdrawal</h2>
+                    <p className="text-xs text-zinc-400 font-mono">Transfer funds directly to your mobile wallet.</p>
+                  </div>
+
+                  <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Amount (USD)</label>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max={balance} 
+                        step="0.01"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-indigo-500 transition-colors"
+                        placeholder={`Max: $${balance.toFixed(2)}`}
+                        required
+                      />
+                      <p className="text-[9px] text-zinc-600 font-mono text-right">Approx: {Number(withdrawAmount || 0) * 130} KES</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">M-Pesa Number</label>
+                      <input 
+                        type="tel" 
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-emerald-500 transition-colors"
+                        placeholder="e.g. 254700000000"
+                        required
+                      />
+                      <p className="text-[9px] text-amber-500/80 font-mono">Ensure the number is registered with Safaricom M-Pesa.</p>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <button 
+                        type="button"
+                        onClick={closeModal}
+                        className="flex-1 px-4 py-3 bg-zinc-900 text-white border border-zinc-800 text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        disabled={loading || !phoneNumber || !withdrawAmount || Number(withdrawAmount) > balance || Number(withdrawAmount) <= 0}
+                        className="flex-1 px-4 py-3 bg-white text-black text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {loading && otpStep === 'request' ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                            Sending...
+                          </>
+                        ) : 'Send OTP'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-bold text-emerald-500 tracking-tighter">Security Verification</h2>
+                    <p className="text-xs text-zinc-400 font-mono">Enter the 6-digit authorization code sent to your email to verify this withdrawal.</p>
+                  </div>
+
+                  <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Authorization Code</label>
+                      <input 
+                        type="text" 
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-4 text-white font-mono text-center tracking-[1em] text-2xl focus:outline-none focus:border-emerald-500 transition-colors"
+                        placeholder="••••••"
+                        maxLength={6}
+                        required
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <button 
+                        type="button"
+                        onClick={closeModal}
+                        className="flex-1 px-4 py-3 bg-zinc-900 text-white border border-zinc-800 text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit"
+                        disabled={loading || !otp || otp.length < 6}
+                        className="flex-1 px-4 py-3 bg-emerald-500 text-black text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {loading && otpStep === 'verify' ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                            Verifying...
+                          </>
+                        ) : 'Verify & Withdraw'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

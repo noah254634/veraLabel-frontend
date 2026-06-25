@@ -21,7 +21,8 @@ interface WalletState {
   loading: boolean;
   
   fetchEarnings: () => Promise<void>;
-  requestPayout: (amount: number, method: string) => Promise<void>;
+  requestWithdrawalOTP: (amount: number) => Promise<boolean>;
+  requestPayout: (amount: number, phoneNumber: string, otp: string) => Promise<void>;
 }
 
 export const useWalletStore = create<WalletState>((set, get) => ({
@@ -43,12 +44,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         totalEarned: data.totalEarned || 0,
         pendingPayment: data.pendingPayment || 0,
         lastPayoutDate: data.lastPayoutDate || null,
-        // Mocking transactions for now until we have a real transactions model
-        transactions: [
-           { id: '1', type: 'earning', amount: 4.20, status: 'completed', date: new Date().toISOString(), method: 'Batch_Settlement', reference: 'B-69FA-01' },
-           { id: '2', type: 'payout', amount: 50.00, status: 'completed', date: new Date(Date.now() - 86400000).toISOString(), method: 'M-Pesa', reference: 'TR-99812' },
-           { id: '3', type: 'earning', amount: 12.50, status: 'pending', date: new Date(Date.now() - 172800000).toISOString(), method: 'Batch_Settlement', reference: 'B-772A-04' },
-        ]
+        transactions: data.transactions || []
       });
     } catch (error) {
       console.error("Failed to fetch earnings", error);
@@ -57,15 +53,29 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }
   },
 
-  requestPayout: async (_amount, _method) => {
+  requestWithdrawalOTP: async (amount: number) => {
     try {
       set({ loading: true });
-      // This endpoint would be implemented next
-      // await api.post('/labeller/request-payout', { amount, method });
-      toast.success("Payout request submitted to terminal.");
+      await api.post('/payments/withdraw/otp', { amount });
+      toast.success("OTP sent to your email.");
+      return true;
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to send OTP.");
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  requestPayout: async (amount: number, phoneNumber: string, otp: string) => {
+    try {
+      set({ loading: true });
+      await api.post('/payments/withdraw', { amount, phoneNumber, otp });
+      toast.success("Withdrawal request submitted successfully.");
       await get().fetchEarnings();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Payout request failed.");
+      toast.error(error.response?.data?.message || "Withdrawal request failed.");
+      throw error; // Rethrow to let the UI handle the failure state if needed
     } finally {
       set({ loading: false });
     }

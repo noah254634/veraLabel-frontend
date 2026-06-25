@@ -76,6 +76,7 @@ export const buyerService = {
     buyerAnswers?: any[];
     intent?: string;
     timelineDays?: number;
+    maxLabellers?: number;
   }): Promise<any> => {
     const response = await api.post("/datasets/createDataset", {
       ...requestData,
