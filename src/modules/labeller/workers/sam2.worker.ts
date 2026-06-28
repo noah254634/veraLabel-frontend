@@ -1,5 +1,3 @@
-// ⚡ MUST import the webgpu sub-path — regular 'onnxruntime-web' does NOT include
-// the WebGPU backend shaders. This is the same approach Meta's SAM2 demo uses.
 import * as ort from "onnxruntime-web/webgpu";
 import JSZip from "jszip";
 import { contours } from "d3-contour";
@@ -152,7 +150,7 @@ export async function clearDB(): Promise<void> {
 async function getEmbedding(embeddingUrl: string): Promise<EmbeddingTensors> {
   // Use the pathname as a unique key to ignore rotating AWS signature query params
   const cacheKey = new URL(embeddingUrl).pathname;
-  
+
   if (embeddingCache[cacheKey]) return embeddingCache[cacheKey];
   if (cacheKey in fetchingPromises) return fetchingPromises[cacheKey] as Promise<EmbeddingTensors>;
 
@@ -168,7 +166,7 @@ async function getEmbedding(embeddingUrl: string): Promise<EmbeddingTensors> {
       if (!res.ok) throw new Error(`Embedding fetch failed: ${res.status} ${res.statusText}`);
       arrayBuffer = await res.arrayBuffer();
       console.log(`[SAM2 Worker] Fetched ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB in ${(performance.now() - t0).toFixed(0)}ms`);
-      
+
       // Fire-and-forget save to IndexedDB
       saveToDB(cacheKey, arrayBuffer).catch(e => console.error("IDB save error:", e));
     }

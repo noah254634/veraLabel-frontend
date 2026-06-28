@@ -11,6 +11,7 @@ import { useTaskStore } from '../store/taskStore';
 import { useLabelerStore } from '../store/labelerStore';
 import { UnifiedRLHFStage } from './modes/RLHF';
 import { ImageStage } from './modes/ImageStage';
+import { VideoStage } from './modes/VideoStage';
 import { TextStage } from './modes/TextStage';
 import { AudioStage } from './modes/AudioStage';
 import { isRlhfTask, resolveContentType, resolveLabellingMethod } from '../../../shared/utils/taskContext';
@@ -169,6 +170,24 @@ const useLiveTimer = (expiresAt?: string | Date) => {
 let globalSam2Worker: Worker | null = null;
 let globalWorkerCreating = false;
 
+export const initGlobalWorker = (): Worker | null => {
+  if (typeof window === 'undefined') return null;
+  if (!globalSam2Worker && !globalWorkerCreating) {
+    globalWorkerCreating = true;
+    globalSam2Worker = new Worker(new URL('../workers/sam2.worker.ts', import.meta.url), { type: 'module' });
+    globalSam2Worker.postMessage({ type: 'INIT' });
+  }
+  return globalSam2Worker;
+};
+
+export const terminateGlobalWorker = () => {
+  if (globalSam2Worker) {
+    globalSam2Worker.terminate();
+    globalSam2Worker = null;
+  }
+  globalWorkerCreating = false;
+};
+
 // Main Workbench
 export const CustomWorkbench = () => {
   const {
@@ -256,10 +275,7 @@ export const CustomWorkbench = () => {
       if (imageTasks.length > 0) {
         let workerToUse = globalSam2Worker;
         if (!workerToUse && !globalWorkerCreating) {
-          globalWorkerCreating = true;
-          workerToUse = new Worker(new URL('../workers/sam2.worker.ts', import.meta.url), { type: 'module' });
-          workerToUse.postMessage({ type: 'INIT' });
-          globalSam2Worker = workerToUse;
+          workerToUse = initGlobalWorker();
           setSam2Worker(workerToUse);
         } else if (workerToUse && !sam2Worker) {
           setSam2Worker(workerToUse);
@@ -610,7 +626,7 @@ export const CustomWorkbench = () => {
             </div>
 
             <button
-              onClick={() => window.location.href = '/labeller/work'}
+              onClick={() => navigate('/labeller/work')}
               className="w-full py-4 bg-white text-black text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-indigo-50 transition-all active:scale-95 shadow-xl shadow-white/5"
             >
               Initialize_Next_Node
@@ -631,7 +647,7 @@ export const CustomWorkbench = () => {
             All active nodes are currently occupied. Check the global mission board for new available data streams.
           </p>
           <button
-            onClick={() => window.location.href = '/labeller/work'}
+            onClick={() => navigate('/labeller/work')}
             className="px-8 py-3 bg-white text-black text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-50 transition-all"
           >
             Return_To_Registry
@@ -897,7 +913,23 @@ export const CustomWorkbench = () => {
                 setTieJustification={setTieJustification}
               />
             ) : labellingMethod === 'classification' || labellingMethod === 'annotation' || labellingMethod === 'transcription' ? (
-              contentType === 'image' || contentType === 'video' ? (
+              contentType === 'video' ? (
+                <VideoStage
+                  task={{
+                    ...currentTask,
+                    datasetName: activeBatch?.datasetId?.name || activeBatch?.datasetName || activeBatch?.datasetId?.title || (activeBatch as any)?.name,
+                    domain: activeBatch?.datasetId?.domain || activeBatch?.domain || (activeBatch as any)?.domain,
+                    categories: imageAllowedLabels.length > 0
+                      ? imageAllowedLabels
+                      : protocol?.rubrics?.map((r: any) => r.tag) || []
+                  } as any}
+                  onBoxesChange={setBoundingBoxes}
+                  onPolygonsChange={setPolygons}
+                  onDecodingChange={setIsDecoding}
+                  shortcutsDisabled={showFlagModal || isFlagging}
+                  worker={sam2Worker || undefined}
+                />
+              ) : contentType === 'image' ? (
                 <ImageStage
                   ref={imageStageRef}
                   task={{
@@ -936,9 +968,25 @@ export const CustomWorkbench = () => {
                 onLabelSelect={setClassificationLabel}
                 selectedLabel={classificationLabel}
               />
-            ) : contentType === 'image' || contentType === 'video' ? (
+            ) : contentType === 'image' ? (
               <ImageStage
                 ref={imageStageRef}
+                task={{
+                  ...currentTask,
+                  datasetName: activeBatch?.datasetId?.name || activeBatch?.datasetName || activeBatch?.datasetId?.title || (activeBatch as any)?.name,
+                  domain: activeBatch?.datasetId?.domain || activeBatch?.domain || (activeBatch as any)?.domain,
+                  categories: imageAllowedLabels.length > 0
+                    ? imageAllowedLabels
+                    : protocol?.rubrics?.map((r: any) => r.tag) || []
+                } as any}
+                onBoxesChange={setBoundingBoxes}
+                onPolygonsChange={setPolygons}
+                onDecodingChange={setIsDecoding}
+                shortcutsDisabled={showFlagModal || isFlagging}
+                worker={sam2Worker || undefined}
+              />
+            ) : contentType === 'video' ? (
+              <VideoStage
                 task={{
                   ...currentTask,
                   datasetName: activeBatch?.datasetId?.name || activeBatch?.datasetName || activeBatch?.datasetId?.title || (activeBatch as any)?.name,

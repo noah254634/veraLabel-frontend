@@ -2,6 +2,8 @@ import { useAuthStore } from "./useAuthstore";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
+import { terminateGlobalWorker } from "../labeller/pages/Workbench";
+
 const LogoutButton = () => {
     const navigate = useNavigate();
   // 1. Hooks must be at the top level of the component
@@ -10,6 +12,7 @@ const LogoutButton = () => {
   // 2. Define the click handler correctly
   const handleLogout = async () => {
     try {
+      terminateGlobalWorker();
       await logout();
       navigate("/login", { replace: true });
       toast.success("Logout successful");

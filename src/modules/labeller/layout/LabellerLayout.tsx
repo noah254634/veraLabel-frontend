@@ -6,6 +6,7 @@ import { useAuthStore } from "../../auth/useAuthstore";
 import { OnboardingEnforcer } from "../onboarding/Onboarding";
 import { AppLayout } from "../../../shared/components/AppLayout";
 import { useLabelerStore } from "../store/labelerStore";
+import { initGlobalWorker } from "../pages/Workbench";
 
 export const LabellerLayout = ({
   children,
@@ -25,6 +26,7 @@ export const LabellerLayout = ({
   useEffect(() => {
     if (role === "labeler" || role === "labeller") {
       void getLabeller();
+      initGlobalWorker();
     }
   }, [getLabeller, role]);
 

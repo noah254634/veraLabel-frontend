@@ -59,6 +59,14 @@ const REJECTION_REASONS = [
   'Other'
 ];
 
+const LABEL_COLORS = [
+  'rgba(99,102,241,0.7)',
+  'rgba(16,185,129,0.7)',
+  'rgba(245,158,11,0.7)',
+  'rgba(239,68,68,0.7)',
+  'rgba(168,85,247,0.7)',
+];
+
 export const AuditReviewV2 = () => {
   const [groupedTasks, setGroupedTasks] = useState<GroupedTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,12 +76,17 @@ export const AuditReviewV2 = () => {
   // Active review state
   const [taskPayload, setTaskPayload] = useState<TaskPayload | null>(null);
   const [fetchingDetail, setFetchingDetail] = useState(false);
+  const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number; naturalWidth: number; naturalHeight: number } | null>(null);
   
   // Rejection modal state
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectNote, setRejectNote] = useState('');
   const [submittingAction, setSubmittingAction] = useState(false);
+
+  useEffect(() => {
+    setImgDimensions(null);
+  }, [taskPayload, activeSubmissionIndex]);
 
   // Fetch pending review tasks and group them
   const fetchPendingQueue = async () => {
@@ -411,6 +424,15 @@ export const AuditReviewV2 = () => {
                             src={taskPayload.taskObject.imageUrl || taskPayload.taskObject.image || taskPayload.taskObject.url} 
                             alt="Verification Asset" 
                             className="max-h-[500px] object-contain rounded-sm"
+                            onLoad={(e) => {
+                              const img = e.currentTarget;
+                              setImgDimensions({
+                                width: img.clientWidth,
+                                height: img.clientHeight,
+                                naturalWidth: img.naturalWidth,
+                                naturalHeight: img.naturalHeight
+                              });
+                            }}
                           />
                           {taskPayload.submissionObject?.boundingBoxes && 
                            Array.isArray(taskPayload.submissionObject.boundingBoxes) && 
@@ -430,6 +452,35 @@ export const AuditReviewV2 = () => {
                               </span>
                             </div>
                           ))}
+                          {imgDimensions && taskPayload.submissionObject?.polygons && 
+                           Array.isArray(taskPayload.submissionObject.polygons) && (
+                            <svg
+                              className="absolute top-0 left-0 pointer-events-none"
+                              style={{
+                                width: imgDimensions.width,
+                                height: imgDimensions.height,
+                              }}
+                              viewBox={`0 0 ${imgDimensions.naturalWidth} ${imgDimensions.naturalHeight}`}
+                              preserveAspectRatio="none"
+                            >
+                              {taskPayload.submissionObject.polygons.map((poly: any, idx: number) => {
+                                if (!poly.polygon || !Array.isArray(poly.polygon)) return null;
+                                const pointsStr = poly.polygon.map(([x, y]: [number, number]) => `${x},${y}`).join(' ');
+                                const color = LABEL_COLORS[idx % LABEL_COLORS.length];
+                                return (
+                                  <polygon
+                                    key={idx}
+                                    points={pointsStr}
+                                    fill={color.replace('0.7', '0.35')}
+                                    stroke={color.replace('0.7', '1')}
+                                    strokeWidth="2"
+                                    strokeLinejoin="round"
+                                    strokeLinecap="round"
+                                  />
+                                );
+                              })}
+                            </svg>
+                          )}
                         </div>
                       ) : (
                         <p className="text-[10px] text-rose-400">No Image URL in metadata.</p>

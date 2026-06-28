@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   isAuthenticated: false,
   loading: false,
-  isRestoringSession: false,
+  isRestoringSession: typeof window !== "undefined" && localStorage.getItem("isAuthenticated") === "true",
   error: null,
   checkAuth: async () => {
     try {
