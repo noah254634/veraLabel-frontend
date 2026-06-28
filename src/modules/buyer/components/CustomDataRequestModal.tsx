@@ -454,7 +454,7 @@ const CustomDataRequestModal = ({
       if (formData.uploadedFile) {
         setSubmissionStep("uploading_file");
         toast.loading("Uploading file to cloud storage...");
-        await uploadFileToS3(formData.uploadedFile, uploadUrl);
+        await uploadFileToS3(formData.uploadedFile, uploadUrl, uploadMime);
       }
 
       // Create dataset request

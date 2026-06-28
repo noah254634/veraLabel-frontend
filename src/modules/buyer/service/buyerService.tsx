@@ -11,17 +11,21 @@ export const buyerService = {
     });
     return response.data?.data || response.data;
   },
-  uploadFile: async (file: File, uploadUrl: string): Promise<void> => {
+  uploadFile: async (file: File, uploadUrl: string, contentType?: string): Promise<void> => {
     if (!file) {
       throw new Error("Please attach a file before upload");
     }
-    await fetch(uploadUrl, {
+    const response = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
-        "Content-Type": file.type,
+        "Content-Type": contentType || file.type || "application/octet-stream",
       },
       body: file,
     });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(`Cloud storage upload failed (${response.status}): ${errorText || response.statusText}`);
+    }
   },
   confirmUpload: async (r2Key: string, datasetId: string, dataType: string): Promise<any> => {
     const response = await api.post("/datasets/confirmUpload", {

@@ -81,7 +81,7 @@ type BuyerStore = {
   searchByPrice:(price:number)=>Promise<Dataset[]|void>
   checkOut:(datasetId:string,isExclusive:boolean)=>Promise<string>
   generateUploadUrl:(fileType:string)=>Promise<{uploadUrl:string; key:string}>
-  uploadFileToS3:(file:File, uploadUrl:string)=>Promise<void>
+  uploadFileToS3:(file:File, uploadUrl:string, contentType?:string)=>Promise<void>
   confirmUpload:(r2Key:string, datasetId:string, dataType:string)=>Promise<any>
   datasetRequest:(request:{name: string; domain:string; specifications:string; volume:string; format:string; budget:number | string; fileUrl:string; timeline:string; qualityMetrics:string; labellingMethod:"rlhf" | "classification" | "annotation" | "transcription"; contentType:"text" | "audio" | "video" | "image" | "code" | "document"; instructionId?: string; buyerAnswers?: any[]; intent?: string; timelineDays?: number; maxLabellers?: number})=>Promise<any>
   finalizePayment:(reference:string)=>Promise<any>
@@ -163,10 +163,10 @@ const useBuyerStore = create<BuyerStore>((set)=>({
       throw err
     }
   },
-  uploadFileToS3:async(file, uploadUrl)=>{
+  uploadFileToS3:async(file, uploadUrl, contentType)=>{
     set({loading:true})
     try{
-      await buyerService.uploadFile(file, uploadUrl)
+      await buyerService.uploadFile(file, uploadUrl, contentType)
       toast.success("File uploaded successfully");
       set({loading:false})
     }catch(err){
