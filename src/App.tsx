@@ -37,12 +37,22 @@ import ForgotPassword from "./modules/auth/ForgotPassword.js";
 import ReviewerRoutes from "./modules/reviewer/routes/reviewerRoutes";
 import { Pricing } from "./modules/landingPage/FooterComponents/Pricing";
 export const App = () => {
-  const { isRestoringSession, syncAuth } = useAuthStore();
+  const { isRestoringSession, syncAuth, isAuthenticated, user } = useAuthStore();
   useEffect(() => {
     if (localStorage.getItem("isAuthenticated") === "true") {
       syncAuth();
     }
   }, [syncAuth]);
+
+  useEffect(() => {
+    if (isAuthenticated && (user?.role === "labeler" || user?.role === "labeller")) {
+      import("./modules/labeller/pages/Workbench").then(({ initGlobalWorker }) => {
+        initGlobalWorker();
+      }).catch(err => {
+        console.error("Failed to pre-initialize SAM2 worker:", err);
+      });
+    }
+  }, [isAuthenticated, user]);
 
   useFCM();
 

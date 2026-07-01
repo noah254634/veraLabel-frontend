@@ -247,12 +247,20 @@ self.onmessage = async (e: MessageEvent) => {
     // ── INIT ──────────────────────────────────────────────────────────────────
     if (type === "INIT") {
       if (!session) {
+        // Resolve model URL dynamically relative to the worker script location
+        // in production: /assets/sam2.worker-xxxxx.js -> go up one level to get the base URL
+        // in development: /src/modules/labeller/workers/sam2.worker.ts -> use origin root
+        const baseUrl = self.location.href.includes("/assets/")
+          ? new URL("../", self.location.href).href
+          : self.location.origin + "/";
+        const modelUrl = new URL("models/sam2_hiera_tiny.onnx", baseUrl).href;
+
         // Primary: WebGPU — requires 'onnxruntime-web/webgpu' import and Chrome 113+
         // Fallback: wasm with numThreads=1 (no SharedArrayBuffer needed, ~2-5s)
         try {
-          console.log("[SAM2 Worker] Loading ONNX model (WebGPU build)...");
+          console.log(`[SAM2 Worker] Loading ONNX model (WebGPU build) from: ${modelUrl}`);
           const t0 = performance.now();
-          session = await ort.InferenceSession.create("/models/sam2_hiera_tiny.onnx", {
+          session = await ort.InferenceSession.create(modelUrl, {
             executionProviders: ["webgpu"],
             graphOptimizationLevel: "disabled", // Disabled to prevent shader compilation freezes on Windows
             enableMemPattern: false,
@@ -261,7 +269,7 @@ self.onmessage = async (e: MessageEvent) => {
         } catch (gpuErr) {
           console.warn("[SAM2 Worker] WebGPU failed, using single-threaded WASM:", (gpuErr as Error).message);
           const t1 = performance.now();
-          session = await ort.InferenceSession.create("/models/sam2_hiera_tiny.onnx", {
+          session = await ort.InferenceSession.create(modelUrl, {
             executionProviders: ["wasm"],
             graphOptimizationLevel: "all",
           });

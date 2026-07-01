@@ -131,14 +131,18 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, onDecodingCh
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
-    if (propWorker) {
-      workerRef.current = propWorker;
-      return;
-    }
+    let worker: Worker;
+    let isLocal = false;
 
-    const worker = new Worker(new URL('../../workers/sam2.worker.ts', import.meta.url), { type: 'module' });
+    if (propWorker) {
+      worker = propWorker;
+    } else {
+      worker = new Worker(new URL('../../workers/sam2.worker.ts', import.meta.url), { type: 'module' });
+      isLocal = true;
+      worker.postMessage({ type: 'INIT' });
+    }
     
-    worker.addEventListener("message", (e) => {
+    const handleMessage = (e: MessageEvent) => {
       const { type, error } = e.data;
       if (type === "ERROR") {
         console.error("SAM 2 Worker Error:", error);
@@ -150,13 +154,16 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, onDecodingCh
       } else if (type === "WARMUP_COMPLETE") {
         setIsWarmingUp(false);
       }
-    });
+    };
 
-    worker.postMessage({ type: 'INIT' });
+    worker.addEventListener("message", handleMessage);
     workerRef.current = worker;
     
     return () => {
-      worker.terminate();
+      worker.removeEventListener("message", handleMessage);
+      if (isLocal) {
+        worker.terminate();
+      }
     };
   }, [propWorker]);
 
@@ -778,12 +785,14 @@ export const ImageStage = ({ task, onBoxesChange, onPolygonsChange, onDecodingCh
   return (
     <div className={`relative flex flex-col bg-[#050505] ${isFullscreen ? 'fixed inset-0 z-[400]' : 'h-full w-full'}`}>
       {isWarmingUp && (
-        <div className="absolute inset-0 z-[500] flex items-center justify-center bg-black/80 backdrop-blur-md">
+        <div className="absolute inset-0 z-[500] flex items-center justify-center bg-[#050505]">
           <div className="flex flex-col items-center gap-4 bg-black/90 p-8 rounded-2xl border border-rose-500/30 shadow-2xl shadow-rose-500/20">
             <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-rose-500 animate-spin" />
-            <div className="text-center">
-              <h3 className="text-rose-400 font-mono text-sm tracking-widest uppercase mb-1">Compiling WebGPU</h3>
-              <p className="text-zinc-500 text-xs max-w-[220px]">This one-time setup may take a minute. Please wait.</p>
+            <div className="text-center space-y-2">
+              <h3 className="text-indigo-400 font-mono text-xs tracking-[0.2em] uppercase font-bold">Compiling the WebGPU Pipeline... ⚡</h3>
+              <p className="text-zinc-500 text-[10px] font-mono leading-relaxed max-w-[320px] mx-auto">
+                This is a one-time initialization that optimizes performance. Once complete, subsequent operations will be nearly instantaneous unless the page is refreshed.
+              </p>
             </div>
           </div>
         </div>
