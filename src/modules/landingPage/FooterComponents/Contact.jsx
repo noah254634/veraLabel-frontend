@@ -1,7 +1,42 @@
-import React from 'react';
-import { Mail, MessageSquare, MapPin, Globe, Terminal, ArrowUpRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, MessageSquare, MapPin, Globe, Terminal, ArrowUpRight, CheckCircle, RefreshCw } from 'lucide-react';
 
 export const Contact = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name || !email || !message) {
+      alert("Please fill in all protocol parameters (Identity, Endpoint, and Payload) before transmitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    // Simulate premium validation & packaging telemetry before launching email client
+    setTimeout(() => {
+      const subject = `VeraLabel Inquiry: ${name}`;
+      const body = `Identity Name: ${name}\nCommunication Endpoint: ${email}\n\nMessage Payload:\n${message}`;
+      const mailtoUrl = `mailto:support@veralabel.dev?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      
+      window.location.href = mailtoUrl;
+      
+      setIsSubmitting(false);
+      setIsSuccess(true);
+    }, 800);
+  };
+
+  const handleReset = () => {
+    setName('');
+    setEmail('');
+    setMessage('');
+    setIsSuccess(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-500 font-sans selection:bg-blue-500/30">
       <div className="h-1 w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
@@ -33,46 +68,88 @@ export const Contact = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 border-t border-zinc-900 pt-16">
           
           <div className="lg:col-span-7 space-y-12">
-            <form className="space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="group space-y-2">
-                  <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 group-focus-within:text-blue-500 transition-colors italic">
-                    // Identity_Name
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="E.g. Dr. Aris" 
-                    className="w-full bg-transparent border-b border-zinc-900 py-3 text-sm outline-none focus:border-blue-500 transition-all placeholder:text-zinc-800 text-zinc-200 font-light"
-                  />
+            {isSuccess ? (
+              <div className="bg-zinc-950/40 border border-emerald-500/20 p-8 rounded-sm animate-in fade-in zoom-in duration-500">
+                <div className="flex items-center gap-3 text-emerald-500 mb-4">
+                  <CheckCircle className="w-6 h-6 shrink-0" />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] font-bold">
+                    Transmission_Packet_Prepared
+                  </span>
                 </div>
-                <div className="group space-y-2">
-                  <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 group-focus-within:text-blue-500 transition-colors italic">
-                    // Communication_Endpoint
-                  </label>
-                  <input 
-                    type="email" 
-                    placeholder="E.g. lead@lab.ai" 
-                    className="w-full bg-transparent border-b border-zinc-900 py-3 text-sm outline-none focus:border-blue-500 transition-all placeholder:text-zinc-800 text-zinc-200 font-light"
-                  />
+                <h3 className="text-xl font-bold text-white tracking-tight mb-3">Protocol Initialized</h3>
+                <p className="text-xs text-zinc-400 font-light leading-relaxed mb-8">
+                  Your message has been packaged. Your local email client should now be open to dispatch this transmission directly to our desk at <strong className="text-white">support@veralabel.dev</strong>. If it didn't open, please click the button below.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <a 
+                    href={`mailto:support@veralabel.dev?subject=VeraLabel%20Inquiry%3A%20${encodeURIComponent(name)}&body=${encodeURIComponent(`Identity Name: ${name}\nCommunication Endpoint: ${email}\n\nMessage Payload:\n${message}`)}`}
+                    className="px-6 py-3.5 bg-white text-black font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-100 transition-all text-center"
+                  >
+                    Open Mail Client Manually
+                  </a>
+                  <button 
+                    onClick={handleReset}
+                    className="flex items-center justify-center gap-2 px-6 py-3.5 border border-zinc-800 text-zinc-400 hover:text-white transition-all text-[10px] font-mono uppercase tracking-widest"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Re-Transmit Form
+                  </button>
                 </div>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="group space-y-2">
+                    <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 group-focus-within:text-blue-500 transition-colors italic">
+                      // Identity_Name
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="E.g. Dr. Aris" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-transparent border-b border-zinc-900 py-3 text-sm outline-none focus:border-blue-500 transition-all placeholder:text-zinc-800 text-zinc-200 font-light"
+                    />
+                  </div>
+                  <div className="group space-y-2">
+                    <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 group-focus-within:text-blue-500 transition-colors italic">
+                      // Email_Address
+                    </label>
+                    <input 
+                      type="email" 
+                      required
+                      placeholder="E.g. lead@lab.ai" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-transparent border-b border-zinc-900 py-3 text-sm outline-none focus:border-blue-500 transition-all placeholder:text-zinc-800 text-zinc-200 font-light"
+                    />
+                  </div>
+                </div>
 
-              <div className="group space-y-2">
-                <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 group-focus-within:text-blue-500 transition-colors italic">
-                  // Message_Payload
-                </label>
-                <textarea 
-                  rows="4" 
-                  placeholder="Specify model requirements, data modalities, or partnership details..." 
-                  className="w-full bg-transparent border-b border-zinc-900 py-3 text-sm outline-none focus:border-blue-500 transition-all placeholder:text-zinc-800 text-zinc-200 font-light resize-none"
-                />
-              </div>
+                <div className="group space-y-2">
+                  <label className="text-[10px] font-mono uppercase tracking-widest text-zinc-700 group-focus-within:text-blue-500 transition-colors italic">
+                    // Message_Payload
+                  </label>
+                  <textarea 
+                    rows="4" 
+                    required
+                    placeholder="Specify model requirements, data modalities, or partnership details..." 
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="w-full bg-transparent border-b border-zinc-900 py-3 text-sm outline-none focus:border-blue-500 transition-all placeholder:text-zinc-800 text-zinc-200 font-light resize-none"
+                  />
+                </div>
 
-              <button className="group relative flex items-center gap-4 px-10 py-4 bg-zinc-100 text-black font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-white transition-all">
-                Transmit Message
-                <Terminal size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            </form>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="group relative flex items-center gap-4 px-10 py-4 bg-zinc-100 text-black font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-white transition-all disabled:opacity-50"
+                >
+                  {isSubmitting ? "Packaging Transmission..." : "Transmit Message"}
+                  <Terminal size={14} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </form>
+            )}
           </div>
 
           <div className="lg:col-span-5 space-y-12">
@@ -89,10 +166,10 @@ export const Contact = () => {
             <div className="p-8 border border-zinc-900 space-y-6 bg-zinc-900/10">
               <h3 className="text-white font-medium text-lg">Direct Inquiries</h3>
               <div className="space-y-4">
-                <a href="mailto:ops@veralabel.ai" className="flex items-center justify-between group cursor-pointer border-b border-zinc-900 pb-4">
+                <a href="mailto:support@veralabel.dev" className="flex items-center justify-between group cursor-pointer border-b border-zinc-900 pb-4">
                   <div className="flex items-center gap-3">
                     <Mail size={14} className="text-zinc-700 group-hover:text-blue-500 transition-colors" />
-                    <span className="text-xs text-zinc-500 group-hover:text-zinc-200 transition-colors">ops@veralabel.ai</span>
+                    <span className="text-xs text-zinc-500 group-hover:text-zinc-200 transition-colors">support@veralabel.dev</span>
                   </div>
                   <ArrowUpRight size={12} className="text-zinc-800 group-hover:text-white" />
                 </a>

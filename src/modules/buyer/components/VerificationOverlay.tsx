@@ -115,7 +115,7 @@ export const VerificationOverlay: React.FC<VerificationOverlayProps> = ({ status
           </button>
         ) : (
           <div className="flex items-center gap-2 text-zinc-600 text-[10px] font-mono justify-center">
-            <HelpCircle size={12} /> Questions? Contact support@veralabel.com
+            <HelpCircle size={12} /> Questions? Contact support@veralabel.dev
           </div>
         )}
       </div>

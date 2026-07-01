@@ -35,6 +35,7 @@ import FAQPage from "./modules/landingPage/FooterComponents/FAQ.js";
 // @ts-ignore
 import ForgotPassword from "./modules/auth/ForgotPassword.js";
 import ReviewerRoutes from "./modules/reviewer/routes/reviewerRoutes";
+import { Pricing } from "./modules/landingPage/FooterComponents/Pricing";
 export const App = () => {
   const { isRestoringSession, syncAuth } = useAuthStore();
   useEffect(() => {
@@ -112,6 +113,7 @@ export const App = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/faq" element={<FAQPage />} />
+        <Route path="/pricing" element={<Pricing />} />
         
         <Route element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
