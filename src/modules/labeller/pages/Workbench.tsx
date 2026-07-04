@@ -4,7 +4,7 @@ import {
   MousePointer2, Type, Image as ImageIcon,
   Activity, CheckCircle2,
   Database, ShieldCheck, Clock, Flag, XCircle,
-  PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen, Menu
 } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';
 import { useTaskStore } from '../store/taskStore';
@@ -14,6 +14,7 @@ import { ImageStage } from './modes/ImageStage';
 import { VideoStage } from './modes/VideoStage';
 import { TextStage } from './modes/TextStage';
 import { AudioStage } from './modes/AudioStage';
+import { AudioCollectionStage } from './modes/AudioCollectionStage';
 import { isRlhfTask, resolveContentType, resolveLabellingMethod } from '../../../shared/utils/taskContext';
 import { validateImageAnnotation } from '../../../shared/utils/annotationValidation';
 import { ProtocolBriefing } from '../components/ProtocolBriefing';
@@ -224,7 +225,12 @@ export const CustomWorkbench = () => {
   const imageStageRef = useRef<any>(null);
   // Audio stage state
   const [transcriptionText, setTranscriptionText] = useState<string>('');
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // On mobile, default sidebar to closed so workbench takes full width
+  useEffect(() => {
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
 
   const timer = useLiveTimer(activeBatch?.expiresAt);
   const batchId = activeBatch?._id || activeBatch?.id;
@@ -328,6 +334,7 @@ export const CustomWorkbench = () => {
       setBoundingBoxes([]);
       setPolygons([]);
       setTranscriptionText('');
+      setAudioBlob(null);
     }
   }, [currentTask, fetchTaskPayload]);
 
@@ -395,9 +402,18 @@ export const CustomWorkbench = () => {
   const pricePerBatch = activeBatch?.pricePerBatch || 0;
   const taskReward = pricePerBatch > 0 && totalTasks > 0 ? (pricePerBatch / totalTasks) : 0.42;
 
+  const isCollection = activeBatch?.datasetId?.isCollection || (activeBatch as any)?.isCollection || false;
+
   const handleSubmit = async () => {
     if (isSubmitting || currentTask?.status === 'submitted') {
       return;
+    }
+
+    if (isCollection) {
+      if (!audioBlob) {
+        toast.error("MISSION_PROTOCOL: Voice recording required before committing transfer.");
+        return;
+      }
     }
 
     const scoringConfig = protocol?.scoringConfig;
@@ -407,18 +423,18 @@ export const CustomWorkbench = () => {
     const minLength = scoringConfig?.minLength || 20;
     const tieRequiresJustification = scoringConfig?.tieRequiresJustification !== false;
 
-    if (isPreferenceRequired && !selection) {
+    if (!isCollection && isPreferenceRequired && !selection) {
       toast.error("MISSION_PROTOCOL: Output preference selection required before asset transfer.");
       return;
     }
 
     // Tie justification check
-    if (selection === 'tie' && tieRequiresJustification && tieJustification.trim().length < 20) {
+    if (!isCollection && selection === 'tie' && tieRequiresJustification && tieJustification.trim().length < 20) {
       toast.error("MISSION_PROTOCOL: Tie justification must be at least 20 characters.");
       return;
     }
 
-    if (isScoringRequired) {
+    if (!isCollection && isScoringRequired) {
       const responses = currentTask?.responses || currentTask?.response || currentTask?.result?.responses || currentTask?.result?.response || currentTask?.data?.responses || currentTask?.data?.response || [];
       const normalizedCount = responses.length || 1;
       const dimensions = scoringConfig?.scoreDimensions || [];
@@ -431,13 +447,13 @@ export const CustomWorkbench = () => {
       }
     }
 
-    if (isRationaleRequired && rationale.trim().length < minLength) {
+    if (!isCollection && isRationaleRequired && rationale.trim().length < minLength) {
       toast.error(`MISSION_PROTOCOL: Linguistic rationale must be at least ${minLength} characters.`);
       return;
     }
 
     const requiresImageAnnotation = !showRlhfStage && (contentType === "image" || contentType === "video");
-    if (requiresImageAnnotation) {
+    if (!isCollection && requiresImageAnnotation) {
       if (boundingBoxes.length > 0 && polygons.length === 0) {
         if (imageStageRef.current) {
           imageStageRef.current.confirmBatchBoxes();
@@ -452,7 +468,7 @@ export const CustomWorkbench = () => {
     }
 
     // Audio: transcription must meet minimum length; classification must have a label
-    if (!showRlhfStage && contentType === 'audio') {
+    if (!isCollection && !showRlhfStage && contentType === 'audio') {
       if (labellingMethod === 'transcription' && transcriptionText.trim().length < 10) {
         toast.error('MISSION_PROTOCOL: Transcription must be at least 10 characters.');
         return;
@@ -483,23 +499,33 @@ export const CustomWorkbench = () => {
       submittedAt: new Date().toISOString()
     };
 
+    const submissionPayload = isCollection ? audioBlob : annotation;
+
     // Show brief success flash, then advance — storage fires in background
     setIsSubmitting(true);
     setSubmitSuccess(true);
 
+    // For collection tasks, show an explicit success toast
+    if (isCollection) {
+      toast.success('Recording submitted successfully!', { duration: 2500, icon: '🎙️' });
+    }
+
     // Fire-and-forget storage in background immediately
-    submitTask(taskId, annotation).catch(() => {
+    submitTask(taskId, submissionPayload).catch(() => {
       // Error toast already handled by store
     });
 
-    // Hold success state for 700ms so the labeller sees confirmation
-    await new Promise((r) => setTimeout(r, 700));
+    // Hold success state for 900ms so the labeller sees confirmation
+    await new Promise((r) => setTimeout(r, 900));
 
     setSelection(null);
     setBoundingBoxes([]);
     setPolygons([]);
     setTranscriptionText('');
     setClassificationLabel(null);
+    setAudioBlob(null);
+    setSubmitSuccess(false);
+    setIsSubmitting(false);
     if (activeTaskIndex < tasks.length - 1) {
       setActiveTaskIndex(prev => prev + 1);
     } else {
@@ -507,8 +533,6 @@ export const CustomWorkbench = () => {
         sam2Worker.postMessage({ type: 'CLEAR_CACHE' });
       }
     }
-    setSubmitSuccess(false);
-    setIsSubmitting(false);
   };
 
   useEffect(() => {
@@ -705,16 +729,24 @@ export const CustomWorkbench = () => {
           }}
         />
       )}
-      <header className="h-14 border-b border-zinc-900 bg-[#020203]/90 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-50">
-        <div className="flex items-center gap-6">
+      <header className="h-14 border-b border-zinc-900 bg-[#020203]/90 backdrop-blur-md flex items-center justify-between px-4 md:px-6 shrink-0 relative z-50">
+        <div className="flex items-center gap-3 md:gap-6">
+          {/* Mobile sidebar toggle */}
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            className="md:hidden flex items-center justify-center w-8 h-8 text-zinc-500 hover:text-white transition-colors"
+            title="Toggle sidebar"
+          >
+            <Menu size={18} />
+          </button>
           <button
             onClick={() => navigate('/labeller/work')}
             className="flex items-center gap-2 text-[10px] font-mono font-bold text-zinc-500 hover:text-white transition-all uppercase tracking-widest"
           >
-            <X size={12} /> Terminate_Session
+            <X size={12} /> <span className="hidden sm:inline">Terminate_Session</span>
           </button>
-          <div className="h-5 w-px bg-zinc-900" />
-          <div className="flex flex-col">
+          <div className="hidden md:block h-5 w-px bg-zinc-900" />
+          <div className="hidden sm:flex flex-col">
             <span className="text-[8px] font-mono font-bold text-indigo-500 uppercase tracking-widest">
               Protocol // {currentTask?.taskType?.toUpperCase()}
             </span>
@@ -724,24 +756,36 @@ export const CustomWorkbench = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2.5 pr-6 border-r border-zinc-900">
+        <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-2 md:gap-2.5 md:pr-6 md:border-r md:border-zinc-900">
+            <Zap size={14} className="text-amber-500/80 animate-pulse" />
             <div className="text-right">
-              <p className="text-[8px] font-mono text-zinc-500 uppercase font-bold tracking-tighter">Current_Reward</p>
+              <p className="text-[8px] font-mono text-zinc-500 uppercase font-bold tracking-tighter hidden md:block">Current_Reward</p>
               <p className="text-emerald-500 font-mono font-bold text-xs">+${(completedTasks * taskReward).toFixed(2)}</p>
             </div>
-            <Zap size={14} className="text-amber-500/80 animate-pulse" />
           </div>
           <div className="flex flex-col text-right">
-            <span className="text-[8px] font-mono text-zinc-500 uppercase">Queue_Sync</span>
-            <span className="text-xs font-bold text-zinc-300 tabular-nums">{activeTaskIndex + 1} / {tasks.length}</span>
+            <span className="text-[8px] font-mono text-zinc-500 uppercase hidden md:block">Queue_Sync</span>
+            <span className="text-xs font-bold text-zinc-300 tabular-nums">{activeTaskIndex + 1}/{tasks.length}</span>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 flex overflow-hidden">
+      <main className="flex-1 min-h-0 flex overflow-hidden relative">
+        {/* Mobile backdrop overlay */}
         {sidebarOpen && (
-          <aside className="w-80 min-h-0 border-r border-zinc-900 bg-black p-8 flex flex-col gap-10 overflow-y-auto shrink-0 animate-in slide-in-from-left duration-200">
+          <div
+            className="md:hidden fixed inset-0 bg-black/70 z-40 backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        {sidebarOpen && (
+          <aside className="
+            fixed md:relative inset-y-0 left-0 z-50 md:z-auto
+            w-80 min-h-0 border-r border-zinc-900 bg-black p-6 md:p-8
+            flex flex-col gap-8 md:gap-10 overflow-y-auto shrink-0
+            animate-in slide-in-from-left duration-200
+          ">
             <section className="space-y-4">
               <div className="flex items-center justify-between text-zinc-500">
                 <div className="flex items-center gap-2">
@@ -947,14 +991,22 @@ export const CustomWorkbench = () => {
                   worker={sam2Worker || undefined}
                 />
               ) : contentType === 'audio' ? (
-                <AudioStage
-                  task={currentTask as any}
-                  labellingMethod={labellingMethod}
-                  onLabelSelect={(label) => setClassificationLabel(label)}
-                  selectedLabel={classificationLabel}
-                  onTranscriptionChange={setTranscriptionText}
-                  transcriptionText={transcriptionText}
-                />
+                isCollection ? (
+                  <AudioCollectionStage
+                    key={activeTaskIndex}
+                    task={currentTask as any}
+                    onAudioBlobChange={setAudioBlob}
+                  />
+                ) : (
+                  <AudioStage
+                    task={currentTask as any}
+                    labellingMethod={labellingMethod}
+                    onLabelSelect={(label) => setClassificationLabel(label)}
+                    selectedLabel={classificationLabel}
+                    onTranscriptionChange={setTranscriptionText}
+                    transcriptionText={transcriptionText}
+                  />
+                )
               ) : (
                 <TextStage
                   task={currentTask as any}
@@ -1002,14 +1054,22 @@ export const CustomWorkbench = () => {
                 worker={sam2Worker || undefined}
               />
             ) : contentType === 'audio' ? (
-              <AudioStage
-                task={currentTask as any}
-                labellingMethod={labellingMethod}
-                onLabelSelect={(label) => setClassificationLabel(label)}
-                selectedLabel={classificationLabel}
-                onTranscriptionChange={setTranscriptionText}
-                transcriptionText={transcriptionText}
-              />
+              isCollection ? (
+                <AudioCollectionStage
+                  key={activeTaskIndex}
+                  task={currentTask as any}
+                  onAudioBlobChange={setAudioBlob}
+                />
+              ) : (
+                <AudioStage
+                  task={currentTask as any}
+                  labellingMethod={labellingMethod}
+                  onLabelSelect={(label) => setClassificationLabel(label)}
+                  selectedLabel={classificationLabel}
+                  onTranscriptionChange={setTranscriptionText}
+                  transcriptionText={transcriptionText}
+                />
+              )
             ) : (
               <div className="h-full w-full flex items-center justify-center text-zinc-600 font-mono text-xs uppercase tracking-widest animate-pulse">
                 [ Protocol_Initialization_Failure ]
@@ -1019,18 +1079,18 @@ export const CustomWorkbench = () => {
         </div>
 
       </main>
-      <footer className="h-14 border-t border-zinc-900 bg-[#020203]/90 backdrop-blur-md flex items-center justify-between px-8 shrink-0 relative z-50">
-        <div className="flex gap-8 items-center">
+      <footer className="h-14 border-t border-zinc-900 bg-[#020203]/90 backdrop-blur-md flex items-center justify-between px-4 md:px-8 shrink-0 relative z-50">
+        <div className="flex gap-4 md:gap-8 items-center">
           <button
             onClick={() => setShowFlagModal(true)}
             className="flex items-center gap-2 text-[10px] font-bold text-zinc-600 hover:text-rose-500 transition-all uppercase tracking-widest group"
           >
-            <Flag size={14} className="group-hover:animate-bounce" /> Flag_Corruption
+            <Flag size={14} className="group-hover:animate-bounce" /> <span className="hidden sm:inline">Flag_Corruption</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-8">
-          <div className="flex flex-col items-end pr-8 border-r border-zinc-900">
+        <div className="flex items-center gap-4 md:gap-8">
+          <div className="hidden md:flex flex-col items-end pr-8 border-r border-zinc-900">
             <div className="flex items-center gap-2">
               <Activity size={12} className="text-indigo-500" />
               <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.2em] italic">Encryption_Tunnel_Stable</span>
@@ -1067,9 +1127,12 @@ export const CustomWorkbench = () => {
 
             // Audio readiness
             const isAudioTask = !showRlhfStage && contentType === 'audio';
-            const audioTranscriptionOk = !isAudioTask || labellingMethod !== 'transcription' || transcriptionText.trim().length >= 10;
-            const audioClassificationOk = !isAudioTask || labellingMethod !== 'classification' || !!classificationLabel;
-            const isAudioReady = !isAudioTask || (audioTranscriptionOk && audioClassificationOk);
+            // For collection tasks, the compiled JSON payload (audioBlob) is the only readiness
+            // signal — transcription/tone/checks are all captured inside AudioCollectionStage.
+            const isCollectionReady = !isCollection || !!audioBlob;
+            const audioTranscriptionOk = !isAudioTask || isCollection || labellingMethod !== 'transcription' || transcriptionText.trim().length >= 10;
+            const audioClassificationOk = !isAudioTask || isCollection || labellingMethod !== 'classification' || !!classificationLabel;
+            const isAudioReady = !isAudioTask || (isCollectionReady && audioTranscriptionOk && audioClassificationOk);
 
             // Enabled if user drew bounding boxes but has not yet decoded masks (so they can click it to trigger decode)
             const isDecodeMode = requiresImageAnnotation && boundingBoxes.length > 0 && polygons.length === 0;
@@ -1117,6 +1180,8 @@ export const CustomWorkbench = () => {
                   ) : (
                     <>Draw_Box <ChevronRight size={14} /></>
                   )
+                ) : isCollection && !audioBlob ? (
+                  <>Register_Telemetry <ChevronRight size={14} /></>
                 ) : !audioTranscriptionOk ? (
                   <>Write_Transcription <ChevronRight size={14} /></>
                 ) : !audioClassificationOk ? (

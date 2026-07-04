@@ -10,8 +10,10 @@ export interface Dataset{
     datasetId:string;
     isPublished:boolean;
     isPrivate:boolean;
+    isCollection?: boolean;
     rating?: number;
     status?: string;
+    datasetType?: "image" | "audio" | "text" | "video" | "ai_response";
     labellingMethod?: "rlhf" | "classification" | "annotation" | "transcription";
     contentType?: "text" | "audio" | "video" | "image" | "code" | "document";
     category:string;

@@ -62,6 +62,11 @@ export const AdminSidebar = () => {
           icon={<Database size={18} strokeWidth={1.5} />} 
         />
         <NavItem 
+          to="/admin/generator" 
+          label="Task_Generator" 
+          icon={<Bot size={18} strokeWidth={1.5} />} 
+        />
+        <NavItem 
           to="/admin/models" 
           label="Neural_Models" 
           icon={<Bot size={18} strokeWidth={1.5} />} 

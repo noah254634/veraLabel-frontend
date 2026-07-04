@@ -190,8 +190,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       }
 
       // 2. Direct upload annotation to R2
-      await axios.put(uploadUrl, annotation || {}, {
-        headers: { 'Content-Type': 'application/json' },
+      const isBlob = annotation instanceof Blob;
+      const uploadContentType = isBlob ? 'audio/wav' : 'application/json';
+      // For plain object payloads (e.g. audio collection JSON), explicitly stringify
+      // so the R2 object contains valid JSON that the backend validator can parse.
+      const bodyPayload = isBlob ? annotation : JSON.stringify(annotation || {});
+
+      await axios.put(uploadUrl, bodyPayload, {
+        headers: { 'Content-Type': uploadContentType },
       });
 
       // 3. Finalize task on backend — retry up to 2 extra times if network/server fails.

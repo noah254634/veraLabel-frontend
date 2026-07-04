@@ -8,6 +8,7 @@ import AdminUserModule from "./pages/Users"
 import ModelsPage from "./pages/Models"
 import AnalyticsHub from "./pages/Analytics/AnalyticsHub"
 import { InstructionManager } from "./pages/InstructionManager"
+import TaskGenerator from "./pages/TaskGenerator"
 import NotificationTester from "../../NotificationTester"
 import SecurityPage from "./pages/Security"
 export const AdminRoutes = (
@@ -16,6 +17,7 @@ export const AdminRoutes = (
     <Route path="dashboard" element={<AdminDashboard />} />
     <Route path="analytics" element={<AnalyticsHub />} />
     <Route path="protocols" element={<InstructionManager />} />
+    <Route path="generator" element={<TaskGenerator />} />
     <Route path="datasets" element={<DatasetAdminPage />} />
     <Route path="settings" element={<SettingsPage />} />
     <Route path="help" element={<HelpPage />} />

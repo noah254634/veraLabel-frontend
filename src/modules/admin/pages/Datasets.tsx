@@ -497,7 +497,9 @@ const DatasetAdminPage = () => {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <label className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Labeller_Payout</label>
+                        <label className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
+                          {selectedDataset.isCollection ? "Bounty_Per_Recording" : "Labeller_Payout"}
+                        </label>
                         <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded-sm">Current: {formatCurrency((selectedDataset as any).pricePerBatch || 0)}</span>
                       </div>
                       <div className="flex gap-2">
@@ -523,7 +525,9 @@ const DatasetAdminPage = () => {
 
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <label className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Max_Labellers</label>
+                        <label className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
+                          {selectedDataset.isCollection ? "Target_Speakers" : "Max_Labellers"}
+                        </label>
                         <span className="text-[9px] font-mono text-indigo-400 bg-indigo-950/30 px-1.5 py-0.5 rounded-sm">Current: {(selectedDataset as any).maxLabellers || 1}</span>
                       </div>
                       <div className="flex gap-2">
@@ -593,6 +597,7 @@ const DatasetAdminPage = () => {
                   <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-zinc-900 bg-zinc-900">
                     <QuickStat label="Blueprint" value={(selectedDataset as any).datasetType || "General"} />
                     <QuickStat label="Format" value={selectedDataset.datasetFormat || "N/A"} />
+                    <QuickStat label="Workflow Type" value={selectedDataset.isCollection ? "Crowdsourcing" : "Annotation"} />
                     <QuickStat label="Target_Volume" value={(selectedDataset as any).rows?.toLocaleString() || (selectedDataset as any).metadata?.numRecords?.toLocaleString() || (selectedDataset as any).volume || "---"} />
                     <QuickStat label="Finalized" value={(selectedDataset as any).rowsCompleted?.toLocaleString() || "0"} />
                     <QuickStat label="Domain" value={(selectedDataset as any).domain || selectedDataset.category || "N/A"} />
@@ -683,14 +688,16 @@ const DatasetAdminPage = () => {
                     {isEvaluatingConsensus ? "Evaluating Consensus..." : "Perform Consensus"}
                   </button>
 
-                  <button
-                    onClick={handleGenerateEmbeddings}
-                    disabled={isGeneratingEmbeddings}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-blue-400 transition-colors hover:border-blue-500 hover:text-white disabled:opacity-50"
-                  >
-                    {isGeneratingEmbeddings ? <RefreshCw size={14} className="animate-spin text-blue-400" /> : <Terminal size={14} className="text-blue-400" />}
-                    {isGeneratingEmbeddings ? "Generating..." : "Generate .npy Embeddings"}
-                  </button>
+                  {(selectedDataset.datasetType === "image" || (selectedDataset as any).contentType === "image") && (
+                    <button
+                      onClick={handleGenerateEmbeddings}
+                      disabled={isGeneratingEmbeddings}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-blue-400 transition-colors hover:border-blue-500 hover:text-white disabled:opacity-50"
+                    >
+                      {isGeneratingEmbeddings ? <RefreshCw size={14} className="animate-spin text-blue-400" /> : <Terminal size={14} className="text-blue-400" />}
+                      {isGeneratingEmbeddings ? "Generating..." : "Generate .npy Embeddings"}
+                    </button>
+                  )}
 
                   {showCompileButton && (
                     <button
