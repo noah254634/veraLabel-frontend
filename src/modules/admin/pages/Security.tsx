@@ -4,7 +4,8 @@ import {
   RefreshCw, Search, AlertOctagon, HelpCircle 
 } from 'lucide-react';
 import { securityService } from '../services/securityService';
-import type { GeoAccessLog, GeoAnalytics, GeoRequestAudit } from '../services/securityService';
+import { GEO_TIME_RANGE_LABELS } from '../services/securityService';
+import type { GeoAccessLog, GeoAnalytics, GeoRequestAudit, GeoTimeRange } from '../services/securityService';
 import toast from 'react-hot-toast';
 
 const getFlagEmoji = (countryCode: string) => {
@@ -28,6 +29,7 @@ const SecurityPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'aggregated' | 'waf'>('aggregated');
+  const [timeRange, setTimeRange] = useState<GeoTimeRange>('7d');
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -35,9 +37,9 @@ const SecurityPage = () => {
 
     try {
       const [logsData, analyticsData, auditsData] = await Promise.all([
-        securityService.fetchGeoAccessLogs(),
-        securityService.fetchGeoAnalytics(),
-        securityService.fetchGeoRequestAudits()
+        securityService.fetchGeoAccessLogs(timeRange),
+        securityService.fetchGeoAnalytics(timeRange),
+        securityService.fetchGeoRequestAudits(timeRange)
       ]);
       setLogs(logsData);
       setAnalytics(analyticsData);
@@ -52,7 +54,7 @@ const SecurityPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [timeRange]);
 
   useEffect(() => {
     loadData();
@@ -129,6 +131,37 @@ const SecurityPage = () => {
         </button>
       </header>
 
+      <div className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-zinc-900 bg-[#050505] px-5 py-4">
+        <div className="space-y-1">
+          <p className="text-[9px] font-mono uppercase tracking-[0.3em] text-zinc-600">Geographic_Time_Window</p>
+          <p className="text-xs text-zinc-400">Showing {GEO_TIME_RANGE_LABELS[timeRange]}.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {([
+            ['30m', 'Last 30 min'],
+            ['1h', 'Last 1 hour'],
+            ['2h', 'Last 2 hours'],
+            ['3h', 'Last 3 hours'],
+            ['6h', 'Last 6 hours'],
+            ['12h', 'Last 12 hours'],
+            ['24h', 'Last 24 hours'],
+            ['7d', 'Last 7 days'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setTimeRange(value)}
+              className={`px-4 py-2 text-[9px] font-mono uppercase tracking-widest border transition-colors ${
+                timeRange === value
+                  ? 'border-indigo-500 bg-indigo-500/10 text-white'
+                  : 'border-zinc-800 bg-black text-zinc-500 hover:text-zinc-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Telemetry overview stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-zinc-900 border border-zinc-900 mb-16 shadow-2xl">
         <StatCard 
@@ -136,7 +169,7 @@ const SecurityPage = () => {
           label="Unique_Outside_IPs" 
           value={totalUnique} 
           color="text-indigo-500" 
-          subText="7-day rolling window"
+          subText={`Window: ${GEO_TIME_RANGE_LABELS[timeRange]}`}
         />
         <StatCard 
           icon={<AlertTriangle size={18} />} 

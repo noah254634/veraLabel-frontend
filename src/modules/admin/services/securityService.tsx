@@ -35,6 +35,19 @@ export interface GeoAnalytics {
   blockStatusBreakdown: BlockStat[];
 }
 
+export type GeoTimeRange = "30m" | "1h" | "2h" | "3h" | "6h" | "12h" | "24h" | "7d";
+
+export const GEO_TIME_RANGE_LABELS: Record<GeoTimeRange, string> = {
+  "30m": "Last 30 min",
+  "1h": "30m - 1h",
+  "2h": "1h - 2h",
+  "3h": "2h - 3h",
+  "6h": "3h - 6h",
+  "12h": "6h - 12h",
+  "24h": "12h - 24h",
+  "7d": "Last 7 days",
+};
+
 export interface GeoRequestAudit {
   _id: string;
   ip: string;
@@ -59,16 +72,16 @@ export interface GeoRequestAudit {
 }
 
 export const securityService = {
-  fetchGeoAccessLogs: async (): Promise<GeoAccessLog[]> => {
-    const response = await api.get("/admin/geo-access-logs");
+  fetchGeoAccessLogs: async (timeRange: GeoTimeRange = "7d"): Promise<GeoAccessLog[]> => {
+    const response = await api.get("/admin/geo-access-logs", { params: { timeRange } });
     return response.data.data?.logs ?? [];
   },
-  fetchGeoRequestAudits: async (): Promise<GeoRequestAudit[]> => {
-    const response = await api.get("/admin/geo-request-audits");
+  fetchGeoRequestAudits: async (timeRange: GeoTimeRange = "7d"): Promise<GeoRequestAudit[]> => {
+    const response = await api.get("/admin/geo-request-audits", { params: { timeRange } });
     return response.data.data?.audits ?? [];
   },
-  fetchGeoAnalytics: async (): Promise<GeoAnalytics> => {
-    const response = await api.get("/admin/geo-analytics");
+  fetchGeoAnalytics: async (timeRange: GeoTimeRange = "7d"): Promise<GeoAnalytics> => {
+    const response = await api.get("/admin/geo-analytics", { params: { timeRange } });
     return response.data.data?.analytics ?? {
       totalUniqueVisitors: 0,
       countryBreakdown: [],

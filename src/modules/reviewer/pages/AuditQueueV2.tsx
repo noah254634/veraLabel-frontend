@@ -489,8 +489,8 @@ export const AuditReviewV2 = () => {
                   )}
                   {selectedGroupedTask.taskType === 'audio' && (
                     <div className="space-y-4">
-                      {taskPayload.taskObject?.audioUrl ? (
-                        <audio controls src={taskPayload.taskObject.audioUrl} className="w-full" />
+                      {(taskPayload.taskObject?.audioUrl || taskPayload.taskObject?.url || taskPayload.taskObject?.audio) ? (
+                        <audio controls src={taskPayload.taskObject.audioUrl || taskPayload.taskObject.url || taskPayload.taskObject.audio} className="w-full" />
                       ) : (
                         <p className="text-[10px] text-rose-400">No Audio URL in metadata.</p>
                       )}
@@ -552,6 +552,39 @@ export const AuditReviewV2 = () => {
                         <div>
                           <span className="text-[8px] text-indigo-400 font-bold uppercase">Response Selected</span>
                           <p className="text-sm font-bold text-white font-mono">Response {taskPayload.submissionObject.selectedResponse}</p>
+                        </div>
+                      )}
+                      {(taskPayload.submissionObject.audioBase64 || taskPayload.submissionObject.audio) && (
+                        <div className="space-y-3 p-4 bg-zinc-950/60 border border-zinc-900 rounded-sm">
+                          <span className="text-[8px] text-indigo-400 font-bold uppercase block">// Recorded Audio Submission</span>
+                          <audio 
+                            controls 
+                            src={taskPayload.submissionObject.audioBase64 || taskPayload.submissionObject.audio} 
+                            className="w-full" 
+                          />
+                          {taskPayload.submissionObject.transcription && (
+                            <div className="pt-2">
+                              <span className="text-[8px] text-zinc-600 font-bold uppercase block">Transcription</span>
+                              <p className="text-xs text-zinc-300 italic font-sans">"{taskPayload.submissionObject.transcription}"</p>
+                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-4 pt-2 text-[9px] text-zinc-500">
+                            {taskPayload.submissionObject.selectedTone && (
+                              <div>
+                                <span className="font-bold text-zinc-600 uppercase">Tone:</span> {taskPayload.submissionObject.selectedTone}
+                              </div>
+                            )}
+                            {taskPayload.submissionObject.languageUsed && (
+                              <div>
+                                <span className="font-bold text-zinc-600 uppercase">Language:</span> {taskPayload.submissionObject.languageUsed}
+                              </div>
+                            )}
+                            {taskPayload.submissionObject.recordedAt && (
+                              <div>
+                                <span className="font-bold text-zinc-600 uppercase">Recorded:</span> {new Date(taskPayload.submissionObject.recordedAt).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                       <div>
