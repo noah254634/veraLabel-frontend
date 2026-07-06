@@ -48,10 +48,9 @@ export const OnboardingComplete = () => {
 
             <button
               onClick={async () => {
-                const { completeOnboarding, createLabellerProfile, labeller } = useOnboardStore.getState();
+                const { completeOnboarding } = useOnboardStore.getState();
                 
                 try {
-                  await createLabellerProfile(labeller);
                   await completeOnboarding();
                   
                   if (user) {
