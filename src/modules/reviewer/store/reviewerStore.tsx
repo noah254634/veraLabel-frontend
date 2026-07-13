@@ -22,7 +22,8 @@ interface ReviewerState {
   stats: ReviewerStats | null;
   loading: boolean;
   fetchStats: () => Promise<void>;
-  requestPayout: (amount: number, method: string) => Promise<void>;
+  requestWithdrawalOTP: (amount: number) => Promise<boolean>;
+  requestPayout: (amount: number, phoneNumber: string, otp: string) => Promise<void>;
 }
 
 export const useReviewerStore = create<ReviewerState>((set, get) => ({
@@ -43,15 +44,30 @@ export const useReviewerStore = create<ReviewerState>((set, get) => ({
     }
   },
 
-  requestPayout: async (amount: number, method: string) => {
+  requestWithdrawalOTP: async (amount: number) => {
     try {
       set({ loading: true });
-      await api.post("/reviewer/request-payout", { amount, method });
-      toast.success("Reviewer withdrawal request completed.");
+      await api.post('/payments/withdraw/otp', { amount });
+      toast.success("OTP sent to your email.");
+      return true;
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to send OTP.");
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  requestPayout: async (amount: number, phoneNumber: string, otp: string) => {
+    try {
+      set({ loading: true });
+      await api.post('/payments/withdraw', { amount, phoneNumber, otp });
+      toast.success("Withdrawal request completed successfully.");
       await get().fetchStats();
     } catch (error: any) {
       console.error("Payout request failed:", error);
       toast.error(error.response?.data?.message || "Withdrawal request failed.");
+      throw error;
     } finally {
       set({ loading: false });
     }
