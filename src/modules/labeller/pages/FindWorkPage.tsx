@@ -85,15 +85,15 @@ export const FindWorkPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-zinc-900 border border-zinc-900 shadow-2xl">
           {filteredDatasets.map((dataset) => (
-             <ProjectCard 
-               key={dataset._id}
-               id={dataset._id}
-               title={dataset.name} 
-               type={dataset.metadata?.type || dataset.datasetType || "TEXT"} 
-               reward={`$${dataset.pricePerBatch || '0.00'}`} 
-               totalTasks={dataset.metadata?.numRecords || dataset.rows || 0} 
-               difficulty="MEDIUM_PRIORITY" 
-             />
+              <ProjectCard 
+                key={dataset._id}
+                id={dataset._id}
+                title={dataset.name} 
+                type={dataset.metadata?.type || dataset.datasetType || "TEXT"} 
+                reward={`$${dataset.pricePerBatch || '0.00'}`} 
+                totalTasks={dataset.totalTasksCount || dataset.rows || dataset.metadata?.numRecords || 0} 
+                difficulty="MEDIUM_PRIORITY" 
+              />
           ))}
         </div>
       )}

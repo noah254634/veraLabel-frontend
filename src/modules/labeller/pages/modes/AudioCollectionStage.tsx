@@ -3,7 +3,6 @@ import {
   Play, Pause, Mic, Square, Trash2, CheckCircle2,
   AlertTriangle, Volume2, Globe, Sparkles, MessageSquare
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 interface AudioCollectionStageProps {
   task: any;
@@ -75,14 +74,6 @@ export const AudioCollectionStage = ({
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
-  const blobToBase64 = (blob: Blob): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-
   const compileAndEmit = async (
     blob: Blob | null,
     txt: string,
@@ -93,12 +84,9 @@ export const AudioCollectionStage = ({
     if (!blob) { onAudioBlobChange(null); return; }
     const isReady = txt.trim().length >= 10 && tone !== null && ruleChecked && txtVerified;
     if (!isReady) { onAudioBlobChange(null); return; }
-    try {
-      const base64Audio = await blobToBase64(blob);
-      onAudioBlobChange({
-        contentType: "audio",
-        taskType: "collection",
-        audioBase64: base64Audio,
+    onAudioBlobChange({
+      blob,
+      metadata: {
         transcription: txt.trim(),
         selectedTone: tone,
         codeSwitchingUsed: codeSwitchExpected,
@@ -106,11 +94,8 @@ export const AudioCollectionStage = ({
         deviceInfo: navigator.userAgent,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         recordedAt: new Date().toISOString(),
-      });
-    } catch {
-      toast.error('Failed to encode audio. Please try again.');
-      onAudioBlobChange(null);
-    }
+      }
+    });
   };
 
   const startRecording = async () => {

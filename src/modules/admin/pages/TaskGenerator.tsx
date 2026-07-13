@@ -29,6 +29,8 @@ const TaskGenerator = () => {
   const [isCreateNewDataset, setIsCreateNewDataset] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState("");
   const [newDatasetDescription, setNewDatasetDescription] = useState("");
+  const [newDatasetPrice, setNewDatasetPrice] = useState<number>(0);
+  const [newDatasetPricePerBatch, setNewDatasetPricePerBatch] = useState<number>(0.42);
 
   // Loading/Editing UI State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -132,7 +134,7 @@ const TaskGenerator = () => {
   const handleApproveAndBatch = async () => {
     if (!selectedRun) return;
 
-    const params: { datasetId?: string; datasetName?: string; datasetDescription?: string } = {};
+    const params: { datasetId?: string; datasetName?: string; datasetDescription?: string; price?: number; pricePerBatch?: number } = {};
     if (isCreateNewDataset) {
       if (!newDatasetName.trim()) {
         setErrorMsg("New dataset name is required.");
@@ -140,6 +142,8 @@ const TaskGenerator = () => {
       }
       params.datasetName = newDatasetName.trim();
       params.datasetDescription = newDatasetDescription.trim();
+      params.price = newDatasetPrice;
+      params.pricePerBatch = newDatasetPricePerBatch;
     } else {
       if (!targetDatasetId) {
         setErrorMsg("Please select a target dataset node first.");
@@ -503,6 +507,34 @@ const TaskGenerator = () => {
                             placeholder="Provide dataset context..."
                             className="w-full bg-black border border-zinc-850 p-3 text-xs focus:outline-none focus:border-indigo-500"
                           />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-500 mb-2 block">
+                              Total Price ($)
+                            </label>
+                            <input 
+                              type="number"
+                              step="0.01"
+                              value={newDatasetPrice}
+                              onChange={(e) => setNewDatasetPrice(parseFloat(e.target.value) || 0)}
+                              className="w-full bg-black border border-zinc-850 p-3 text-xs focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-500 mb-2 block">
+                              Price per Batch ($)
+                            </label>
+                            <input 
+                              type="number"
+                              step="0.01"
+                              value={newDatasetPricePerBatch}
+                              onChange={(e) => setNewDatasetPricePerBatch(parseFloat(e.target.value) || 0)}
+                              className="w-full bg-black border border-zinc-850 p-3 text-xs focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}

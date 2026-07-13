@@ -64,7 +64,7 @@ export const MissionBriefing = () => {
     );
   }
 
-  const assetCount = dataset?.rows || dataset?.metadata?.numRecords || '—';
+  const assetCount = dataset?.totalTasksCount || dataset?.rows || dataset?.metadata?.numRecords || '—';
   const batchSize = dataset?.batchSize || dataset?.metadata?.batchSize || 10;
   const description = dataset?.description && dataset.description.length > 5
     ? dataset.description

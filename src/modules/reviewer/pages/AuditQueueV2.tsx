@@ -18,6 +18,7 @@ interface TaskDetail {
   labellingMethod?: string;
   status: string;
   priority: number;
+  isCollection?: boolean;
   datasetId?: {
     _id: string;
     name: string;
@@ -353,13 +354,18 @@ export const AuditReviewV2 = () => {
                 setActiveSubmissionIndex(idx);
                 fetchTaskDetails(sub);
               }}
-              className={`px-4 py-2 border rounded-sm font-mono text-[9px] font-bold uppercase transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 border rounded-sm font-mono text-[9px] font-bold uppercase transition-all flex items-center gap-2.5 ${
                 activeSubmissionIndex === idx
                   ? 'border-indigo-500 bg-indigo-500/10 text-white'
                   : 'border-zinc-800 bg-black text-zinc-500 hover:text-zinc-300'
               }`}
             >
-              <User size={10} />
+              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                sub.status === 'approved' ? 'bg-emerald-500' :
+                sub.status === 'rejected' ? 'bg-rose-500' :
+                'bg-amber-500 animate-pulse'
+              }`} />
+              <User size={10} className="shrink-0" />
               {sub.assignedTo?.[0]?.userId?.name || `Operator ${idx + 1}`}
             </button>
           ))}
@@ -398,254 +404,276 @@ export const AuditReviewV2 = () => {
           )}
         </aside>
         
-        <main className="flex-1 bg-[#010101] p-10 overflow-y-auto flex flex-col">
+        <main className="flex-1 bg-[#010101] p-8 overflow-y-auto flex flex-col">
           {fetchingDetail ? (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4">
               <ActivityIcon className="animate-spin text-indigo-500" />
               <span className="text-[10px] uppercase tracking-widest text-zinc-600">Streaming R2 Assets...</span>
             </div>
           ) : taskPayload ? (
-            <div className="flex-1 flex flex-col gap-10 max-w-4xl w-full mx-auto">
-              <div className="space-y-4">
-                <h3 className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
-                  // Input Telemetry (R2)
-                </h3>
-                <div className="bg-[#05070A] border border-zinc-900 p-6 rounded-sm space-y-4">
-                  {resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) === 'text' && !isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
-                    <p className="text-sm text-zinc-300 leading-relaxed font-light">
-                      {taskPayload.taskObject?.content || taskPayload.taskObject?.prompt || JSON.stringify(taskPayload.taskObject)}
-                    </p>
-                  )}
-                  {resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) === 'image' && !isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
-                    <div className="flex flex-col items-center gap-4">
-                      {taskPayload.taskObject?.imageUrl || taskPayload.taskObject?.image || taskPayload.taskObject?.url ? (
-                        <div className="relative inline-block border border-zinc-800 rounded-sm overflow-hidden bg-black select-none">
-                          <img 
-                            src={taskPayload.taskObject.imageUrl || taskPayload.taskObject.image || taskPayload.taskObject.url} 
-                            alt="Verification Asset" 
-                            className="max-h-[500px] object-contain rounded-sm"
-                            onLoad={(e) => {
-                              const img = e.currentTarget;
-                              setImgDimensions({
-                                width: img.clientWidth,
-                                height: img.clientHeight,
-                                naturalWidth: img.naturalWidth,
-                                naturalHeight: img.naturalHeight
-                              });
-                            }}
-                          />
-                          {taskPayload.submissionObject?.boundingBoxes && 
-                           Array.isArray(taskPayload.submissionObject.boundingBoxes) && 
-                           taskPayload.submissionObject.boundingBoxes.map((box: any, idx: number) => (
-                            <div
-                              key={box.id || idx}
-                              className="absolute border-2 border-indigo-500 bg-indigo-500/10 pointer-events-none"
-                              style={{
-                                left: `${box.x}%`,
-                                top: `${box.y}%`,
-                                width: `${box.w}%`,
-                                height: `${box.h}%`
-                              }}
-                            >
-                              <span className="absolute -top-5 left-0 text-[8px] font-mono bg-indigo-600 px-1.5 py-0.5 text-white whitespace-nowrap">
-                                {box.label || `Object ${idx + 1}`}
-                              </span>
-                            </div>
-                          ))}
-                          {imgDimensions && taskPayload.submissionObject?.polygons && 
-                           Array.isArray(taskPayload.submissionObject.polygons) && (
-                            <svg
-                              className="absolute top-0 left-0 pointer-events-none"
-                              style={{
-                                width: imgDimensions.width,
-                                height: imgDimensions.height,
-                              }}
-                              viewBox={`0 0 ${imgDimensions.naturalWidth} ${imgDimensions.naturalHeight}`}
-                              preserveAspectRatio="none"
-                            >
-                              {taskPayload.submissionObject.polygons.map((poly: any, idx: number) => {
-                                if (!poly.polygon || !Array.isArray(poly.polygon)) return null;
-                                const pointsStr = poly.polygon.map(([x, y]: [number, number]) => `${x},${y}`).join(' ');
-                                const color = LABEL_COLORS[idx % LABEL_COLORS.length];
-                                return (
-                                  <polygon
-                                    key={idx}
-                                    points={pointsStr}
-                                    fill={color.replace('0.7', '0.35')}
-                                    stroke={color.replace('0.7', '1')}
-                                    strokeWidth="2"
-                                    strokeLinejoin="round"
-                                    strokeLinecap="round"
-                                  />
-                                );
-                              })}
-                            </svg>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-[10px] text-rose-400">No Image URL in metadata.</p>
-                      )}
-                    </div>
-                  )}
-                  {selectedGroupedTask.taskType === 'audio' && (
-                    <div className="space-y-4">
-                      {(taskPayload.taskObject?.audioUrl || taskPayload.taskObject?.url || taskPayload.taskObject?.audio) ? (
-                        <audio controls src={taskPayload.taskObject.audioUrl || taskPayload.taskObject.url || taskPayload.taskObject.audio} className="w-full" />
-                      ) : (
-                        <p className="text-[10px] text-rose-400">No Audio URL in metadata.</p>
-                      )}
-                      {taskPayload.taskObject?.transcript && (
-                        <p className="text-xs text-zinc-400 italic">Expected Transcript: {taskPayload.taskObject.transcript}</p>
-                      )}
-                    </div>
-                  )}
-                  {isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
-                    <div className="space-y-6">
-                      <div className="space-y-1">
-                        <span className="text-[8px] text-indigo-400 font-bold uppercase">Prompt</span>
-                        <p className="text-xs text-zinc-300 bg-black p-3 border border-zinc-900">{taskPayload.taskObject?.prompt}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {(
-                          taskPayload.taskObject?.responses ||
-                          [
-                            { content: taskPayload.taskObject?.responseA },
-                            { content: taskPayload.taskObject?.responseB },
-                          ]
-                        )
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((resp: { content?: string }, idx: number) => (
-                            <div key={idx} className="space-y-1">
-                              <span className="text-[8px] text-zinc-600 font-bold uppercase">
-                                Response {idx === 0 ? "A" : "B"}
-                              </span>
-                              <div className="bg-black p-3 border border-zinc-900">
-                                <RlhfResponseContent
-                                  content={resp?.content || ""}
-                                  contentType={resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) as ContentType}
-                                  label={`Response ${idx === 0 ? "A" : "B"}`}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl mx-auto">
               
-              <div className="space-y-4">
-                <h3 className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
-                  // Submitted Disposition (R2 Output)
+              {/* Left Column: Input Telemetry */}
+              <div className="space-y-4 flex flex-col min-w-0 h-full">
+                <h3 className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2 flex justify-between items-center">
+                  <span>// Input Telemetry (R2)</span>
+                  <span className="text-indigo-400 text-[8px] bg-indigo-500/10 px-2 py-0.5 rounded-sm font-mono border border-indigo-500/20">SOURCE_ASSET</span>
                 </h3>
-                <div className="bg-[#05070A] border border-zinc-900 p-6 rounded-sm">
-                  {taskPayload.submissionObject ? (
-                    <div className="space-y-4">
-                      {taskPayload.submissionObject.label !== undefined && (
-                        <div>
-                          <span className="text-[8px] text-zinc-600 font-bold uppercase">Label Selected</span>
-                          <p className="text-sm font-bold text-white font-mono">{String(taskPayload.submissionObject.label)}</p>
-                        </div>
+                <div className="flex-1 bg-[#05070A] border border-zinc-900 p-6 rounded-sm space-y-4 overflow-y-auto">
+                  {taskPayload.task?.isCollection ? (
+                    <div className="space-y-2">
+                      <span className="text-[8px] text-indigo-400 font-bold uppercase block">// Collection Prompt / Scenario</span>
+                      <p className="text-sm text-zinc-300 leading-relaxed font-sans font-light">
+                        {taskPayload.taskObject?.instructionText || taskPayload.taskObject?.instruction || taskPayload.taskObject?.prompt || JSON.stringify(taskPayload.taskObject)}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) === 'text' && !isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
+                        <p className="text-sm text-zinc-300 leading-relaxed font-light">
+                          {taskPayload.taskObject?.content || taskPayload.taskObject?.prompt || JSON.stringify(taskPayload.taskObject)}
+                        </p>
                       )}
-                      {taskPayload.submissionObject.selectedResponse !== undefined && (
-                        <div>
-                          <span className="text-[8px] text-indigo-400 font-bold uppercase">Response Selected</span>
-                          <p className="text-sm font-bold text-white font-mono">Response {taskPayload.submissionObject.selectedResponse}</p>
-                        </div>
-                      )}
-                      {(taskPayload.submissionObject.audioBase64 || taskPayload.submissionObject.audio) && (
-                        <div className="space-y-3 p-4 bg-zinc-950/60 border border-zinc-900 rounded-sm">
-                          <span className="text-[8px] text-indigo-400 font-bold uppercase block">// Recorded Audio Submission</span>
-                          <audio 
-                            controls 
-                            src={taskPayload.submissionObject.audioBase64 || taskPayload.submissionObject.audio} 
-                            className="w-full" 
-                          />
-                          {taskPayload.submissionObject.transcription && (
-                            <div className="pt-2">
-                              <span className="text-[8px] text-zinc-600 font-bold uppercase block">Transcription</span>
-                              <p className="text-xs text-zinc-300 italic font-sans">"{taskPayload.submissionObject.transcription}"</p>
+                      {resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) === 'image' && !isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
+                        <div className="flex flex-col items-center gap-4">
+                          {taskPayload.taskObject?.imageUrl || taskPayload.taskObject?.image || taskPayload.taskObject?.url ? (
+                            <div className="relative inline-block border border-zinc-800 rounded-sm overflow-hidden bg-black select-none">
+                              <img 
+                                src={taskPayload.taskObject.imageUrl || taskPayload.taskObject.image || taskPayload.taskObject.url} 
+                                alt="Verification Asset" 
+                                className="max-h-[450px] object-contain rounded-sm"
+                                onLoad={(e) => {
+                                  const img = e.currentTarget;
+                                  setImgDimensions({
+                                    width: img.clientWidth,
+                                    height: img.clientHeight,
+                                    naturalWidth: img.naturalWidth,
+                                    naturalHeight: img.naturalHeight
+                                  });
+                                }}
+                              />
+                              {taskPayload.submissionObject?.boundingBoxes && 
+                               Array.isArray(taskPayload.submissionObject.boundingBoxes) && 
+                               taskPayload.submissionObject.boundingBoxes.map((box: any, idx: number) => (
+                                <div
+                                  key={box.id || idx}
+                                  className="absolute border-2 border-indigo-500 bg-indigo-500/10 pointer-events-none"
+                                  style={{
+                                    left: `${box.x}%`,
+                                    top: `${box.y}%`,
+                                    width: `${box.w}%`,
+                                    height: `${box.h}%`
+                                  }}
+                                >
+                                  <span className="absolute -top-5 left-0 text-[8px] font-mono bg-indigo-600 px-1.5 py-0.5 text-white whitespace-nowrap">
+                                    {box.label || `Object ${idx + 1}`}
+                                  </span>
+                                </div>
+                              ))}
+                              {imgDimensions && taskPayload.submissionObject?.polygons && 
+                               Array.isArray(taskPayload.submissionObject.polygons) && (
+                                <svg
+                                  className="absolute top-0 left-0 pointer-events-none"
+                                  style={{
+                                    width: imgDimensions.width,
+                                    height: imgDimensions.height,
+                                  }}
+                                  viewBox={`0 0 ${imgDimensions.naturalWidth} ${imgDimensions.naturalHeight}`}
+                                  preserveAspectRatio="none"
+                                >
+                                  {taskPayload.submissionObject.polygons.map((poly: any, idx: number) => {
+                                    if (!poly.polygon || !Array.isArray(poly.polygon)) return null;
+                                    const pointsStr = poly.polygon.map(([x, y]: [number, number]) => `${x},${y}`).join(' ');
+                                    const color = LABEL_COLORS[idx % LABEL_COLORS.length];
+                                    return (
+                                      <polygon
+                                        key={idx}
+                                        points={pointsStr}
+                                        fill={color.replace('0.7', '0.35')}
+                                        stroke={color.replace('0.7', '1')}
+                                        strokeWidth="2"
+                                        strokeLinejoin="round"
+                                        strokeLinecap="round"
+                                      />
+                                    );
+                                  })}
+                                </svg>
+                              )}
                             </div>
+                          ) : (
+                            <p className="text-[10px] text-rose-400">No Image URL in metadata.</p>
                           )}
-                          <div className="flex flex-wrap gap-4 pt-2 text-[9px] text-zinc-500">
-                            {taskPayload.submissionObject.selectedTone && (
-                              <div>
-                                <span className="font-bold text-zinc-600 uppercase">Tone:</span> {taskPayload.submissionObject.selectedTone}
-                              </div>
-                            )}
-                            {taskPayload.submissionObject.languageUsed && (
-                              <div>
-                                <span className="font-bold text-zinc-600 uppercase">Language:</span> {taskPayload.submissionObject.languageUsed}
-                              </div>
-                            )}
-                            {taskPayload.submissionObject.recordedAt && (
-                              <div>
-                                <span className="font-bold text-zinc-600 uppercase">Recorded:</span> {new Date(taskPayload.submissionObject.recordedAt).toLocaleString()}
-                              </div>
-                            )}
+                        </div>
+                      )}
+                      {selectedGroupedTask.taskType === 'audio' && (
+                        <div className="space-y-4">
+                          {(taskPayload.taskObject?.audioUrl || taskPayload.taskObject?.url || taskPayload.taskObject?.audio) ? (
+                            <audio controls src={taskPayload.taskObject.audioUrl || taskPayload.taskObject.url || taskPayload.taskObject.audio} className="w-full" />
+                          ) : (
+                            <p className="text-[10px] text-rose-400">No Audio URL in metadata.</p>
+                          )}
+                          {taskPayload.taskObject?.transcript && (
+                            <p className="text-xs text-zinc-400 italic">Expected Transcript: {taskPayload.taskObject.transcript}</p>
+                          )}
+                        </div>
+                      )}
+                      {isRlhfTask(null, selectedGroupedTask.submissions[activeSubmissionIndex]) && (
+                        <div className="space-y-6">
+                          <div className="space-y-1">
+                            <span className="text-[8px] text-indigo-400 font-bold uppercase">Prompt</span>
+                            <p className="text-xs text-zinc-300 bg-black p-3 border border-zinc-900">{taskPayload.taskObject?.prompt}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {(
+                              taskPayload.taskObject?.responses ||
+                              [
+                                { content: taskPayload.taskObject?.responseA },
+                                { content: taskPayload.taskObject?.responseB },
+                              ]
+                            )
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((resp: { content?: string }, idx: number) => (
+                                <div key={idx} className="space-y-1">
+                                  <span className="text-[8px] text-zinc-600 font-bold uppercase">
+                                    Response {idx === 0 ? "A" : "B"}
+                                  </span>
+                                  <div className="bg-black p-3 border border-zinc-900">
+                                    <RlhfResponseContent
+                                      content={resp?.content || ""}
+                                      contentType={resolveContentType(selectedGroupedTask.submissions[activeSubmissionIndex]) as ContentType}
+                                      label={`Response ${idx === 0 ? "A" : "B"}`}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
                           </div>
                         </div>
                       )}
-                      <div>
-                        <span className="text-[8px] text-zinc-600 font-bold uppercase">Raw Annotation Result</span>
-                        <pre className="text-[10px] text-zinc-500 font-mono bg-black p-3 border border-zinc-900 overflow-x-auto mt-1">
-                           {JSON.stringify(taskPayload.submissionObject, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-zinc-600 text-xs italic">
-                      No external R2 output payload found. Review metadata manually.
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
 
-              {taskPayload.otherSubmissions && taskPayload.otherSubmissions.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-indigo-400 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
-                    // Consensus Comparison (Other Labellers)
+              {/* Right Column: Submitted Disposition & Peer Consensus */}
+              <div className="space-y-6 flex flex-col min-w-0 h-full">
+                
+                {/* 1. Submitted Disposition */}
+                <div className="space-y-4 flex flex-col shrink-0">
+                  <h3 className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2 flex justify-between items-center">
+                    <span>// Submitted Disposition (R2 Output)</span>
+                    <span className="text-emerald-500 text-[8px] bg-emerald-500/10 px-2 py-0.5 rounded-sm font-mono border border-emerald-500/20">OPERATOR_OUTPUT</span>
                   </h3>
-                  <div className="space-y-4">
-                    {taskPayload.otherSubmissions.map((otherSub: any) => (
-                      <div key={otherSub._id} className="bg-[#05070A]/60 border border-zinc-900/60 p-4 rounded-sm">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[10px] text-zinc-400 font-bold">
-                            Operator: {otherSub.submittedBy?.name || "Anonymous"} ({otherSub.submittedBy?.email})
-                          </span>
-                          <span className={`text-[8px] px-2 py-0.5 border rounded-sm font-bold uppercase ${
-                            otherSub.status === 'approved' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' :
-                            otherSub.status === 'rejected' ? 'border-rose-500/30 text-rose-400 bg-rose-500/10' :
-                            'border-zinc-800 text-zinc-500 bg-zinc-950'
-                          }`}>
-                            {otherSub.status}
-                          </span>
-                        </div>
-                        {otherSub.content ? (
-                          <div className="space-y-2">
-                            {otherSub.content.label !== undefined && (
-                              <p className="text-xs font-bold text-zinc-300">
-                                Label: <span className="text-white">{String(otherSub.content.label)}</span>
-                              </p>
-                            )}
-                            {otherSub.content.selectedResponse !== undefined && (
-                              <p className="text-xs font-bold text-zinc-300">
-                                Response Selected: <span className="text-white">Response {otherSub.content.selectedResponse}</span>
-                              </p>
-                            )}
-                            <pre className="text-[9px] text-zinc-600 font-mono bg-black/40 p-2 border border-zinc-900/40 overflow-x-auto mt-2">
-                              {JSON.stringify(otherSub.content, null, 2)}
-                            </pre>
+                  <div className="bg-[#05070A] border border-zinc-900 p-6 rounded-sm max-h-[350px] overflow-y-auto">
+                    {taskPayload.submissionObject ? (
+                      <div className="space-y-4">
+                        {taskPayload.submissionObject.label !== undefined && (
+                          <div>
+                            <span className="text-[8px] text-zinc-600 font-bold uppercase">Label Selected</span>
+                            <p className="text-sm font-bold text-white font-mono">{String(taskPayload.submissionObject.label)}</p>
                           </div>
-                        ) : (
-                          <p className="text-[10px] text-zinc-600 italic">No response content fetched.</p>
                         )}
+                        {taskPayload.submissionObject.selectedResponse !== undefined && (
+                          <div>
+                            <span className="text-[8px] text-indigo-400 font-bold uppercase">Response Selected</span>
+                            <p className="text-sm font-bold text-white font-mono">Response {taskPayload.submissionObject.selectedResponse}</p>
+                          </div>
+                        )}
+                        {(taskPayload.submissionObject.audioBase64 || taskPayload.submissionObject.audio) && (
+                          <div className="space-y-3 p-4 bg-zinc-950/60 border border-zinc-900 rounded-sm">
+                            <span className="text-[8px] text-indigo-400 font-bold uppercase block">// Recorded Audio Submission</span>
+                            <audio 
+                              controls 
+                              src={taskPayload.submissionObject.audioBase64 || taskPayload.submissionObject.audio} 
+                              className="w-full" 
+                            />
+                            {taskPayload.submissionObject.transcription && (
+                              <div className="pt-2">
+                                <span className="text-[8px] text-zinc-600 font-bold uppercase block">Transcription</span>
+                                <p className="text-xs text-zinc-300 italic font-sans">"{taskPayload.submissionObject.transcription}"</p>
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-4 pt-2 text-[9px] text-zinc-500">
+                              {taskPayload.submissionObject.selectedTone && (
+                                <div>
+                                  <span className="font-bold text-zinc-600 uppercase">Tone:</span> {taskPayload.submissionObject.selectedTone}
+                                </div>
+                              )}
+                              {taskPayload.submissionObject.languageUsed && (
+                                <div>
+                                  <span className="font-bold text-zinc-600 uppercase">Language:</span> {taskPayload.submissionObject.languageUsed}
+                                </div>
+                              )}
+                              {taskPayload.submissionObject.recordedAt && (
+                                <div>
+                                  <span className="font-bold text-zinc-600 uppercase">Recorded:</span> {new Date(taskPayload.submissionObject.recordedAt).toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-[8px] text-zinc-600 font-bold uppercase">Raw Annotation Result</span>
+                          <pre className="text-[9px] text-zinc-500 font-mono bg-black p-3 border border-zinc-900 overflow-x-auto mt-1 max-h-40">
+                             {JSON.stringify(taskPayload.submissionObject, null, 2)}
+                          </pre>
+                        </div>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="text-center py-4 text-zinc-600 text-xs italic">
+                        No external R2 output payload found. Review metadata manually.
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+
+                {/* 2. Consensus Comparison */}
+                {taskPayload.otherSubmissions && taskPayload.otherSubmissions.length > 0 && (
+                  <div className="space-y-4 flex flex-col min-h-0 flex-1">
+                    <h3 className="text-indigo-400 text-[10px] font-bold uppercase tracking-wider border-b border-zinc-900 pb-2">
+                      // Consensus Comparison (Other Labellers)
+                    </h3>
+                    <div className="space-y-4 overflow-y-auto pr-1 flex-1 max-h-[300px]">
+                      {taskPayload.otherSubmissions.map((otherSub: any) => (
+                        <div key={otherSub._id} className="bg-[#05070A]/60 border border-zinc-900/60 p-4 rounded-sm">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[9px] text-zinc-400 font-mono">
+                              Operator: {otherSub.submittedBy?.name || "Anonymous"}
+                            </span>
+                            <span className={`text-[8px] px-2 py-0.5 border rounded-sm font-bold uppercase ${
+                              otherSub.status === 'approved' ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' :
+                              otherSub.status === 'rejected' ? 'border-rose-500/30 text-rose-400 bg-rose-500/10' :
+                              'border-zinc-800 text-zinc-500 bg-zinc-950'
+                            }`}>
+                              {otherSub.status}
+                            </span>
+                          </div>
+                          {otherSub.content ? (
+                            <div className="space-y-2">
+                              {otherSub.content.label !== undefined && (
+                                <p className="text-xs font-bold text-zinc-300">
+                                  Label: <span className="text-white">{String(otherSub.content.label)}</span>
+                                </p>
+                              )}
+                              {otherSub.content.selectedResponse !== undefined && (
+                                <p className="text-xs font-bold text-zinc-300">
+                                  Response Selected: <span className="text-white">Response {otherSub.content.selectedResponse}</span>
+                                </p>
+                              )}
+                              <pre className="text-[9px] text-zinc-600 font-mono bg-black/40 p-2 border border-zinc-900/40 overflow-x-auto mt-2 max-h-32">
+                                {JSON.stringify(otherSub.content, null, 2)}
+                              </pre>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-zinc-600 italic">No response content fetched.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4">

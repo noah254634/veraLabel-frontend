@@ -189,12 +189,23 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         throw new Error("Failed to generate secure upload gateway.");
       }
 
-      // 2. Direct upload annotation to R2
-      const isBlob = annotation instanceof Blob;
-      const uploadContentType = isBlob ? 'audio/wav' : 'application/json';
-      // For plain object payloads (e.g. audio collection JSON), explicitly stringify
-      // so the R2 object contains valid JSON that the backend validator can parse.
-      const bodyPayload = isBlob ? annotation : JSON.stringify(annotation || {});
+      // Detect if it is a crowdsourced collection task
+      const isCollection = annotation && typeof annotation === 'object' && annotation.blob instanceof Blob;
+
+      // 2. Direct upload annotation/audio to R2
+      let bodyPayload: any;
+      let uploadContentType: string;
+      let submissionMetadata: any = null;
+
+      if (isCollection) {
+        bodyPayload = annotation.blob;
+        uploadContentType = 'audio/wav';
+        submissionMetadata = annotation.metadata;
+      } else {
+        const isBlob = annotation instanceof Blob;
+        uploadContentType = isBlob ? 'audio/wav' : 'application/json';
+        bodyPayload = isBlob ? annotation : JSON.stringify(annotation || {});
+      }
 
       await axios.put(uploadUrl, bodyPayload, {
         headers: { 'Content-Type': uploadContentType },
@@ -205,7 +216,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       let lastError: any = null;
       for (let attempt = 0; attempt <= 2; attempt++) {
         try {
-          response = await taskService.submitTask(taskId, batchId);
+          response = await taskService.submitTask(taskId, batchId, submissionMetadata);
           lastError = null;
           break;
         } catch (finalizeErr: any) {

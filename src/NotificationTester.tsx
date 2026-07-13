@@ -70,38 +70,6 @@ const NotificationTester = () => {
     }
   };
 
-  const generateEmailHtml = (heading: string, bodyText: string, signOff: string) => {
-    const formattedParagraphs = bodyText
-      .split('\n')
-      .map(p => p.trim())
-      .filter(p => p.length > 0)
-      .map(p => `<p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 16px 0;">${p}</p>`)
-      .join('');
-
-    const formattedSignOff = signOff
-      ? `<p style="font-size: 14px; line-height: 1.5; color: #475569; font-style: italic; margin-top: 24px; border-top: 1px dashed #e2e8f0; padding-top: 16px; white-space: pre-line;">${signOff}</p>`
-      : '';
-
-    return `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #1e293b; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px;">
-          <h2 style="color: #4f46e5; margin: 0; font-size: 24px; font-weight: 800; tracking-tight: -0.025em; line-height: 1.2;">${heading}</h2>
-          <p style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin: 5px 0 0 0; font-weight: 600;">Official Transmission</p>
-        </div>
-        
-        <div style="margin-bottom: 30px;">
-          ${formattedParagraphs}
-          ${formattedSignOff}
-        </div>
-        
-        <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; text-align: center; font-size: 11px; color: #94a3b8; font-weight: 500;">
-          <p style="margin: 0 0 5px 0;">This is an authorized administrator transmission from the VeraLabel platform.</p>
-          <p style="margin: 0;">VeraLabel Operations Gateway © 2026</p>
-        </div>
-      </div>
-    `;
-  };
-
   const handleSendEmail = async () => {
     if (!emailTo || !emailSubject || !emailHeading || !emailBodyText) {
       setStatus('✗ Recipient email, subject, heading, and body are required');
@@ -109,13 +77,14 @@ const NotificationTester = () => {
     }
     
     try {
-      setStatus('Compiling template and sending email…');
-      const compiledHtml = generateEmailHtml(emailHeading, emailBodyText, emailSignOff);
+      setStatus('Dispatching email…');
 
       const res = await api.post('/notifications/send-email', {
         to: emailTo,
         subject: emailSubject,
-        html: compiledHtml,
+        heading: emailHeading,
+        bodyText: emailBodyText,
+        signOff: emailSignOff,
       });
       setStatus(`✓ Email sent successfully — ${JSON.stringify(res.data)}`);
     } catch (err: any) {

@@ -57,7 +57,7 @@ export const taskGenerationService = {
 
   approveRunAndBatch: async (
     runId: string, 
-    params: { datasetId?: string; datasetName?: string; datasetDescription?: string }
+    params: { datasetId?: string; datasetName?: string; datasetDescription?: string; price?: number; pricePerBatch?: number }
   ): Promise<{ success: boolean; modifiedCount: number }> => {
     const response = await api.post(`/admin/tasks/runs/${runId}/approve`, params);
     return response.data.data;

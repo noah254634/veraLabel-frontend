@@ -728,8 +728,7 @@ const DatasetAdminPage = () => {
                       disabled={
                         !(parseFloat(selectedDataset.price) > 0) ||
                         !((selectedDataset as any).status === "approved" || (selectedDataset as any).status === "completed") ||
-                        !((selectedDataset as any).rows > 0 || (selectedDataset as any).volume) ||
-                        ((selectedDataset as any).rowsCompleted < (selectedDataset as any).rows) ||
+                        !((selectedDataset as any).rows > 0 || (selectedDataset as any).totalTasksCount > 0 || (selectedDataset as any).volume) ||
                         ((selectedDataset as any).type === "custom" && !selectedDataset.paidAt)
                       }
                       className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-transparent bg-indigo-600 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-indigo-500 disabled:border-zinc-800 disabled:bg-zinc-900 disabled:text-zinc-700"
@@ -739,9 +738,7 @@ const DatasetAdminPage = () => {
                         ? "Market_Injection_Locked"
                         : ((selectedDataset as any).type === "custom" && !selectedDataset.paidAt)
                           ? "Payment_Awaiting"
-                          : ((selectedDataset as any).rowsCompleted < (selectedDataset as any).rows)
-                            ? "Batch_Incomplete"
-                            : "Market_Injection"}
+                          : "Market_Injection"}
                     </button>
                   )}
 

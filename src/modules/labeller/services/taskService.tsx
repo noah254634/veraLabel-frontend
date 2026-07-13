@@ -60,8 +60,8 @@ export const taskService={
         const response = await api.post(`/tasks/generate-submission-url/${taskId}`);
         return response.data;
     },
-    submitTask: async (taskId: string, batchId: string): Promise<any> => {
-        const response = await api.put(`/tasks/submit/${taskId}`, { batchId });
+    submitTask: async (taskId: string, batchId: string, metadata?: any): Promise<any> => {
+        const response = await api.put(`/tasks/submit/${taskId}`, { batchId, ...metadata });
         return response.data;
     },
 }
