@@ -14,24 +14,24 @@ export const ReviewerSidebar = () => {
       <div className="px-4 mb-4 flex items-center gap-2 opacity-30">
         <Fingerprint size={12} />
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] font-bold">
-          Review_Control_v1
+          Reviewer Portal
         </span>
       </div>
 
       <div className="space-y-1">
         <NavItem
           to="/reviewer/dashboard"
-          label="Operational_Intel"
+          label="Dashboard"
           icon={<Activity size={18} strokeWidth={1.5} />}
         />
         <NavItem 
           to="/reviewer/queue" 
-          label="Active_Audit_Queue" 
+          label="Review Queue" 
           icon={<Zap size={18} strokeWidth={1.5} className="text-indigo-500" />} 
         />
         <NavItem 
           to="/reviewer/history" 
-          label="Verified_Archives" 
+          label="Review History" 
           icon={<CheckCircle size={18} strokeWidth={1.5} />} 
         />
       </div>
