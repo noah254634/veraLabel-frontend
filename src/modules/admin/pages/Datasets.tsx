@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Database, CheckCircle, XCircle, Star, ShieldAlert, Globe, Lock, Search,
-  Download, Trash2, Terminal, ChevronRight, Activity, User, ExternalLink, RotateCcw, RefreshCw
+  Download, Trash2, Terminal, ChevronRight, Activity, User, ExternalLink, RotateCcw, RefreshCw, AlertTriangle
 } from "lucide-react";
 import { dataStore } from "../store/datasetManagementStore";
 import toast from "react-hot-toast";
@@ -31,6 +31,12 @@ const DatasetAdminPage = () => {
   const [isCompiling, setIsCompiling] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEvaluatingConsensus, setIsEvaluatingConsensus] = useState(false);
+
+  // Purge Modal State
+  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [purgeConfirmName, setPurgeConfirmName] = useState("");
+  const [purgeReason, setPurgeReason] = useState("");
+  const [isPurging, setIsPurging] = useState(false);
 
   useEffect(() => {
     if (currentStatus === "all") {
@@ -221,6 +227,27 @@ const DatasetAdminPage = () => {
       toast.error(msg);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handlePurgeDataset = async () => {
+    if (!selectedId || !selectedDataset) return;
+    if (purgeConfirmName.trim() !== selectedDataset.name.trim()) {
+      toast.error("Dataset name confirmation does not match!");
+      return;
+    }
+    setIsPurging(true);
+    try {
+      await deleteDataset(selectedId, purgeReason || "ADMIN_CASCADE_PURGE");
+      toast.success(`Dataset "${selectedDataset.name}" permanently purged.`);
+      setIsPurgeModalOpen(false);
+      setSelectedId(null);
+      setPurgeConfirmName("");
+      setPurgeReason("");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || "Purge failed");
+    } finally {
+      setIsPurging(false);
     }
   };
 
@@ -770,8 +797,12 @@ const DatasetAdminPage = () => {
                   </div>
 
                   <button
-                    onClick={() => deleteDataset(selectedDatasetId!, "PURGE")}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-900 bg-black px-4 py-3 text-[9px] font-mono uppercase tracking-[0.3em] text-zinc-600 transition-colors hover:border-rose-500/50 hover:text-rose-400"
+                    onClick={() => {
+                      setPurgeConfirmName("");
+                      setPurgeReason("");
+                      setIsPurgeModalOpen(true);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-950/40 bg-rose-950/10 px-4 py-3 text-[9px] font-mono uppercase tracking-[0.3em] text-rose-400/80 transition-colors hover:border-rose-500/50 hover:bg-rose-950/30 hover:text-rose-400"
                   >
                     <Trash2 size={12} /> System_Purge
                   </button>
@@ -793,6 +824,97 @@ const DatasetAdminPage = () => {
           )}
         </aside>
       </div>
+
+      {/* Admin Purge Confirmation Modal */}
+      {isPurgeModalOpen && selectedDataset && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+            onClick={() => setIsPurgeModalOpen(false)}
+          />
+
+          <div className="relative bg-[#0A0A0A] w-full max-w-lg flex flex-col border border-rose-500/40 shadow-[0_0_50px_rgba(244,63,94,0.15)] overflow-hidden animate-in zoom-in-95 p-6 md:p-8">
+            <div className="flex items-center gap-3 text-rose-500 mb-4 pb-4 border-b border-rose-900/40">
+              <div className="p-2 bg-rose-500/10 rounded-xl border border-rose-500/20">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-[0.3em] font-bold text-rose-400">CRITICAL_PURGE_WARNING</span>
+                <h2 className="text-xl font-bold text-white tracking-tight">Cascade Dataset Purge</h2>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-xs font-light text-zinc-300">
+              <p className="p-3 bg-rose-950/20 border border-rose-900/30 text-rose-300 font-mono text-[11px] leading-relaxed">
+                ⚠️ This is a destructive operation. Purging this dataset will permanently delete the dataset document, all associated tasks, batches, labeller submissions, and invoices from MongoDB.
+              </p>
+
+              <div className="bg-black border border-zinc-850 p-4 space-y-2 font-mono text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Target Asset Name:</span>
+                  <span className="text-white font-bold">{selectedDataset.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Asset UID:</span>
+                  <span className="text-indigo-400 font-bold">{selectedDatasetId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Total Tasks Enrolled:</span>
+                  <span className="text-amber-400 font-bold">{totalTasks}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400">
+                  Type dataset name to confirm purge:
+                </label>
+                <input
+                  type="text"
+                  value={purgeConfirmName}
+                  onChange={(e) => setPurgeConfirmName(e.target.value)}
+                  placeholder={selectedDataset.name}
+                  className="w-full bg-black border border-zinc-800 p-3 text-xs text-white focus:outline-none focus:border-rose-500 font-mono placeholder:text-zinc-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400">
+                  Purge Reason / Audit Note:
+                </label>
+                <input
+                  type="text"
+                  value={purgeReason}
+                  onChange={(e) => setPurgeReason(e.target.value)}
+                  placeholder="e.g., Admin manual request cleanup..."
+                  className="w-full bg-black border border-zinc-800 p-3 text-xs text-white focus:outline-none focus:border-rose-500 font-mono placeholder:text-zinc-700"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6 pt-4 border-t border-zinc-900">
+              <button
+                type="button"
+                onClick={() => setIsPurgeModalOpen(false)}
+                className="flex-1 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono font-bold uppercase tracking-widest transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePurgeDataset}
+                disabled={isPurging || purgeConfirmName.trim() !== selectedDataset.name.trim()}
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold uppercase tracking-widest transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isPurging ? (
+                  <><RefreshCw size={14} className="animate-spin" /> Purging...</>
+                ) : (
+                  <><Trash2 size={14} /> Confirm_Cascade_Purge</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
