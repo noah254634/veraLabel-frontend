@@ -48,10 +48,44 @@ const DatasetAdminPage = () => {
 
   const filteredDatasets = useMemo(() => {
     return datasets.filter((d) => {
+      const statusMatch = currentStatus === "all" ? true :
+        currentStatus === "flagged" ? (d as any).isFlagged?.flagged :
+        (d as any).status === currentStatus;
       const val = (d as unknown as Record<string, unknown>)[searchType]?.toString().toLowerCase() || "";
-      return val.includes(searchTerm.toLowerCase());
+      const searchMatch = val.includes(searchTerm.toLowerCase());
+      return statusMatch && searchMatch;
     });
-  }, [datasets, searchTerm, searchType]);
+  }, [datasets, currentStatus, searchTerm, searchType]);
+
+  const handleExportLog = () => {
+    if (!filteredDatasets.length) {
+      toast.error("No dataset entries to export");
+      return;
+    }
+    const headers = ["ID", "Name", "Type", "Domain", "LabellingMethod", "Status", "Price", "Rows", "Completed", "Rating", "CreatedAt"];
+    const rows = filteredDatasets.map(d => [
+      (d.datasetId ?? String(d._id)),
+      `"${(d.name || '').replace(/"/g, '""')}"`,
+      (d as any).type || 'marketplace',
+      (d as any).domain || d.category || '',
+      (d as any).labellingMethod || '',
+      (d as any).status || '',
+      d.price || '0',
+      (d as any).rows || 0,
+      (d as any).rowsCompleted || 0,
+      d.rating || 0,
+      (d as any).createdAt || ''
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `veralabel_dataset_inventory_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Dataset inventory log exported as CSV!");
+  };
 
   const selectedDataset = useMemo(
     () => datasets.find((d) => (d.datasetId ?? String(d._id)) === selectedId),
@@ -261,52 +295,54 @@ const DatasetAdminPage = () => {
   }, [selectedDataset]);
 
   return (
-    <div className="w-full min-h-0 flex flex-col gap-6 pb-6 text-zinc-100">
-      <section className="rounded-3xl border border-zinc-900 bg-[#050505] shadow-[0_24px_80px_rgba(0,0,0,0.45)] overflow-hidden">
-        <div className="relative p-6 md:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(79,70,229,0.14),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(16,185,129,0.08),_transparent_36%)] pointer-events-none" />
-          <div className="relative flex flex-col xl:flex-row xl:items-end justify-between gap-6">
-            <div className="space-y-3 max-w-3xl">
-              <div className="flex items-center gap-2 text-indigo-400">
-                <Terminal size={14} />
-                <span className="font-mono text-[10px] uppercase tracking-[0.42em] font-bold">Admin_Registry_Root</span>
-              </div>
-              <div>
-                <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white">Dataset Inventory</h1>
-                <p className="mt-3 text-sm md:text-base text-zinc-500 max-w-2xl leading-6">
-                  Browse datasets as a working registry, select a row, and inspect or update its operational state without losing the table.
-                </p>
-              </div>
+    <div className="w-full min-h-0 flex flex-col gap-6 pb-6 text-zinc-100 animate-in fade-in duration-500">
+      {/* Top Header Card */}
+      <section className="rounded-2xl border border-zinc-900 bg-[#050505] p-6 md:p-8">
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+          <div className="space-y-2 max-w-3xl">
+            <div className="flex items-center gap-2 text-zinc-400">
+              <Terminal size={13} />
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] font-medium text-zinc-500">Admin // Registry Root</span>
             </div>
+            <div>
+              <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white">Dataset Inventory</h1>
+              <p className="mt-1 text-xs md:text-sm text-zinc-500 max-w-2xl font-light">
+                Browse datasets as a working registry, select a row, and inspect or update operational states.
+              </p>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:w-[680px]">
-              <div className="rounded-2xl border border-zinc-900 bg-black/60 p-4 backdrop-blur-sm">
-                <div className="text-[8px] uppercase tracking-[0.35em] text-zinc-600 font-mono">Total</div>
-                <div className="mt-2 text-2xl font-black text-white tabular-nums">{registryStats.totalCount}</div>
-              </div>
-              <div className="rounded-2xl border border-zinc-900 bg-black/60 p-4 backdrop-blur-sm">
-                <div className="text-[8px] uppercase tracking-[0.35em] text-zinc-600 font-mono">Visible</div>
-                <div className="mt-2 text-2xl font-black text-indigo-400 tabular-nums">{registryStats.visibleCount}</div>
-              </div>
-              <div className="rounded-2xl border border-zinc-900 bg-black/60 p-4 backdrop-blur-sm">
-                <div className="text-[8px] uppercase tracking-[0.35em] text-zinc-600 font-mono">Live</div>
-                <div className="mt-2 text-2xl font-black text-emerald-400 tabular-nums">{registryStats.liveCount}</div>
-              </div>
-              <div className="rounded-2xl border border-zinc-900 bg-black/60 p-4 backdrop-blur-sm">
-                <div className="text-[8px] uppercase tracking-[0.35em] text-zinc-600 font-mono">Avg Rating</div>
-                <div className="mt-2 text-2xl font-black text-amber-400 tabular-nums">{registryStats.averageRating.toFixed(1)}</div>
-              </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:w-[600px]">
+            <div className="rounded-xl border border-zinc-900 bg-black/80 p-3.5">
+              <div className="text-[8px] uppercase tracking-[0.25em] text-zinc-600 font-mono">Total</div>
+              <div className="mt-1.5 text-xl font-bold text-white tabular-nums">{registryStats.totalCount}</div>
+            </div>
+            <div className="rounded-xl border border-zinc-900 bg-black/80 p-3.5">
+              <div className="text-[8px] uppercase tracking-[0.25em] text-zinc-600 font-mono">Visible</div>
+              <div className="mt-1.5 text-xl font-bold text-zinc-200 tabular-nums">{registryStats.visibleCount}</div>
+            </div>
+            <div className="rounded-xl border border-zinc-900 bg-black/80 p-3.5">
+              <div className="text-[8px] uppercase tracking-[0.25em] text-zinc-600 font-mono">Live</div>
+              <div className="mt-1.5 text-xl font-bold text-emerald-400 tabular-nums">{registryStats.liveCount}</div>
+            </div>
+            <div className="rounded-xl border border-zinc-900 bg-black/80 p-3.5">
+              <div className="text-[8px] uppercase tracking-[0.25em] text-zinc-600 font-mono">Avg Rating</div>
+              <div className="mt-1.5 text-xl font-bold text-amber-400 tabular-nums">{registryStats.averageRating.toFixed(1)}</div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-zinc-900 bg-[#050505] p-4 md:p-5 shadow-[0_16px_60px_rgba(0,0,0,0.35)]">
+      {/* Filter & Controls Bar */}
+      <section className="rounded-2xl border border-zinc-900 bg-[#050505] p-4 md:p-5 space-y-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 xl:pb-0 max-w-full custom-scrollbar">
             {[
-              { id: "all", label: "All_Datasets" },
-              { id: "pending", label: "Pending_Review" },
+              { id: "all", label: "All" },
+              { id: "in_progress", label: "In Progress" },
+              { id: "completed", label: "Completed" },
+              { id: "curation_requested", label: "Curation Requested" },
+              { id: "pending", label: "Pending Review" },
               { id: "approved", label: "Approved" },
               { id: "rejected", label: "Rejected" },
               { id: "flagged", label: "Flagged" },
@@ -314,10 +350,11 @@ const DatasetAdminPage = () => {
               <button
                 key={tab.id}
                 onClick={() => setCurrentStatus(tab.id as any)}
-                className={`rounded-full border px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${currentStatus === tab.id
-                    ? "border-indigo-500 bg-indigo-500/15 text-indigo-300 shadow-[0_0_0_1px_rgba(99,102,241,0.18)]"
-                    : "border-zinc-800 bg-black/60 text-zinc-500 hover:border-zinc-700 hover:text-zinc-200"
-                  }`}
+                className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors ${
+                  currentStatus === tab.id
+                    ? "border-zinc-700 bg-zinc-900 text-white font-medium"
+                    : "border-zinc-900 bg-black/40 text-zinc-500 hover:border-zinc-800 hover:text-zinc-300"
+                }`}
               >
                 {tab.label}
               </button>
@@ -332,7 +369,10 @@ const DatasetAdminPage = () => {
               </div>
             )}
 
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-black/60 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white">
+            <button
+              onClick={handleExportLog}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-black/60 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white"
+            >
               <Download size={14} /> Export_Log
             </button>
           </div>

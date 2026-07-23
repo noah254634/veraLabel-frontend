@@ -9,11 +9,11 @@ type DatasetStore = {
   loading: boolean;
   setLoading: (loading: boolean) => void;
   datasets: Dataset[];
-  currentStatus: "all" | "pending" | "approved" | "rejected" | "flagged";
-  setCurrentStatus: (status: "all" | "pending" | "approved" | "rejected" | "flagged") => void;
+  currentStatus: "all" | "pending" | "approved" | "rejected" | "flagged" | "in_progress" | "completed" | "curation_requested";
+  setCurrentStatus: (status: "all" | "pending" | "approved" | "rejected" | "flagged" | "in_progress" | "completed" | "curation_requested") => void;
   setDatasets: (datasets: Dataset[]) => Promise<void>;
   getDataset: () => Promise<Dataset[] | null>;
-  getDatasetsByStatus: (status: "pending" | "approved" | "rejected" | "flagged") => Promise<Dataset[] | null>;
+  getDatasetsByStatus: (status: string) => Promise<Dataset[] | null>;
   deleteDataset: (id: string, reason: string) => Promise<void>;
   addDataset: () => Promise<void>;
   publishDataset: () => Promise<void>;
@@ -65,9 +65,9 @@ export const dataStore = create<DatasetStore>((set, get) => ({
       set({ loading: false });
     }
   },
-  getDatasetsByStatus: async (status: "pending" | "approved" | "rejected" | "flagged") => {
+  getDatasetsByStatus: async (status: string) => {
     try {
-      set({ loading: true, currentStatus: status });
+      set({ loading: true, currentStatus: status as any });
       let datasets: Dataset[] = [];
       
       switch (status) {
@@ -83,6 +83,11 @@ export const dataStore = create<DatasetStore>((set, get) => ({
         case "flagged":
           datasets = await datasetService.fetchFlaggedDatasets();
           break;
+        default: {
+          const all = await datasetService.fetchDatasets();
+          datasets = all.filter(d => status === "all" ? true : (d as any).status === status);
+          break;
+        }
       }
       
       set({ datasets });
