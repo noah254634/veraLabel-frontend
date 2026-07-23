@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
   Bot, Sparkles, Layers, Check, Edit2, Play, AlertCircle, 
-  RefreshCw, Eye, CheckSquare, Plus, X
+  RefreshCw, Eye, CheckSquare, Plus, X, Trash2
 } from "lucide-react";
 import { taskGenerationService } from "../services/taskGenerationService";
 import type { TaskGenerationRun, DraftTask } from "../services/taskGenerationService";
@@ -17,6 +17,7 @@ const TaskGenerator = () => {
   const [codeSwitchExpected, setCodeSwitchExpected] = useState(false);
   const [customInstructions, setCustomInstructions] = useState("");
   const [count, setCount] = useState(10);
+  const [customDomain, setCustomDomain] = useState("");
 
   // Lists State
   const [runs, setRuns] = useState<TaskGenerationRun[]>([]);
@@ -178,6 +179,25 @@ const TaskGenerator = () => {
     }
   };
 
+  const handleDeleteRun = async (runId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete generation run ${runId}? This will remove all associated draft tasks.`)) {
+      return;
+    }
+
+    try {
+      await taskGenerationService.deleteRun(runId);
+      setSuccessMsg(`Run ${runId} deleted successfully.`);
+      if (selectedRun?.runId === runId) {
+        setSelectedRun(null);
+        setDraftTasks([]);
+      }
+      loadRuns();
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || err.message || "Failed to delete generation run");
+    }
+  };
+
   return (
     <div className="w-full animate-in fade-in duration-700 relative text-white">
       {/* Header */}
@@ -211,8 +231,15 @@ const TaskGenerator = () => {
                 Category Domain
               </label>
               <select 
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={['fintech', 'transport', 'agriculture', 'healthcare', 'education'].includes(category) ? category : '__custom__'}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setCategory(customDomain || '');
+                  } else {
+                    setCategory(e.target.value);
+                    setCustomDomain('');
+                  }
+                }}
                 className="w-full bg-black border border-zinc-800 p-3 text-xs font-semibold focus:outline-none focus:border-indigo-500 transition-colors"
               >
                 <option value="fintech">Fintech & Banking</option>
@@ -220,7 +247,20 @@ const TaskGenerator = () => {
                 <option value="agriculture">Agriculture & Trade</option>
                 <option value="healthcare">Healthcare & Biotech</option>
                 <option value="education">Education & Science</option>
+                <option value="__custom__">Custom Domain</option>
               </select>
+              {!['fintech', 'transport', 'agriculture', 'healthcare', 'education'].includes(category) && (
+                <input
+                  type="text"
+                  value={customDomain}
+                  onChange={(e) => {
+                    setCustomDomain(e.target.value);
+                    setCategory(e.target.value);
+                  }}
+                  placeholder="e.g. Real Estate, Legal, Retail..."
+                  className="w-full mt-2 bg-black border border-zinc-800 p-3 text-xs focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-700"
+                />
+              )}
             </div>
 
             <div>
@@ -353,14 +393,24 @@ const TaskGenerator = () => {
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-mono text-xs font-bold text-white tracking-tight">{run.runId}</span>
-                    <span className={`px-2 py-0.5 border text-[8px] font-mono uppercase tracking-widest ${
-                      run.status === "completed" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
-                      run.status === "review_required" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
-                      run.status === "generating" ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400 animate-pulse" :
-                      "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                    }`}>
-                      {run.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 border text-[8px] font-mono uppercase tracking-widest ${
+                        run.status === "completed" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                        run.status === "review_required" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                        run.status === "generating" ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400 animate-pulse" :
+                        "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                      }`}>
+                        {run.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteRun(run.runId, e)}
+                        className="text-zinc-600 hover:text-rose-400 transition-colors p-1"
+                        title="Delete Generation Run"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
                     <span>Category: {run.category}</span>
@@ -386,7 +436,17 @@ const TaskGenerator = () => {
                     <Eye size={16} />
                     <h3 className="text-xs font-mono font-bold uppercase tracking-widest">Review_Scenarios</h3>
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-widest">{selectedRun.runId}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-widest">{selectedRun.runId}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteRun(selectedRun.runId, e)}
+                      className="text-zinc-600 hover:text-rose-400 transition-colors p-1"
+                      title="Delete Generation Run"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Info messages */}

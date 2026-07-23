@@ -9,6 +9,7 @@ export type SignupCredentials = {
   name: string;
   email: string;
   password: string;
+  role: string;
 };
 
 export const loginApi = async (credentials: LoginCredentials) => {

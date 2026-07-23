@@ -422,9 +422,44 @@ const CustomDataRequestModal = ({
     }
 
     try {
-      // Determine worker route
+      const timelineOption = selectedTimeline !== null
+        ? DOMAIN_TIMELINES[formData.domain]?.[selectedTimeline]
+        : null;
+
+      // Handle Bespoke Sourcing (No dataset file pre-uploaded)
+      if (intent === "sourcing" || !formData.uploadedFile) {
+        setSubmissionStep("creating_request");
+        toast.loading("Registering custom data curation request...");
+        
+        await datasetRequest({
+          name: formData.name,
+          domain: formData.domain,
+          specifications: formData.specifications,
+          volume: formData.volume,
+          format: formData.format,
+          budget: 0,
+          maxLabellers,
+          fileUrl: "",
+          timeline: formData.timeline,
+          timelineDays: timelineOption?.days,
+          intent: intent || "sourcing",
+          qualityMetrics: formData.qualityMetrics,
+          labellingMethod: formData.labellingMethod as LabellingMethod,
+          contentType: formData.contentType as ContentType,
+          instructionId: selectedProtocol?._id,
+          buyerAnswers: buyerAnswers
+        });
+
+        toast.dismiss();
+        toast.success("Custom data curation request submitted! Our ops team & AI task generators will begin curating your dataset.");
+        setSubmissionStep("idle");
+        handleModalClose();
+        return;
+      }
+
+      // Handle Data Labeling (File pre-uploaded by client)
       let workerRoute = "text";
-      let uploadMime = "application/octet-stream"; // actual MIME for the R2 presigned PUT
+      let uploadMime = "application/octet-stream";
 
       if (formData.labellingMethod === "rlhf") {
         workerRoute = "rlhf";
@@ -440,7 +475,6 @@ const CustomDataRequestModal = ({
         workerRoute = isZip ? (formData.domain === "Audio" ? "audio" : "media") : "text";
         uploadMime = isZip ? "application/zip" : (formData.uploadedFile?.type || "audio/mpeg");
       } else {
-        // Text/code/document/NLP domains
         workerRoute = "text";
         uploadMime = formData.uploadedFile?.type || "application/json";
       }
@@ -451,18 +485,13 @@ const CustomDataRequestModal = ({
       const { uploadUrl, key } = await generateUploadUrl(uploadMime);
 
       // Upload file directly to cloud storage
-      if (formData.uploadedFile) {
-        setSubmissionStep("uploading_file");
-        toast.loading("Uploading file to cloud storage...");
-        await uploadFileToS3(formData.uploadedFile, uploadUrl, uploadMime);
-      }
+      setSubmissionStep("uploading_file");
+      toast.loading("Uploading file to cloud storage...");
+      await uploadFileToS3(formData.uploadedFile, uploadUrl, uploadMime);
 
       // Create dataset request
       setSubmissionStep("creating_request");
       toast.loading("Creating dataset request...");
-      const timelineOption = selectedTimeline !== null
-        ? DOMAIN_TIMELINES[formData.domain]?.[selectedTimeline]
-        : null;
       const requestResult = await datasetRequest({
         name: formData.name,
         domain: formData.domain,
@@ -474,7 +503,7 @@ const CustomDataRequestModal = ({
         fileUrl: key,
         timeline: formData.timeline,
         timelineDays: timelineOption?.days,
-        intent: intent || undefined,
+        intent: intent || "labeling",
         qualityMetrics: formData.qualityMetrics,
         labellingMethod: formData.labellingMethod as LabellingMethod,
         contentType: formData.contentType as ContentType,
@@ -485,7 +514,6 @@ const CustomDataRequestModal = ({
       // Confirm upload and trigger worker
       setSubmissionStep("initiating_split");
       toast.loading("Confirming upload with backend...");
-      // Backend returns { response: { datasetId, datasetRequest } }
       const datasetId = requestResult?.response?.datasetId || requestResult?.datasetId || key;
       setCreatedDatasetId(datasetId);
       await confirmUpload(key, datasetId, workerRoute);
@@ -929,7 +957,7 @@ const CustomDataRequestModal = ({
                 </h2>
               </header>
 
-              {intent === "labeling" && (
+              {intent === "labeling" ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-zinc-800 bg-zinc-950 p-10 flex flex-col items-center cursor-pointer hover:border-indigo-500/40 transition-all"
@@ -946,6 +974,14 @@ const CustomDataRequestModal = ({
                       ? formData.uploadedFile.name
                       : "Initialize_Transmission"}
                   </p>
+                </div>
+              ) : (
+                <div className="p-6 bg-emerald-950/20 border border-emerald-500/30 text-emerald-400/90 font-mono text-[10px] flex items-start gap-3">
+                  <Cpu size={16} className="text-emerald-400 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="font-bold uppercase tracking-widest block mb-1 text-emerald-300">Bespoke Sourcing Mode</span>
+                    <span>No pre-uploaded file required. VeraLabel operations &amp; AI task generator nodes will curate and generate dataset assets based on your brief.</span>
+                  </div>
                 </div>
               )}
               {validationLog.length > 0 && (

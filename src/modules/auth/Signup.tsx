@@ -141,7 +141,7 @@ const SignupPage = () => {
             <Loader2 className="animate-spin" size={16} />
           ) : (
             <>
-              Create Enterprise Account
+              {role === "seller" ? "Create Contributor Account" : "Create Enterprise Account"}
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </>
           )}

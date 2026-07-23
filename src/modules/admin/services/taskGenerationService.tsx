@@ -61,5 +61,10 @@ export const taskGenerationService = {
   ): Promise<{ success: boolean; modifiedCount: number }> => {
     const response = await api.post(`/admin/tasks/runs/${runId}/approve`, params);
     return response.data.data;
+  },
+
+  deleteRun: async (runId: string): Promise<{ success: boolean; runId: string; deletedTasksCount: number }> => {
+    const response = await api.delete(`/admin/tasks/runs/${runId}`);
+    return response.data.data;
   }
 };
