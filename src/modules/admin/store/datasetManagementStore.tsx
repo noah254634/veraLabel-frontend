@@ -42,7 +42,7 @@ export const dataStore = create<DatasetStore>((set, get) => ({
   setLoading: (loading: boolean) => set({ loading }),
   datasets: [],
   currentStatus: "all",
-  setCurrentStatus: (status: "all" | "pending" | "approved" | "rejected" | "flagged") => set({ currentStatus: status }),
+  setCurrentStatus: (status) => set({ currentStatus: status }),
   setDatasets: async (datasets: Dataset[]) => set({ datasets }),
   getDataset: async () => {
     try {
